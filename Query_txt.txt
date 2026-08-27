@@ -1,0 +1,989 @@
+AWB : 6743937513
+
+Orig  Dest  Shipment Time     Prod  Pcs  Kilos  Decl. Value    Description of Goods
+-----------------------------------------------------------------------------------------------------------
+GDL   QRO   2026-08-20 14:08  N     1    30.00                 312033538-A
+Shpr Acct : 980308383                                   Payer Acct : 980308383
+Shipper                                                 Receiver
+------------------------------------------------------  ---------------------------------------------------
+Name   : SPORTLIFE                                      Name   : XIMENA GUADALUPE CRUZ
+Ctc Nm : SportLife NA                                   Ctc Nm : XIMENA GUADALU CRUZ
+Addr 1 : estatal 200                                    Addr 1 : juan jose torres landa 33
+Addr 2 : Hau Can Park, referencias                      Addr 2 : OJO DE AGUA DEL REFUGIO NICOLAS BRAVO Y NINOS
+City   : COLON                                          City   : SAN JOSE ITURBIDE
+State  : QT                                             State  : GT
+Ctry   : MX                                             Ctry   : MX
+Zip    : 76278                                          Zip    : 37995
+Phone  : 3315203357                                     Phone  : 4191144521
+Ref    :
+
+       AWB/PID         Orig  Dest  Fac-ID    Route  Cd        Event Dtm         Data Available     Event Remark
+----------------------------------------------------------------------------------------------------------------------
+6743937513                         QRO-QRO          IA   2026-08-19 11:45:33  2026-08-19 11:52:30
+JD014600012752322005               GDL-TLA   GT2J   PU   2026-08-20 14:04:57  2026-08-20 14:08:01
+6743937513                         GDL-TLA   GT2J   PU   2026-08-20 14:04:57  2026-08-20 14:08:01  0000
+JD014600012752322005               GDL-TLA   GT2J   HN   2026-08-20 14:51:35  2026-08-20 14:54:50  TRANSFERRED TO COURIER gty7
+6743937513                         GDL-TLA   GT2J   HN   2026-08-20 14:51:35  2026-08-20 14:54:50  TRANSFERRED TO COURIER gty7
+JD014600012752322005               GDL-TLA   GTY7   LV   2026-08-20 14:54:55  2026-08-20 14:55:01
+6743937513                         GDL-TLA   GTY7   LV   2026-08-20 14:54:55  2026-08-20 14:55:01
+JD014600012752322005               GDL-TLA   GTW2   HN   2026-08-20 17:23:33  2026-08-20 17:23:33  TRANSFERRED TO FACILITY Dhu
+6743937513                         GDL-TLA   GTW2   HN   2026-08-20 17:23:33  2026-08-20 17:23:33  TRANSFERRED TO FACILITY Dhu
+JD014600012752322005   GDL         GDL-DHU          RW   2026-08-20 19:48:21  2026-08-20 19:48:21  <37.50>  <34.0 x 85.0 x 81.0>
+6743937513             GDL         GDL-DHU          RW   2026-08-20 19:48:21  2026-08-20 19:48:21  <37.50>  <34.0 x 85.0 x 81.0>
+JD014600012752322005               GDL-DHU          PL   2026-08-20 22:18:25  2026-08-20 22:18:26
+6743937513                         GDL-DHU          PL   2026-08-20 22:18:25  2026-08-20 22:18:26
+JD014600012752322005   GDL   QRO   GDL-DHU   HU     PL   2026-08-20 22:22:55  2026-08-20 22:22:56
+6743937513             GDL   QRO   GDL-DHU   HU     PL   2026-08-20 22:22:55  2026-08-20 22:22:56
+JD014600012752322005   GDL   QRO   GDL-DHU   HU     DF   2026-08-20 22:48:58  2026-08-20 22:49:04  GDL>GQH0300>2008>OCN84989763>QRO>0300
+6743937513             GDL   QRO   GDL-DHU   HU     DF   2026-08-20 22:48:58  2026-08-20 22:49:04  GDL>GQH0300>2008>OCN84989763>QRO>0300
+JD014600012752322005   GDL   QRO   QRO-DHU   HU     AF   2026-08-21 02:55:09  2026-08-21 02:55:10
+6743937513             GDL   QRO   QRO-DHU   HU     AF   2026-08-21 02:55:09  2026-08-21 02:55:10
+JD014600012752322005               QRO-DHU          PL   2026-08-21 03:37:21  2026-08-21 03:37:22
+6743937513                         QRO-DHU          PL   2026-08-21 03:37:21  2026-08-21 03:37:22
+JD014600012752322005   QRO   QRO   QRO-DHU   HU     PL   2026-08-21 05:02:46  2026-08-21 05:02:47
+6743937513             QRO   QRO   QRO-DHU   HU     PL   2026-08-21 05:02:46  2026-08-21 05:02:47
+JD014600012752322005   QRO   QRO   QRO-DHU   HU     DF   2026-08-21 05:06:58  2026-08-21 05:06:03  QRO>QQR0600>2108>OCN85156853>QRO>0600
+6743937513             QRO   QRO   QRO-DHU   HU     DF   2026-08-21 05:06:58  2026-08-21 05:06:03  QRO>QQR0600>2108>OCN85156853>QRO>0600
+JD014600012752322005   QRO   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:38  2026-08-21 06:52:39
+6743937513             QRO   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:38  2026-08-21 06:52:39
+JD014600012752322005               QRO-QRO   QRW1   FD   2026-08-21 12:38:33  2026-08-21 12:38:33  ARAUTOS ZF QRO X2 2108 AM
+6743937513                         QRO-QRO   QRW1   FD   2026-08-21 12:38:33  2026-08-21 12:38:33  ARAUTOS ZF QRO X2 2108 AM
+
+AWB : 3348775603
+
+Orig  Dest  Shipment Time     Prod  Pcs  Kilos  Decl. Value    Description of Goods
+-----------------------------------------------------------------------------------------------------------
+QRO   QRO   2026-08-20 17:33  N     1    1.00                  MEDICAMENTO
+Shpr Acct : 983130532                                   Payer Acct : 983130532
+Shipper                                                 Receiver
+------------------------------------------------------  ---------------------------------------------------
+Name   : MEDICMAG                                       Name   : ISIDRO CRUZ GONZALEZ
+Ctc Nm : Pablo Chacon                                   Ctc Nm : ISIDRO CRUZ GONZALEZ
+Addr 1 : Cayetano Rubio 19                              Addr 1 : ZARAGOZA ESQ 5 DE MAYO 0
+Addr 2 : QUERETARO QT                                   Addr 2 : MERCADO MUNICIPAL LOCAL 10
+City   : ENSUENO-QUERETARO                              City   : SAN JOAQUIN-SAN JOAQUIN
+State  : QT                                             State  : QT
+Ctry   : MX                                             Ctry   : MX
+Zip    : 76178                                          Zip    : 76550
+Phone  : 524422422975                                   Phone  : 525653202925
+Ref    :
+
+       AWB/PID         Orig  Dest  Fac-ID    Route  Cd        Event Dtm         Data Available     Event Remark
+----------------------------------------------------------------------------------------------------------------------
+3348775603                         QRO-QRO          IA   2026-08-20 16:19:43  2026-08-20 16:24:00
+JD014600012756970029               QRO-QRO   AJSP   SA   2026-08-20 17:33:18  2026-08-20 17:34:04  RETAIL QROAJP
+3348775603                         QRO-QRO   AJSP   SA   2026-08-20 17:33:18  2026-08-20 17:34:04  RETAIL QROAJP
+JD014600012756970029               QRO-QRO   AJSP   HN   2026-08-20 18:39:10  2026-08-20 18:52:46  TRANSFERRED TO COURIER
+3348775603                         QRO-QRO   AJSP   HN   2026-08-20 18:39:10  2026-08-20 18:52:46  TRANSFERRED TO COURIER
+JD014600012756970029               QRO-QRO   QR1D   PU   2026-08-20 19:49:43  2026-08-20 19:49:27
+3348775603                         QRO-QRO   QR1D   PU   2026-08-20 19:49:43  2026-08-20 19:49:27  01
+JD014600012756970029               QRO-QRO   QRW1   CI   2026-08-20 20:20:35  2026-08-20 20:20:35  FOCUS CHECK DEBRIEF
+3348775603                         QRO-QRO   QRW1   CI   2026-08-20 20:20:35  2026-08-20 20:20:35  FOCUS CHECK DEBRIEF
+JD014600012756970029               QRO-QRO   QRW1   OH   2026-08-20 22:45:30  2026-08-20 22:45:30  DELIVERY SCHEDULED 2108 AM
+3348775603                         QRO-QRO   QRW1   OH   2026-08-20 22:45:30  2026-08-20 22:45:30  DELIVERY SCHEDULED 2108 AM
+JD014600012756970029               QRO-QRO   QRW1   FD   2026-08-21 12:38:28  2026-08-21 12:38:28  ARAUTOS ZF QRO X2 2108 AM
+3348775603                         QRO-QRO   QRW1   FD   2026-08-21 12:38:28  2026-08-21 12:38:28  ARAUTOS ZF QRO X2 2108 AM
+
+AWB : 1397459755
+
+Orig  Dest  Shipment Time     Prod  Pcs  Kilos  Decl. Value    Description of Goods
+-----------------------------------------------------------------------------------------------------------
+QRO   QRO   2026-08-20 18:04  N     1    1.20                  Producto Diverso
+Shpr Acct : 980522264                                   Payer Acct : 980522264
+Shipper                                                 Receiver
+------------------------------------------------------  ---------------------------------------------------
+Name   : NUTRITION                                      Name   : PARTICULAR
+Ctc Nm : MARIA DEL CARMEN JUAREZ SALAZA                 Ctc Nm : MARIA DEL CARMEN JUAREZ SALAZA
+Addr 1 : Acceso III 5 int H Benito Jua                  Addr 1 : juarez #3 entrada por el camino a la carbone
+Addr 2 : QT                                             Addr 2 : GT
+City   : Santiago de Queretaro                          City   : DOCTOR MORA
+State  : QT                                             State  : GT
+Ctry   : MX                                             Ctry   : MX
+Zip    : 76120                                          Zip    : 37966
+Phone  : 4422950899                                     Phone  : 522206247889
+Ref    :
+
+       AWB/PID         Orig  Dest  Fac-ID    Route  Cd        Event Dtm         Data Available     Event Remark
+----------------------------------------------------------------------------------------------------------------------
+1397459755                         QRO-QRO          IA   2026-08-19 16:46:44  2026-08-19 16:53:45
+JD014600012790940216               QRO-QRO   QRV1   PU   2026-08-20 18:04:29  2026-08-20 18:04:39
+1397459755                         QRO-QRO   QRV1   PU   2026-08-20 18:04:29  2026-08-20 18:04:39
+JD014600012790940216               QRO-QRO   QRW1   OH   2026-08-20 22:52:21  2026-08-20 22:52:21  DELIVERY SCHEDULED 2108 AM
+1397459755                         QRO-QRO   QRW1   OH   2026-08-20 22:52:21  2026-08-20 22:52:21  DELIVERY SCHEDULED 2108 AM
+JD014600012790940216               QRO-QRO   QRW1   CI   2026-08-21 07:47:23  2026-08-21 07:47:23  FOCUS CHECK BANDA
+1397459755                         QRO-QRO   QRW1   CI   2026-08-21 07:47:23  2026-08-21 07:47:23  FOCUS CHECK BANDA
+JD014600012790940216               QRO-QRO   QRW1   FD   2026-08-21 12:38:23  2026-08-21 12:38:23  ARAUTOS ZF QRO X2 2108 AM
+1397459755                         QRO-QRO   QRW1   FD   2026-08-21 12:38:23  2026-08-21 12:38:23  ARAUTOS ZF QRO X2 2108 AM
+
+AWB : 4732951716
+
+Orig  Dest  Shipment Time     Prod  Pcs  Kilos  Decl. Value    Description of Goods
+-----------------------------------------------------------------------------------------------------------
+CYY   QRO   2026-08-20 08:09  G     2    4.23                  Items: 9
+Shpr Acct : 988184109                                   Payer Acct : 988184109
+Shipper                                                 Receiver
+------------------------------------------------------  ---------------------------------------------------
+Name   : NATURA                                         Name   : N/A
+Ctc Nm : Natura Distribuidora de Mexico S.A.            Ctc Nm : GUADALUPE MANUELA BECERRA MORALES
+Addr 1 : GUERRERO, 149                                  Addr 1 : Ju?rez 118
+Addr 2 : RANCHO SECO, CELAYA                            Addr 2 : S/N Casa 2 pisos tabique rojo fachada naranja
+City   : CELAYA                                         City   : SAN LUIS DE LA PAZ
+State  : GT                                             State  : GT
+Ctry   : MX                                             Ctry   : MX
+Zip    : 38090                                          Zip    : 37917
+Phone  : 5591384100                                     Phone  : 4686897793
+Ref    :
+
+       AWB/PID         Orig  Dest  Fac-ID    Route  Cd        Event Dtm         Data Available     Event Remark
+----------------------------------------------------------------------------------------------------------------------
+4732951716                         CYY-CYY          IA   2026-08-19 18:20:17  2026-08-19 18:28:15
+JD014600012790950666               CYY-CYY   CYW2   PU   2026-08-20 08:09:51  2026-08-20 08:09:56
+4732951716                         CYY-CYY   CYW2   PU   2026-08-20 08:09:51  2026-08-20 08:09:56
+JD014600012790950666               CYY-CYY          PL   2026-08-20 08:10:06  2026-08-20 08:10:06
+4732951716                         CYY-CYY          PL   2026-08-20 08:10:06  2026-08-20 08:10:06
+JD014600012790950667               CYY-CYY   CYW2   PU   2026-08-20 09:37:46  2026-08-20 09:37:46  00
+4732951716                         CYY-CYY   CYW2   PU   2026-08-20 09:37:46  2026-08-20 09:37:46  00
+JD014600012790950667               CYY-CYY          PL   2026-08-20 09:37:56  2026-08-20 09:37:56
+JD014600012790950666   CYY   CYY   CYY-CYY   HU     PL   2026-08-20 09:53:33  2026-08-20 09:53:34
+4732951716             CYY   CYY   CYY-CYY   HU     PL   2026-08-20 09:53:33  2026-08-20 09:53:34
+JD014600012790950666   CYY   CYY   CYY-CYY   HU     DF   2026-08-20 09:53:58  2026-08-20 09:53:53  CYY>CYQ1200>2008>OCN85299480>QRO>1200
+4732951716             CYY   CYY   CYY-CYY   HU     DF   2026-08-20 09:53:58  2026-08-20 09:53:53  CYY>CYQ1200>2008>OCN85299480>QRO>1200
+JD014600012790950667   CYY   JJC   CYY-CYY   HU     PL   2026-08-20 11:22:33  2026-08-20 11:22:34
+4732951716             CYY   JJC   CYY-CYY   HU     PL   2026-08-20 11:22:33  2026-08-20 11:22:34
+JD014600012790950667   CYY   JJC   CYY-CYY   HU     DF   2026-08-20 11:22:58  2026-08-20 11:23:04  CYY>NAT1500>2008>OCN85021650>JJC>1500
+4732951716             CYY   JJC   CYY-CYY   HU     DF   2026-08-20 11:22:58  2026-08-20 11:23:04  CYY>NAT1500>2008>OCN85021650>JJC>1500
+JD014600012790950666   CYY   CYY   QRO-DHU   HU     AF   2026-08-20 11:29:54  2026-08-20 11:29:54
+4732951716             CYY   CYY   QRO-DHU   HU     AF   2026-08-20 11:29:54  2026-08-20 11:29:54
+JD014600012790950667   CYY   JJC   JJC-DHU   HU     AF   2026-08-20 16:34:54  2026-08-20 16:34:55
+4732951716             CYY   JJC   JJC-DHU   HU     AF   2026-08-20 16:34:54  2026-08-20 16:34:55
+JD014600012790950667   CYY   QRO   JJC-DHU          CI   2026-08-20 19:26:29  2026-08-20 19:26:29  AUTOSORT COY SCANNER SO.2.2
+4732951716             CYY   QRO   JJC-DHU          CI   2026-08-20 19:26:29  2026-08-20 19:26:29  AUTOSORT COY SCANNER SO.2.2
+JD014600012790950667   CYY   QRO   JJC-DHU          PL   2026-08-20 19:27:26  2026-08-20 19:27:26  AUTOSORT COMPLETE
+4732951716             CYY   QRO   JJC-DHU          PL   2026-08-20 19:27:26  2026-08-20 19:27:26  AUTOSORT COMPLETE
+JD014600012790950666   CYY   QRO   QRO-DHU          CI   2026-08-20 22:16:07  2026-08-20 22:16:07  AUTOSORT COY SCANNER AIRSCAN
+4732951716             CYY   QRO   QRO-DHU          CI   2026-08-20 22:16:07  2026-08-20 22:16:07  AUTOSORT COY SCANNER AIRSCAN
+JD014600012790950666   CYY   QRO   QRO-DHU          PL   2026-08-20 22:19:02  2026-08-20 22:19:02  AUTOSORT COMPLETE
+4732951716             CYY   QRO   QRO-DHU          PL   2026-08-20 22:19:02  2026-08-20 22:19:02  AUTOSORT COMPLETE
+JD014600012790950666   CYY         QRO-DHU          RW   2026-08-20 22:19:03  2026-08-20 22:19:03  <002.70>  <0028.0 x 0017.0 x 0040.0>
+4732951716             CYY         QRO-DHU          RW   2026-08-20 22:19:03  2026-08-20 22:19:03  <002.70>  <0028.0 x 0017.0 x 0040.0>
+JD014600012790950667               JJC-DHU          PL   2026-08-21 01:21:21  2026-08-21 01:21:32
+JD014600012790950667   JJC   QRO   JJC-DHU   HU     PL   2026-08-21 01:22:34  2026-08-21 01:23:16
+4732951716             JJC   QRO   JJC-DHU   HU     PL   2026-08-21 01:22:34  2026-08-21 01:23:16
+JD014600012790950667   JJC   QRO   JJC-DHU   HU     DF   2026-08-21 01:38:58  2026-08-21 01:38:24  JJC>JQR0445>2108>OCN85135341>QRO>0445
+4732951716             JJC   QRO   JJC-DHU   HU     DF   2026-08-21 01:38:58  2026-08-21 01:38:24  JJC>JQR0445>2108>OCN85135341>QRO>0445
+JD014600012790950666               QRO-DHU          PL   2026-08-21 05:03:13  2026-08-21 05:03:23
+JD014600012790950666   QRO   QRO   QRO-DHU   HU     PL   2026-08-21 05:04:53  2026-08-21 05:04:54
+4732951716             QRO   QRO   QRO-DHU   HU     PL   2026-08-21 05:04:53  2026-08-21 05:04:54
+JD014600012790950666   QRO   QRO   QRO-DHU   HU     DF   2026-08-21 05:06:58  2026-08-21 05:06:04  QRO>QQR0600>2108>OCN85156853>QRO>0600
+4732951716             QRO   QRO   QRO-DHU   HU     DF   2026-08-21 05:06:58  2026-08-21 05:06:04  QRO>QQR0600>2108>OCN85156853>QRO>0600
+JD014600012790950667   JJC   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:14  2026-08-21 06:52:15
+JD014600012790950666   QRO   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:53  2026-08-21 06:52:54
+4732951716             QRO   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:53  2026-08-21 06:52:54
+JD014600012790950667               QRO-QRO   QRW1   CI   2026-08-21 09:04:22  2026-08-21 09:04:22  FOCUS CHECK BANDA
+4732951716                         QRO-QRO   QRW1   CI   2026-08-21 09:04:22  2026-08-21 09:04:22  FOCUS CHECK BANDA
+JD014600012790950667               QRO-QRO   QRW1   FD   2026-08-21 12:37:43  2026-08-21 12:37:43  ARAUTOS ZF QRO X2 2108 AM
+JD014600012790950666               QRO-QRO   QRW1   FD   2026-08-21 12:38:22  2026-08-21 12:38:22  ARAUTOS ZF QRO X2 2108 AM
+4732951716                         QRO-QRO   QRW1   FD   2026-08-21 12:38:22  2026-08-21 12:38:22  ARAUTOS ZF QRO X2 2108 AM
+
+AWB : 4137396395
+
+Orig  Dest  Shipment Time     Prod  Pcs  Kilos  Decl. Value    Description of Goods
+-----------------------------------------------------------------------------------------------------------
+CYY   QRO   2026-08-20 06:48  G     2    7.74                  Items: 17
+Shpr Acct : 988184109                                   Payer Acct : 988184109
+Shipper                                                 Receiver
+------------------------------------------------------  ---------------------------------------------------
+Name   : NATURA                                         Name   : N/A
+Ctc Nm : Natura Distribuidora de Mexico S.A.            Ctc Nm : TERESA SILVA ONTIVEROS
+Addr 1 : GUERRERO, 149                                  Addr 1 : PRIMAVERA 11 LOC NORIA DE CHARCAS P11
+Addr 2 : RANCHO SECO, CELAYA                            Addr 2 : 0 POR EL DEPOSITO DE AGUA ENTRE CALLE JAZMIN
+City   : CELAYA                                         City   : DOCTOR MORA
+State  : GT                                             State  : GT
+Ctry   : MX                                             Ctry   : MX
+Zip    : 38090                                          Zip    : 37967
+Phone  : 5591384100                                     Phone  : 4191809274
+Ref    :
+
+       AWB/PID         Orig  Dest  Fac-ID    Route  Cd        Event Dtm         Data Available     Event Remark
+----------------------------------------------------------------------------------------------------------------------
+4137396395                         CYY-CYY          IA   2026-08-19 18:31:39  2026-08-19 18:38:15
+JD014600012796309173               CYY-CYY   CYW2   PU   2026-08-20 06:48:55  2026-08-20 06:48:55  00
+4137396395                         CYY-CYY   CYW2   PU   2026-08-20 06:48:55  2026-08-20 06:48:55  00
+JD014600012796309173               CYY-CYY          PL   2026-08-20 06:51:25  2026-08-20 06:51:25
+4137396395                         CYY-CYY          PL   2026-08-20 06:51:25  2026-08-20 06:51:25
+JD014600012796309174               CYY-CYY   CYW2   PU   2026-08-20 07:35:10  2026-08-20 07:35:10  00
+4137396395                         CYY-CYY   CYW2   PU   2026-08-20 07:35:10  2026-08-20 07:35:10  00
+JD014600012796309174               CYY-CYY          PL   2026-08-20 07:36:12  2026-08-20 07:36:12
+4137396395                         CYY-CYY          PL   2026-08-20 07:36:12  2026-08-20 07:36:12
+JD014600012796309173   CYY   CYY   CYY-CYY   HU     PL   2026-08-20 09:53:33  2026-08-20 09:53:34
+JD014600012796309174   CYY   CYY   CYY-CYY   HU     PL   2026-08-20 09:53:33  2026-08-20 09:53:34
+4137396395             CYY   CYY   CYY-CYY   HU     PL   2026-08-20 09:53:33  2026-08-20 09:53:34
+JD014600012796309173   CYY   CYY   CYY-CYY   HU     DF   2026-08-20 09:53:58  2026-08-20 09:53:53  CYY>CYQ1200>2008>OCN85299480>QRO>1200
+JD014600012796309174   CYY   CYY   CYY-CYY   HU     DF   2026-08-20 09:53:58  2026-08-20 09:53:53  CYY>CYQ1200>2008>OCN85299480>QRO>1200
+4137396395             CYY   CYY   CYY-CYY   HU     DF   2026-08-20 09:53:58  2026-08-20 09:53:53  CYY>CYQ1200>2008>OCN85299480>QRO>1200
+JD014600012796309173   CYY   CYY   QRO-DHU   HU     AF   2026-08-20 11:29:54  2026-08-20 11:29:54
+JD014600012796309174   CYY   CYY   QRO-DHU   HU     AF   2026-08-20 11:29:54  2026-08-20 11:29:54
+4137396395             CYY   CYY   QRO-DHU   HU     AF   2026-08-20 11:29:54  2026-08-20 11:29:54
+JD014600012796309173   CYY   QRO   QRO-DHU          CI   2026-08-20 22:24:51  2026-08-20 22:24:51  AUTOSORT COY SCANNER AIRSCAN
+JD014600012796309174   CYY   QRO   QRO-DHU          CI   2026-08-20 22:25:28  2026-08-20 22:25:28  AUTOSORT COY SCANNER AIRSCAN
+4137396395             CYY   QRO   QRO-DHU          CI   2026-08-20 22:25:28  2026-08-20 22:25:28  AUTOSORT COY SCANNER AIRSCAN
+JD014600012796309174   CYY   QRO   QRO-DHU          PL   2026-08-20 22:28:23  2026-08-20 22:28:23  AUTOSORT COMPLETE
+JD014600012796309174   CYY         QRO-DHU          RW   2026-08-20 22:28:25  2026-08-20 22:28:25  <002.00>  <0028.0 x 0022.0 x 0045.0>
+JD014600012796309173   CYY   QRO   QRO-DHU          PL   2026-08-20 22:31:30  2026-08-20 22:31:30  AUTOSORT COMPLETE
+4137396395             CYY   QRO   QRO-DHU          PL   2026-08-20 22:31:30  2026-08-20 22:31:30  AUTOSORT COMPLETE
+JD014600012796309173   CYY         QRO-DHU          RW   2026-08-20 22:31:34  2026-08-20 22:31:34  <006.60>  <0028.5 x 0021.5 x 0040.0>
+4137396395             CYY         QRO-DHU          RW   2026-08-20 22:31:34  2026-08-20 22:31:34  <006.60>  <0028.5 x 0021.5 x 0040.0>
+JD014600012796309173               QRO-DHU          PL   2026-08-21 05:03:06  2026-08-21 05:03:09
+JD014600012796309174               QRO-DHU          PL   2026-08-21 05:03:13  2026-08-21 05:03:18
+JD014600012796309173   QRO   QRO   QRO-DHU   HU     PL   2026-08-21 05:04:49  2026-08-21 05:04:49
+JD014600012796309174   QRO   QRO   QRO-DHU   HU     PL   2026-08-21 05:04:53  2026-08-21 05:04:54
+4137396395             QRO   QRO   QRO-DHU   HU     PL   2026-08-21 05:04:53  2026-08-21 05:04:54
+JD014600012796309173   QRO   QRO   QRO-DHU   HU     DF   2026-08-21 05:06:58  2026-08-21 05:06:04  QRO>QQR0600>2108>OCN85156853>QRO>0600
+JD014600012796309174   QRO   QRO   QRO-DHU   HU     DF   2026-08-21 05:06:58  2026-08-21 05:06:04  QRO>QQR0600>2108>OCN85156853>QRO>0600
+4137396395             QRO   QRO   QRO-DHU   HU     DF   2026-08-21 05:06:58  2026-08-21 05:06:04  QRO>QQR0600>2108>OCN85156853>QRO>0600
+JD014600012796309173   QRO   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:45  2026-08-21 06:52:45
+JD014600012796309174   QRO   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:53  2026-08-21 06:52:54
+4137396395             QRO   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:53  2026-08-21 06:52:54
+JD014600012796309174               QRO-QRO   QRW1   CI   2026-08-21 08:58:51  2026-08-21 08:58:51  FOCUS CHECK BANDA
+JD014600012796309173               QRO-QRO   QRW1   CI   2026-08-21 09:01:55  2026-08-21 09:01:55  FOCUS CHECK BANDA
+4137396395                         QRO-QRO   QRW1   CI   2026-08-21 09:01:55  2026-08-21 09:01:55  FOCUS CHECK BANDA
+JD014600012796309173               QRO-QRO   QRW1   FD   2026-08-21 12:38:17  2026-08-21 12:38:17  ARAUTOS ZF QRO X2 2108 AM
+JD014600012796309174               QRO-QRO   QRW1   FD   2026-08-21 12:38:20  2026-08-21 12:38:20  ARAUTOS ZF QRO X2 2108 AM
+4137396395                         QRO-QRO   QRW1   FD   2026-08-21 12:38:20  2026-08-21 12:38:20  ARAUTOS ZF QRO X2 2108 AM
+
+AWB : 4732974540
+
+Orig  Dest  Shipment Time     Prod  Pcs  Kilos  Decl. Value    Description of Goods
+-----------------------------------------------------------------------------------------------------------
+CYY   QRO   2026-08-20 07:27  G     2    8.79                  Items: 22
+Shpr Acct : 988184109                                   Payer Acct : 988184109
+Shipper                                                 Receiver
+------------------------------------------------------  ---------------------------------------------------
+Name   : NATURA                                         Name   : N/A
+Ctc Nm : Natura Distribuidora de Mexico S.A.            Ctc Nm : SANDIBEL HERNANDEZ ZU?IGA
+Addr 1 : GUERRERO, 149                                  Addr 1 : Ni?os Heroes s/n
+Addr 2 : RANCHO SECO, CELAYA                            Addr 2 : s/n Calle cerrada de concreto
+City   : CELAYA                                         City   : ATARJEA
+State  : GT                                             State  : GT
+Ctry   : MX                                             Ctry   : MX
+Zip    : 38090                                          Zip    : 37948
+Phone  : 5591384100                                     Phone  : 4191205920
+Ref    :
+
+       AWB/PID         Orig  Dest  Fac-ID    Route  Cd        Event Dtm         Data Available     Event Remark
+----------------------------------------------------------------------------------------------------------------------
+4732974540                         CYY-CYY          IA   2026-08-19 18:42:09  2026-08-19 18:49:45
+JD014600012790968236               CYY-CYY   CYW2   PU   2026-08-20 07:27:44  2026-08-20 07:27:48
+4732974540                         CYY-CYY   CYW2   PU   2026-08-20 07:27:44  2026-08-20 07:27:48
+JD014600012790968236               CYY-CYY          PL   2026-08-20 07:27:59  2026-08-20 07:27:59
+4732974540                         CYY-CYY          PL   2026-08-20 07:27:59  2026-08-20 07:27:59
+JD014600012790968236   CYY   CYY   CYY-CYY   HU     PL   2026-08-20 09:53:33  2026-08-20 09:53:34
+4732974540             CYY   CYY   CYY-CYY   HU     PL   2026-08-20 09:53:33  2026-08-20 09:53:34
+JD014600012790968236   CYY   CYY   CYY-CYY   HU     DF   2026-08-20 09:53:58  2026-08-20 09:53:53  CYY>CYQ1200>2008>OCN85299480>QRO>1200
+4732974540             CYY   CYY   CYY-CYY   HU     DF   2026-08-20 09:53:58  2026-08-20 09:53:53  CYY>CYQ1200>2008>OCN85299480>QRO>1200
+JD014600012790968237               CYY-CYY   CYW2   PU   2026-08-20 11:27:10  2026-08-20 11:27:10  00
+4732974540                         CYY-CYY   CYW2   PU   2026-08-20 11:27:10  2026-08-20 11:27:10  00
+JD014600012790968237               CYY-CYY          PL   2026-08-20 11:27:12  2026-08-20 11:27:12
+4732974540                         CYY-CYY          PL   2026-08-20 11:27:12  2026-08-20 11:27:12
+JD014600012790968236   CYY   CYY   QRO-DHU   HU     AF   2026-08-20 11:29:54  2026-08-20 11:29:54
+4732974540             CYY   CYY   QRO-DHU   HU     AF   2026-08-20 11:29:54  2026-08-20 11:29:54
+JD014600012790968237   CYY   JJC   CYY-CYY   HU     PL   2026-08-20 14:17:27  2026-08-20 14:17:28
+4732974540             CYY   JJC   CYY-CYY   HU     PL   2026-08-20 14:17:27  2026-08-20 14:17:28
+JD014600012790968237   CYY   JJC   CYY-CYY   HU     DF   2026-08-20 14:17:58  2026-08-20 14:17:45  CYY>NAT1630>2008>OCN85021440>JJC>1630
+4732974540             CYY   JJC   CYY-CYY   HU     DF   2026-08-20 14:17:58  2026-08-20 14:17:45  CYY>NAT1630>2008>OCN85021440>JJC>1630
+JD014600012790968237   CYY   JJC   JJC-DHU   HU     AF   2026-08-20 16:36:01  2026-08-20 16:36:02
+4732974540             CYY   JJC   JJC-DHU   HU     AF   2026-08-20 16:36:01  2026-08-20 16:36:02
+JD014600012790968237   CYY   QRO   JJC-DHU          CI   2026-08-20 20:14:53  2026-08-20 20:14:53  AUTOSORT COY SCANNER SO.2.2
+4732974540             CYY   QRO   JJC-DHU          CI   2026-08-20 20:14:53  2026-08-20 20:14:53  AUTOSORT COY SCANNER SO.2.2
+JD014600012790968237   CYY   QRO   JJC-DHU          PL   2026-08-20 20:15:49  2026-08-20 20:15:49  AUTOSORT COMPLETE
+4732974540             CYY   QRO   JJC-DHU          PL   2026-08-20 20:15:49  2026-08-20 20:15:49  AUTOSORT COMPLETE
+JD014600012790968237   CYY         JJC-DHU          RW   2026-08-20 20:15:52  2026-08-20 20:15:52  <5.20>  <29.4 x 28.1 x 40.5>
+4732974540             CYY         JJC-DHU          RW   2026-08-20 20:15:52  2026-08-20 20:15:52  <5.20>  <29.4 x 28.1 x 40.5>
+JD014600012790968236   CYY   QRO   QRO-DHU          CI   2026-08-20 22:22:37  2026-08-20 22:22:37  AUTOSORT COY SCANNER AIRSCAN
+4732974540             CYY   QRO   QRO-DHU          CI   2026-08-20 22:22:37  2026-08-20 22:22:37  AUTOSORT COY SCANNER AIRSCAN
+JD014600012790968236   CYY   QRO   QRO-DHU          PL   2026-08-20 22:25:32  2026-08-20 22:25:32  AUTOSORT COMPLETE
+4732974540             CYY   QRO   QRO-DHU          PL   2026-08-20 22:25:32  2026-08-20 22:25:32  AUTOSORT COMPLETE
+JD014600012790968236   CYY         QRO-DHU          RW   2026-08-20 22:25:36  2026-08-20 22:25:36  <004.35>  <0028.0 x 0021.5 x 0039.5>
+4732974540             CYY         QRO-DHU          RW   2026-08-20 22:25:36  2026-08-20 22:25:36  <004.35>  <0028.0 x 0021.5 x 0039.5>
+JD014600012790968237               JJC-DHU          PL   2026-08-21 01:21:21  2026-08-21 01:22:28
+JD014600012790968237   JJC   QRO   JJC-DHU   HU     PL   2026-08-21 01:22:34  2026-08-21 01:23:16
+4732974540             JJC   QRO   JJC-DHU   HU     PL   2026-08-21 01:22:34  2026-08-21 01:23:16
+JD014600012790968237   JJC   QRO   JJC-DHU   HU     DF   2026-08-21 01:38:58  2026-08-21 01:38:24  JJC>JQR0445>2108>OCN85135341>QRO>0445
+4732974540             JJC   QRO   JJC-DHU   HU     DF   2026-08-21 01:38:58  2026-08-21 01:38:24  JJC>JQR0445>2108>OCN85135341>QRO>0445
+JD014600012790968236               QRO-DHU          PL   2026-08-21 05:03:13  2026-08-21 05:03:24
+JD014600012790968236   QRO   QRO   QRO-DHU   HU     PL   2026-08-21 05:04:53  2026-08-21 05:04:54
+4732974540             QRO   QRO   QRO-DHU   HU     PL   2026-08-21 05:04:53  2026-08-21 05:04:54
+JD014600012790968236   QRO   QRO   QRO-DHU   HU     DF   2026-08-21 05:06:58  2026-08-21 05:06:04  QRO>QQR0600>2108>OCN85156853>QRO>0600
+4732974540             QRO   QRO   QRO-DHU   HU     DF   2026-08-21 05:06:58  2026-08-21 05:06:04  QRO>QQR0600>2108>OCN85156853>QRO>0600
+JD014600012790968237   JJC   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:14  2026-08-21 06:52:15
+JD014600012790968236   QRO   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:53  2026-08-21 06:52:54
+4732974540             QRO   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:53  2026-08-21 06:52:54
+JD014600012790968237               QRO-QRO   QRW1   FD   2026-08-21 12:38:18  2026-08-21 12:38:18  ARAUTOS ZF QRO X2 2108 AM
+JD014600012790968236               QRO-QRO   QRW1   FD   2026-08-21 12:38:19  2026-08-21 12:38:19  ARAUTOS ZF QRO X2 2108 AM
+4732974540                         QRO-QRO   QRW1   FD   2026-08-21 12:38:19  2026-08-21 12:38:19  ARAUTOS ZF QRO X2 2108 AM
+
+AWB : 9908527882
+
+Orig  Dest  Shipment Time     Prod  Pcs  Kilos  Decl. Value    Description of Goods
+-----------------------------------------------------------------------------------------------------------
+MEX   QRO   2026-08-20 17:43  N     1    4.00                  COSMETICOS-
+Shpr Acct : 980022115                                   Payer Acct : 980022115
+Shipper                                                 Receiver
+------------------------------------------------------  ---------------------------------------------------
+Name   : TRANSBEL                                       Name   : XOCHITL QUETZAL VEGA ORTEGA
+Ctc Nm : TRANSBEL                                       Ctc Nm : XOCHITL QUETZAL VEGA ORTEGA
+Addr 1 : AV JORGE JIMENEZ CANTU SN                      Addr 1 : PRESBITERO EMILIO GONZALES 8 FRANCISCO I MA
+Addr 2 : LT 2 Y 3 #6 AUT MEX-QRO KM 41.5                Addr 2 : DERO Y PRIV REVOLUCION PORTON BLANCO CERCA DE
+City   : CUAUTITLAN IZCALLI                             City   : SANTA CATARINA
+State  : MC                                             State  : GT
+Ctry   : MX                                             Ctry   : MX
+Zip    : 54715                                          Zip    : 37950
+Phone  : 525546034123                                   Phone  : 524191164548
+Ref    :
+
+       AWB/PID         Orig  Dest  Fac-ID    Route  Cd        Event Dtm         Data Available     Event Remark
+----------------------------------------------------------------------------------------------------------------------
+9908527882                         MEX-DMX          IA   2026-08-20 07:57:54  2026-08-20 08:05:45
+JD014600012757417763               MEX-DMX   DMV7   PU   2026-08-20 17:42:59  2026-08-20 17:43:07  023347
+9908527882                         MEX-DMX   DMV7   PU   2026-08-20 17:42:59  2026-08-20 17:43:07  023347 / 980379082
+JD014600012757417763   MEX   QRO   JJC-DHU          CI   2026-08-20 21:02:56  2026-08-20 21:02:56  AUTOSORT COY SCANNER SO.1.2
+9908527882             MEX   QRO   JJC-DHU          CI   2026-08-20 21:02:56  2026-08-20 21:02:56  AUTOSORT COY SCANNER SO.1.2
+JD014600012757417763   MEX   QRO   JJC-DHU          PL   2026-08-20 21:04:10  2026-08-20 21:04:10  AUTOSORT COMPLETE
+9908527882             MEX   QRO   JJC-DHU          PL   2026-08-20 21:04:10  2026-08-20 21:04:10  AUTOSORT COMPLETE
+JD014600012757417763   MEX         JJC-DHU          RW   2026-08-20 21:04:12  2026-08-20 21:04:12  <2.55>  <21.3 x 31.8 x 46.1>
+9908527882             MEX         JJC-DHU          RW   2026-08-20 21:04:12  2026-08-20 21:04:12  <2.55>  <21.3 x 31.8 x 46.1>
+JD014600012757417763               JJC-DHU          PL   2026-08-21 01:21:21  2026-08-21 01:21:41
+9908527882                         JJC-DHU          PL   2026-08-21 01:21:21  2026-08-21 01:21:41
+JD014600012757417763   JJC   QRO   JJC-DHU   HU     PL   2026-08-21 01:22:34  2026-08-21 01:23:16
+9908527882             JJC   QRO   JJC-DHU   HU     PL   2026-08-21 01:22:34  2026-08-21 01:23:16
+JD014600012757417763   JJC   QRO   JJC-DHU   HU     DF   2026-08-21 01:38:58  2026-08-21 01:38:24  JJC>JQR0445>2108>OCN85135341>QRO>0445
+9908527882             JJC   QRO   JJC-DHU   HU     DF   2026-08-21 01:38:58  2026-08-21 01:38:24  JJC>JQR0445>2108>OCN85135341>QRO>0445
+JD014600012757417763   JJC   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:14  2026-08-21 06:52:15
+9908527882             JJC   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:14  2026-08-21 06:52:15
+JD014600012757417763               QRO-QRO   QRW1   CI   2026-08-21 08:46:24  2026-08-21 08:46:24  FOCUS CHECK BANDA
+9908527882                         QRO-QRO   QRW1   CI   2026-08-21 08:46:24  2026-08-21 08:46:24  FOCUS CHECK BANDA
+JD014600012757417763               QRO-QRO   QRW1   FD   2026-08-21 12:38:16  2026-08-21 12:38:16  ARAUTOS ZF QRO X2 2108 AM
+9908527882                         QRO-QRO   QRW1   FD   2026-08-21 12:38:16  2026-08-21 12:38:16  ARAUTOS ZF QRO X2 2108 AM
+
+AWB : 5588457475
+
+Orig  Dest  Shipment Time     Prod  Pcs  Kilos  Decl. Value    Description of Goods
+-----------------------------------------------------------------------------------------------------------
+GDL   QRO   2026-08-19 13:44  G     1    3.00   1464.66 MXN    home - Persiana Blackout para Venta
+Shpr Acct : 980058686                                   Payer Acct : 980058686
+Shipper                                                 Receiver
+------------------------------------------------------  ---------------------------------------------------
+Name   : COMERCIALIZADORA FABRICA DE PERSIA             Name   : OLIVIA RESENDIZ GARCIA
+Ctc Nm : COMERCIALIZADORA FABRICA DE PERSIA             Ctc Nm : Olivia Resendiz Garcia
+Addr 1 : CALLE AVILA CAMACHO 381 COL SAN ISIDRO EJIDAL  Addr 1 : Morelos #44 centro
+Addr 2 : Edificio                                       Addr 2 : CIUDAD VICTORIA
+City   : ZAPOPAN                                        City   : VICTORIA
+State  : JC                                             State  : GT
+Ctry   : MX                                             Ctry   : MX
+Zip    : 45147                                          Zip    : 37920
+Phone  : 523324745662                                   Phone  : 528112497876
+Ref    :
+
+       AWB/PID         Orig  Dest  Fac-ID    Route  Cd        Event Dtm         Data Available     Event Remark
+----------------------------------------------------------------------------------------------------------------------
+5588457475                         GDL-GDL          IA   2026-08-18 19:35:04  2026-08-18 19:41:15
+JD0081108265588457475              GDL-GDL   ZPSP   SA   2026-08-19 13:44:52  2026-08-19 13:45:05  RETAIL GDLZPP
+JD0081108265588457475              GDL-GDL   ZPSP   SI   2026-08-19 13:44:52  2026-08-19 13:45:36  PHYSICAL INSPECTION BY diponcem
+5588457475                         GDL-GDL   ZPSP   SA   2026-08-19 13:44:52  2026-08-19 13:45:05  RETAIL GDLZPP
+5588457475                         GDL-GDL   ZPSP   SI   2026-08-19 13:44:52  2026-08-19 13:45:36  PHYSICAL INSPECTION BY diponcem
+JD0081108265588457475              GDL-GDL   ZPSP   HN   2026-08-19 18:48:34  2026-08-19 18:53:39  TRANSFERRED TO COURIER
+5588457475                         GDL-GDL   ZPSP   HN   2026-08-19 18:48:34  2026-08-19 18:53:39  TRANSFERRED TO COURIER
+JD0081108265588457475              GDL-GDL   GD6F   PU   2026-08-19 19:18:09  2026-08-19 19:18:18
+5588457475                         GDL-GDL   GD6F   PU   2026-08-19 19:18:09  2026-08-19 19:18:18
+JD0081108265588457475              GDL-GDL          PL   2026-08-19 21:22:29  2026-08-19 21:22:30
+5588457475                         GDL-GDL          PL   2026-08-19 21:22:29  2026-08-19 21:22:30
+JD0081108265588457475  GDL   QRO   GDL-GDL   HU     PL   2026-08-19 21:34:15  2026-08-19 21:34:15
+5588457475             GDL   QRO   GDL-GDL   HU     PL   2026-08-19 21:34:15  2026-08-19 21:34:15
+JD0081108265588457475  GDL   QRO   GDL-GDL   HU     DF   2026-08-19 21:35:58  2026-08-19 21:35:09  GDL>GDQ0230>1908>OCN84842693>QRO>0230
+5588457475             GDL   QRO   GDL-GDL   HU     DF   2026-08-19 21:35:58  2026-08-19 21:35:09  GDL>GDQ0230>1908>OCN84842693>QRO>0230
+JD0081108265588457475              QRO-DHU   HU     TD   2026-08-20 02:30:00  2026-08-20 02:37:38  TRAFFIC
+5588457475                         QRO-DHU   HU     TD   2026-08-20 02:30:00  2026-08-20 02:37:38  TRAFFIC
+JD0081108265588457475  GDL   QRO   QRO-DHU   HU     AF   2026-08-20 03:01:10  2026-08-20 03:01:11  LATE ARRIVAL
+5588457475             GDL   QRO   QRO-DHU   HU     AF   2026-08-20 03:01:10  2026-08-20 03:01:11  LATE ARRIVAL
+JD0081108265588457475              QRO-DHU          PL   2026-08-20 04:05:33  2026-08-20 04:05:34
+5588457475                         QRO-DHU          PL   2026-08-20 04:05:33  2026-08-20 04:05:34
+JD0081108265588457475  QRO   QRO   QRO-DHU   HU     PL   2026-08-20 05:13:00  2026-08-20 05:13:00
+5588457475             QRO   QRO   QRO-DHU   HU     PL   2026-08-20 05:13:00  2026-08-20 05:13:00
+JD0081108265588457475  QRO   QRO   QRO-DHU   HU     DF   2026-08-20 05:14:58  2026-08-20 05:15:03  QRO>QQR0600>2008>OCN85032043>QRO>0600
+5588457475             QRO   QRO   QRO-DHU   HU     DF   2026-08-20 05:14:58  2026-08-20 05:15:03  QRO>QQR0600>2008>OCN85032043>QRO>0600
+JD0081108265588457475  QRO   QRO   QRO-QRO   HU     AR   2026-08-20 06:58:30  2026-08-20 06:58:31
+5588457475             QRO   QRO   QRO-QRO   HU     AR   2026-08-20 06:58:30  2026-08-20 06:58:31
+JD0081108265588457475              QRO-QRO   QRW1   OH   2026-08-20 13:29:54  2026-08-20 13:29:54  DELIVERY SCHEDULED 2108 AM
+5588457475                         QRO-QRO   QRW1   OH   2026-08-20 13:29:54  2026-08-20 13:29:54  DELIVERY SCHEDULED 2108 AM
+JD0081108265588457475              QRO-QRO   QRW1   OH   2026-08-20 14:50:27  2026-08-20 14:50:27  DELIVERY SCHEDULED 2708 AM
+5588457475                         QRO-QRO   QRW1   OH   2026-08-20 14:50:27  2026-08-20 14:50:27  DELIVERY SCHEDULED 2708 AM
+JD0081108265588457475              QRO-QRO   QRW1   FD   2026-08-21 12:38:10  2026-08-21 12:38:10  ARAUTOS ZF QRO X2 2108 AM
+5588457475                         QRO-QRO   QRW1   FD   2026-08-21 12:38:10  2026-08-21 12:38:10  ARAUTOS ZF QRO X2 2108 AM
+
+AWB : 4804831533
+
+Orig  Dest  Shipment Time     Prod  Pcs  Kilos  Decl. Value    Description of Goods
+-----------------------------------------------------------------------------------------------------------
+SEL   QRO   2026-08-19 14:35  P     1    1.50   145.13 USD     [BTS SWIM MERCH] WIND JACKET (DIVE)
+Shpr Acct : 593470930                                   Payer Acct : 593470930
+Shipper                                                 Receiver
+------------------------------------------------------  ---------------------------------------------------
+Name   : HYBE CO., LTD                                  Name   : ARIADNA GOMEZ
+Ctc Nm : HYBE Co., Ltd                                  Ctc Nm : Ariadna Gomez
+Addr 1 : 28-23, Bukhang-ro, Seo-gu,                     Addr 1 : Francisco I Madero #100 Tulillo de abajo Por
+Addr 2 : Incheon, Republic of Korea                     Addr 2 : ton negro casi en la esquina
+City   : INCHEON                                        City   : SAN JOSE ITURBIDE
+State  :                                                State  : GT
+Ctry   : KR                                             Ctry   : MX
+Zip    : 22853                                          Zip    : 37980
+Phone  : +82-2-1544-0790                                Phone  : 4191156618
+Ref    :
+
+       AWB/PID         Orig  Dest  Fac-ID    Route  Cd        Event Dtm         Data Available     Event Remark
+----------------------------------------------------------------------------------------------------------------------
+4804831533                         KUL-TRC          DP   2026-08-17 01:00:31  2026-08-17 01:00:31  DPSS [Zero/0]
+4804831533                         SEL-GPC          IA   2026-08-17 02:00:29  2026-08-17 02:09:30
+4804831533             SEL   QRO   CVG-HUB          RR   2026-08-19 09:16:44  2026-08-19 09:17:01  HOLD BONDED TRANSFER
+4804831533             SEL   QRO   QRO-QRO          ST   2026-08-19 09:58:26  2026-08-19 09:58:26  ODD - HANDOVER TO SERVICE POINT QROSEE
+JD014600012742883814               SEL-GVS   KBWH   CI   2026-08-19 14:35:47  2026-08-19 14:35:47  DIRECT INJECTION
+JD014600012742883814               SEL-GVS          PL   2026-08-19 14:35:47  2026-08-19 14:35:47
+4804831533                         SEL-GVS   KBWH   CI   2026-08-19 14:35:47  2026-08-19 14:35:47  DIRECT INJECTION
+4804831533                         SEL-GVS          PL   2026-08-19 14:35:47  2026-08-19 14:35:47
+JD014600012742883814   SEL   ICN   SEL-GVS   HU     PL   2026-08-19 15:23:10  2026-08-19 15:23:10
+4804831533             SEL   ICN   SEL-GVS   HU     PL   2026-08-19 15:23:10  2026-08-19 15:23:10
+JD014600012742883814   SEL   ICN   SEL-GVS   HU     PL   2026-08-19 15:32:14  2026-08-19 15:32:14
+4804831533             SEL   ICN   SEL-GVS   HU     PL   2026-08-19 15:32:14  2026-08-19 15:32:14
+JD014600012742883814   SEL   ICN   SEL-GVS   HU     DF   2026-08-19 15:32:58  2026-08-19 15:32:43  SEL>GVS1550>1908>OCN84849273>ICN>1635
+4804831533             SEL   ICN   SEL-GVS   HU     DF   2026-08-19 15:32:58  2026-08-19 15:32:43  SEL>GVS1550>1908>OCN84849273>ICN>1635
+4804831533                         ICN-GTW          RR   2026-08-19 15:41:08  2026-08-19 15:41:08  HOLD EXPORT LICENSE REQUIRED
+4804831533             SEL   QRO   CVG-             ES   2026-08-19 15:46:30  2026-08-19 15:52:09
+4804831533             SEL   QRO   CVG-HUB          RR   2026-08-19 15:50:00  2026-08-19 15:50:02  RLSE CONDITIONAL DISCHARGE
+4804831533             SEL   QRO   CVG-HUB          RR   2026-08-19 15:50:00  2026-08-19 15:50:03  RLSE RELEASED
+4804831533                         ICN-GTW          RR   2026-08-19 16:16:39  2026-08-19 16:16:39  RLSE RELEASED
+JD014600012742883814   SEL   ICN   ICN-GTW   HU     AF   2026-08-19 16:32:00  2026-08-19 16:32:00
+4804831533             SEL   ICN   ICN-GTW   HU     AF   2026-08-19 16:32:00  2026-08-19 16:32:00
+4804831533                         QRO-GTW          ES   2026-08-19 16:33:37  2026-08-19 16:33:37  DecCur MXN;DecVal 83.568;Frt 0.000;EntrPort
+JD014600012742883814   SEL   QRO   ICN-GTW          CI   2026-08-19 17:23:53  2026-08-19 17:23:53  AUTOSORT COY SCANNER LS03.CS20.SC04
+4804831533             SEL   QRO   ICN-GTW          CI   2026-08-19 17:23:53  2026-08-19 17:23:53  AUTOSORT COY SCANNER LS03.CS20.SC04
+JD014600012742883814   SEL   QRO   ICN-GTW          SI   2026-08-19 17:24:28  2026-08-19 17:24:28  XRAY COY.LS03.XRAY04
+4804831533             SEL   QRO   ICN-GTW          SI   2026-08-19 17:24:28  2026-08-19 17:24:28  XRAY COY.LS03.XRAY04
+JD014600012742883814   SEL   QRO   ICN-GTW          PL   2026-08-19 17:28:27  2026-08-19 17:28:27  AUTOSORT COMPLETE
+4804831533             SEL   QRO   ICN-GTW          PL   2026-08-19 17:28:27  2026-08-19 17:28:27  AUTOSORT COMPLETE
+JD014600012742883814   SEL         ICN-GTW          RW   2026-08-19 17:28:28  2026-08-19 17:28:28  <0.63>  <37.5 x 7.0 x 27.5>
+4804831533             SEL         ICN-GTW          RW   2026-08-19 17:28:28  2026-08-19 17:28:28  <0.63>  <37.5 x 7.0 x 27.5>
+JD014600012742883814               ICN-GTW          PL   2026-08-19 17:43:31  2026-08-19 17:43:32
+4804831533                         ICN-GTW          PL   2026-08-19 17:43:31  2026-08-19 17:43:32
+JD014600012742883814   ICN   CVG   ICN-GTW   HU     DF   2026-08-19 21:55:58  2026-08-19 21:55:06  ICN>K4219>1908>61540975406>NGO>0000
+4804831533             ICN   CVG   ICN-GTW   HU     DF   2026-08-19 21:55:58  2026-08-19 21:55:06  ICN>K4219>1908>61540975406>NGO>0000
+JD014600012742883814               ICN-      HU     TD   2026-08-19 22:46:00  2026-08-19 22:46:00  OPERATOR
+4804831533                         ICN-      HU     TD   2026-08-19 22:46:00  2026-08-19 22:46:00  OPERATOR
+JD014600012742883814   ICN   NGO   ICN-GTW          CU   2026-08-19 23:24:59  2026-08-19 23:24:52  ICN>K4219>1908>61540975406>NGO>2324
+4804831533             ICN   NGO   ICN-GTW          CU   2026-08-19 23:24:59  2026-08-19 23:24:52  ICN>K4219>1908>61540975406>NGO>2324
+4804831533                         CVG-HUB          ES   2026-08-20 00:33:56  2026-08-20 00:33:56  DecCur USD;DecVal 92.000;Frt 0.000;EntrPort
+4804831533                         CVG-HUB          ES   2026-08-20 00:44:46  2026-08-20 00:44:46  DecCur USD;DecVal 92.000;Frt 0.000;EntrPort
+4804831533                         CVG-HUB          ES   2026-08-20 00:56:46  2026-08-20 00:56:46  DecCur USD;DecVal 92.000;Frt 0.000;EntrPort
+JD014600012742883814               NGO-      HU     TD   2026-08-20 02:05:04  2026-08-20 02:05:04  OPERATOR
+4804831533                         NGO-      HU     TD   2026-08-20 02:05:04  2026-08-20 02:05:04  OPERATOR
+4804831533                         CVG-HUB          ES   2026-08-20 03:21:44  2026-08-20 03:21:44  DecCur USD;DecVal 92.000;Frt 0.000;EntrPort
+JD014600012742883814               NGO-             CU   2026-08-20 03:27:30  2026-08-20 03:27:30  >>>>>
+4804831533                         NGO-             CU   2026-08-20 03:27:30  2026-08-20 03:27:30  >>>>>
+4804831533                         CVG-HUB          ES   2026-08-20 03:46:16  2026-08-20 03:46:16  DecCur USD;DecVal 92.000;Frt 0.000;EntrPort
+JD014600012742883814               CVG-HUB   HU     AF   2026-08-20 04:15:55  2026-08-20 07:26:05  LATE ARRIVAL
+4804831533                         CVG-HUB   HU     AF   2026-08-20 04:15:55  2026-08-20 07:26:05  LATE ARRIVAL
+JD014600012742883814   SEL   QRO   CVG-HUB          CI   2026-08-20 04:31:36  2026-08-20 04:31:36  AUTOSORT COY SCANNER PUL08.B2MF.SC01
+JD014600012742883814   SEL   QRO   CVG-HUB          CR   2026-08-20 04:31:36  2026-08-20 04:31:36
+4804831533             SEL   QRO   CVG-HUB          CI   2026-08-20 04:31:36  2026-08-20 04:31:36  AUTOSORT COY SCANNER PUL08.B2MF.SC01
+4804831533             SEL   QRO   CVG-HUB          CR   2026-08-20 04:31:36  2026-08-20 04:31:36
+JD014600012742883814   SEL         CVG-HUB          RW   2026-08-20 04:39:23  2026-08-20 04:39:23  <9.409 x 2.795 x 15.591>
+4804831533             SEL         CVG-HUB          RW   2026-08-20 04:39:23  2026-08-20 04:39:23  <9.409 x 2.795 x 15.591>
+JD014600012742883814   SEL   QRO   CVG-HUB          PL   2026-08-20 04:42:25  2026-08-20 04:42:25  AUTOSORT COMPLETE
+4804831533             SEL   QRO   CVG-HUB          PL   2026-08-20 04:42:25  2026-08-20 04:42:25  AUTOSORT COMPLETE
+JD014600012742883814               CVG-HUB          PL   2026-08-20 04:46:02  2026-08-20 04:46:03
+4804831533                         CVG-HUB          PL   2026-08-20 04:46:02  2026-08-20 04:46:03
+JD014600012742883814   CVG   QRO   CVG-HUB   HU     PL   2026-08-20 07:11:45  2026-08-20 07:11:45
+4804831533             CVG   QRO   CVG-HUB   HU     PL   2026-08-20 07:11:45  2026-08-20 07:11:45
+4804831533             SEL   QRO   CVG-HUB          RR   2026-08-20 07:36:36  2026-08-20 07:36:48  RLSE RELEASED
+JD014600012742883814   CVG   QRO   CVG-HUB   HU     DF   2026-08-20 07:39:58  2026-08-20 07:41:35  CVG>W8949>2008>48961885961>QRO>1015
+4804831533             CVG   QRO   CVG-HUB   HU     DF   2026-08-20 07:39:58  2026-08-20 07:41:35  CVG>W8949>2008>48961885961>QRO>1015
+4804831533             SEL   QRO   QRO-GTW          RR   2026-08-20 08:02:53  2026-08-20 08:05:18  RLSE CAT 1 RELEASE
+4804831533             SEL   QRO   QRO-GTW          RR   2026-08-20 08:03:40  2026-08-20 08:10:11  RLSE CAT 1 RELEASE
+4804831533             SEL   QRO   QRO-GTW          RR   2026-08-20 08:49:28  2026-08-20 08:50:55  RLSE RELEASED
+JD014600012742883814   CVG   QRO   QRO-GTW   HU     AF   2026-08-20 10:27:11  2026-08-20 10:27:12
+4804831533             CVG   QRO   QRO-GTW   HU     AF   2026-08-20 10:27:11  2026-08-20 10:27:12
+JD014600012742883814               QRO-GTW          CR   2026-08-20 10:34:46  2026-08-20 10:34:46
+4804831533                         QRO-GTW          CR   2026-08-20 10:34:46  2026-08-20 10:34:46
+JD014600012742883814               QRO-GTW          PL   2026-08-20 10:37:18  2026-08-20 10:37:19
+4804831533                         QRO-GTW          PL   2026-08-20 10:37:18  2026-08-20 10:37:19
+JD014600012742883814   QRO   QRO   QRO-GTW   HU     PL   2026-08-20 10:58:18  2026-08-20 10:58:19
+4804831533             QRO   QRO   QRO-GTW   HU     PL   2026-08-20 10:58:18  2026-08-20 10:58:19
+JD014600012742883814   QRO   QRO   QRO-GTW   HU     DF   2026-08-20 12:30:58  2026-08-20 12:30:39  QRO>QRO1245>2008>123456789>QRO>1247
+4804831533             QRO   QRO   QRO-GTW   HU     DF   2026-08-20 12:30:58  2026-08-20 12:30:39  QRO>QRO1245>2008>123456789>QRO>1247
+JD014600012742883814   QRO   QRO   QRO-DHU   HU     AF   2026-08-20 12:56:06  2026-08-20 12:56:07
+4804831533             QRO   QRO   QRO-DHU   HU     AF   2026-08-20 12:56:06  2026-08-20 12:56:07
+JD014600012742883814   QRO   QRO   QRO-DHU   HU     PL   2026-08-20 12:56:15  2026-08-20 12:56:15
+4804831533             QRO   QRO   QRO-DHU   HU     PL   2026-08-20 12:56:15  2026-08-20 12:56:15
+JD014600012742883814   QRO   QRO   QRO-DHU   HU     PL   2026-08-20 13:00:27  2026-08-20 13:00:28
+4804831533             QRO   QRO   QRO-DHU   HU     PL   2026-08-20 13:00:27  2026-08-20 13:00:28
+JD014600012742883814   QRO   QRO   QRO-DHU   HU     DF   2026-08-20 13:00:58  2026-08-20 13:01:02  QRO>QRO1300>2008>123456789>QRO>1405
+4804831533             QRO   QRO   QRO-DHU   HU     DF   2026-08-20 13:00:58  2026-08-20 13:01:02  QRO>QRO1300>2008>123456789>QRO>1405
+JD014600012742883814               QRO-QRO   HU     AR   2026-08-20 13:37:54  2026-08-20 13:37:54
+4804831533                         QRO-QRO   HU     AR   2026-08-20 13:37:54  2026-08-20 13:37:54
+JD014600012742883814               QRO-QRO   QRW1   CI   2026-08-20 13:45:32  2026-08-20 13:45:32  FOCUS CHECK AR FISICO
+4804831533                         QRO-QRO   QRW1   CI   2026-08-20 13:45:32  2026-08-20 13:45:32  FOCUS CHECK AR FISICO
+JD014600012742883814               QRO-QRO   QRW1   OH   2026-08-20 13:46:56  2026-08-20 13:46:56  DELIVERY SCHEDULED 2108 AM
+4804831533                         QRO-QRO   QRW1   OH   2026-08-20 13:46:56  2026-08-20 13:46:56  DELIVERY SCHEDULED 2108 AM
+4804831533                         CVG-HUB          ES   2026-08-20 16:37:07  2026-08-20 16:37:07  DecCur USD;DecVal 92.000;Frt 0.000;EntrPort
+4804831533                         QRO-GTW          ES   2026-08-20 19:38:28  2026-08-20 19:38:28  DecCur MXN;DecVal 83.568;Frt 0.000;EntrPort
+4804831533                         QRO-GTW          ES   2026-08-21 00:34:47  2026-08-21 00:34:47  DecCur MXN;DecVal 83.568;Frt 0.000;EntrPort
+4804831533             SEL   QRO   QRO-GTW   626.32 DI   2026-08-21 09:56:39  2026-08-21 09:56:39  1468.47+MXN+D02657119+CSH+REG
+4804831533                   QRO   QRO-QRO          PY   2026-08-21 11:18:41  2026-08-21 11:20:16  CRC> MXN> 1468.47> REGQRO2342622> 211604544-
+JD014600012742883814               QRO-QRO   QRW1   FD   2026-08-21 12:38:04  2026-08-21 12:38:04  ARAUTOS ZF QRO X2 2108 AM
+4804831533                         QRO-QRO   QRW1   FD   2026-08-21 12:38:04  2026-08-21 12:38:04  ARAUTOS ZF QRO X2 2108 AM
+
+AWB : 3680118761
+
+Orig  Dest  Shipment Time     Prod  Pcs  Kilos  Decl. Value    Description of Goods
+-----------------------------------------------------------------------------------------------------------
+MEX   QRO   2026-08-20 13:15  N     1    1.70                  ORDEN 8578343
+Shpr Acct : 988073500                                   Payer Acct : 988073500
+Shipper                                                 Receiver
+------------------------------------------------------  ---------------------------------------------------
+Name   : SWISSJUST MEXICO - RYDER CARRIZAL              Name   : HERNANDEZ RODRIGUEZ MARIA TERESA
+Ctc Nm : Swiss Just Mexico                              Ctc Nm : HERNANDEZ RODRIGUEZ MARIA TERESA
+Addr 1 : 10 AV. CIRCUNVALACION,                         Addr 1 : AV LA VENTA 40 B
+Addr 2 : BARRIO DE TEXCACOA                             Addr 2 : LA VENTA
+City   : ESTADO DE MEXICO                               City   : GUANAJUATO
+State  : MC                                             State  : GT
+Ctry   : MX                                             Ctry   : MX
+Zip    : 54605                                          Zip    : 37986
+Phone  : 5530984710                                     Phone  : 524191009513
+Ref    :
+
+       AWB/PID         Orig  Dest  Fac-ID    Route  Cd        Event Dtm         Data Available     Event Remark
+----------------------------------------------------------------------------------------------------------------------
+3680118761                         MEX-DMX          IA   2026-08-19 21:57:21  2026-08-19 22:03:16
+JD014600012792078242               MEX-NMZ   NZWQ   PU   2026-08-20 13:15:00  2026-08-20 13:15:04
+3680118761                         MEX-NMZ   NZWQ   PU   2026-08-20 13:15:00  2026-08-20 13:15:04
+JD014600012792078242               MEX-NMZ          PL   2026-08-20 13:15:47  2026-08-20 13:15:48
+3680118761                         MEX-NMZ          PL   2026-08-20 13:15:47  2026-08-20 13:15:48
+JD014600012792078242   MEX   JJC   MEX-NMZ   HU     PL   2026-08-20 17:31:12  2026-08-20 17:31:13
+3680118761             MEX   JJC   MEX-NMZ   HU     PL   2026-08-20 17:31:12  2026-08-20 17:31:13
+JD014600012792078242   MEX   JJC   MEX-NMZ   HU     DF   2026-08-20 17:31:58  2026-08-20 17:31:51  MEX>SWI1900>2008>OCN85042506>JJC>1900
+3680118761             MEX   JJC   MEX-NMZ   HU     DF   2026-08-20 17:31:58  2026-08-20 17:31:51  MEX>SWI1900>2008>OCN85042506>JJC>1900
+JD014600012792078242   MEX   JJC   JJC-DHU   HU     AF   2026-08-20 17:48:36  2026-08-20 17:48:36
+3680118761             MEX   JJC   JJC-DHU   HU     AF   2026-08-20 17:48:36  2026-08-20 17:48:36
+JD014600012792078242   MEX   QRO   JJC-DHU          CI   2026-08-20 19:41:36  2026-08-20 19:41:36  AUTOSORT COY SCANNER SO.2.2
+3680118761             MEX   QRO   JJC-DHU          CI   2026-08-20 19:41:36  2026-08-20 19:41:36  AUTOSORT COY SCANNER SO.2.2
+JD014600012792078242   MEX   QRO   JJC-DHU          PL   2026-08-20 19:42:32  2026-08-20 19:42:32  AUTOSORT COMPLETE
+3680118761             MEX   QRO   JJC-DHU          PL   2026-08-20 19:42:32  2026-08-20 19:42:32  AUTOSORT COMPLETE
+JD014600012792078242   MEX         JJC-DHU          RW   2026-08-20 19:42:35  2026-08-20 19:42:35  <14.3 x 10.0 x 22.4>
+3680118761             MEX         JJC-DHU          RW   2026-08-20 19:42:35  2026-08-20 19:42:35  <14.3 x 10.0 x 22.4>
+JD014600012792078242               JJC-DHU          PL   2026-08-21 01:21:21  2026-08-21 01:21:32
+3680118761                         JJC-DHU          PL   2026-08-21 01:21:21  2026-08-21 01:21:32
+JD014600012792078242   JJC   QRO   JJC-DHU   HU     PL   2026-08-21 01:22:34  2026-08-21 01:23:16
+3680118761             JJC   QRO   JJC-DHU   HU     PL   2026-08-21 01:22:34  2026-08-21 01:23:16
+JD014600012792078242   JJC   QRO   JJC-DHU   HU     DF   2026-08-21 01:38:58  2026-08-21 01:38:24  JJC>JQR0445>2108>OCN85135341>QRO>0445
+3680118761             JJC   QRO   JJC-DHU   HU     DF   2026-08-21 01:38:58  2026-08-21 01:38:24  JJC>JQR0445>2108>OCN85135341>QRO>0445
+JD014600012792078242   JJC   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:14  2026-08-21 06:52:15
+3680118761             JJC   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:14  2026-08-21 06:52:15
+JD014600012792078242               QRO-QRO   QRW1   CI   2026-08-21 09:04:10  2026-08-21 09:04:10  FOCUS CHECK BANDA
+3680118761                         QRO-QRO   QRW1   CI   2026-08-21 09:04:10  2026-08-21 09:04:10  FOCUS CHECK BANDA
+JD014600012792078242               QRO-QRO   QRW1   FD   2026-08-21 12:38:04  2026-08-21 12:38:04  ARAUTOS ZF QRO X2 2108 AM
+3680118761                         QRO-QRO   QRW1   FD   2026-08-21 12:38:04  2026-08-21 12:38:04  ARAUTOS ZF QRO X2 2108 AM
+
+AWB : 6750448843
+
+Orig  Dest  Shipment Time     Prod  Pcs  Kilos  Decl. Value    Description of Goods
+-----------------------------------------------------------------------------------------------------------
+CYY   QRO   2026-08-20 06:54  G     2    1.61                  Items: 1
+Shpr Acct : 988184109                                   Payer Acct : 988184109
+Shipper                                                 Receiver
+------------------------------------------------------  ---------------------------------------------------
+Name   : NATURA                                         Name   : N/A
+Ctc Nm : Natura Distribuidora de Mexico S.A.            Ctc Nm : ALEJANDRO JAVIER BENITES RANGEL
+Addr 1 : GUERRERO, 149                                  Addr 1 : 5 DE MAYO 3
+Addr 2 : RANCHO SECO, CELAYA                            Addr 2 : ENTRE PARAISO Y CAMELINAS
+City   : CELAYA                                         City   : SAN LUIS DE LA PAZ
+State  : GT                                             State  : GT
+Ctry   : MX                                             Ctry   : MX
+Zip    : 38090                                          Zip    : 37913
+Phone  : 5591384100                                     Phone  : 4681029850
+Ref    :
+
+       AWB/PID         Orig  Dest  Fac-ID    Route  Cd        Event Dtm         Data Available     Event Remark
+----------------------------------------------------------------------------------------------------------------------
+6750448843                         CYY-CYY          IA   2026-08-19 09:36:58  2026-08-19 09:44:31
+JD014600012751563130               CYY-CYY   CYW2   PU   2026-08-20 06:54:22  2026-08-20 06:54:27
+JD014600012751563131               CYY-CYY   CYW2   PU   2026-08-20 06:54:22  2026-08-20 06:54:27
+6750448843                         CYY-CYY   CYW2   PU   2026-08-20 06:54:22  2026-08-20 06:54:27
+JD014600012751563130               CYY-CYY          PL   2026-08-20 07:14:42  2026-08-20 07:14:43
+JD014600012751563131               CYY-CYY          PL   2026-08-20 07:14:58  2026-08-20 07:14:58
+6750448843                         CYY-CYY          PL   2026-08-20 07:14:58  2026-08-20 07:14:58
+JD014600012751563130   CYY   JJC   CYY-CYY   HU     PL   2026-08-20 09:52:42  2026-08-20 09:52:43
+JD014600012751563131   CYY   JJC   CYY-CYY   HU     PL   2026-08-20 09:52:42  2026-08-20 09:52:43
+6750448843             CYY   JJC   CYY-CYY   HU     PL   2026-08-20 09:52:42  2026-08-20 09:52:43
+JD014600012751563130   CYY   JJC   CYY-CYY   HU     DF   2026-08-20 09:52:58  2026-08-20 09:53:21  CYY>NAT1300>2008>OCN85021580>JJC>1300
+JD014600012751563131   CYY   JJC   CYY-CYY   HU     DF   2026-08-20 09:52:58  2026-08-20 09:53:21  CYY>NAT1300>2008>OCN85021580>JJC>1300
+6750448843             CYY   JJC   CYY-CYY   HU     DF   2026-08-20 09:52:58  2026-08-20 09:53:21  CYY>NAT1300>2008>OCN85021580>JJC>1300
+JD014600012751563130   CYY   JJC   JJC-DHU   HU     AF   2026-08-20 13:42:35  2026-08-20 13:42:36
+JD014600012751563131   CYY   JJC   JJC-DHU   HU     AF   2026-08-20 13:42:35  2026-08-20 13:42:36
+6750448843             CYY   JJC   JJC-DHU   HU     AF   2026-08-20 13:42:35  2026-08-20 13:42:36
+JD014600012751563130   CYY   QRO   JJC-DHU          CI   2026-08-20 18:30:50  2026-08-20 18:30:50  AUTOSORT COY SCANNER SO.2.2
+JD014600012751563130   CYY   QRO   JJC-DHU          PL   2026-08-20 18:31:47  2026-08-20 18:31:47  AUTOSORT COMPLETE
+JD014600012751563130   CYY         JJC-DHU          RW   2026-08-20 18:31:52  2026-08-20 18:31:52  <0.90>  <28.6 x 28.0 x 40.1>
+JD014600012751563131   CYY   QRO   JJC-DHU          CI   2026-08-20 18:35:17  2026-08-20 18:35:17  AUTOSORT COY SCANNER SO.2.2
+6750448843             CYY   QRO   JJC-DHU          CI   2026-08-20 18:35:17  2026-08-20 18:35:17  AUTOSORT COY SCANNER SO.2.2
+JD014600012751563131   CYY   QRO   JJC-DHU          PL   2026-08-20 18:36:14  2026-08-20 18:36:14  AUTOSORT COMPLETE
+6750448843             CYY   QRO   JJC-DHU          PL   2026-08-20 18:36:14  2026-08-20 18:36:14  AUTOSORT COMPLETE
+JD014600012751563131   CYY         JJC-DHU          RW   2026-08-20 18:36:18  2026-08-20 18:36:18  <1.65>  <28.7 x 27.5 x 40.5>
+6750448843             CYY         JJC-DHU          RW   2026-08-20 18:36:18  2026-08-20 18:36:18  <1.65>  <28.7 x 27.5 x 40.5>
+JD014600012751563130               JJC-DHU          PL   2026-08-21 01:21:21  2026-08-21 01:21:28
+JD014600012751563131               JJC-DHU          PL   2026-08-21 01:21:21  2026-08-21 01:21:28
+JD014600012751563130   JJC   QRO   JJC-DHU   HU     PL   2026-08-21 01:22:34  2026-08-21 01:23:16
+JD014600012751563131   JJC   QRO   JJC-DHU   HU     PL   2026-08-21 01:22:34  2026-08-21 01:23:16
+6750448843             JJC   QRO   JJC-DHU   HU     PL   2026-08-21 01:22:34  2026-08-21 01:23:16
+JD014600012751563130   JJC   QRO   JJC-DHU   HU     DF   2026-08-21 01:38:58  2026-08-21 01:38:24  JJC>JQR0445>2108>OCN85135341>QRO>0445
+JD014600012751563131   JJC   QRO   JJC-DHU   HU     DF   2026-08-21 01:38:58  2026-08-21 01:38:24  JJC>JQR0445>2108>OCN85135341>QRO>0445
+6750448843             JJC   QRO   JJC-DHU   HU     DF   2026-08-21 01:38:58  2026-08-21 01:38:24  JJC>JQR0445>2108>OCN85135341>QRO>0445
+JD014600012751563130   JJC   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:14  2026-08-21 06:52:15
+JD014600012751563131   JJC   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:14  2026-08-21 06:52:15
+6750448843             JJC   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:14  2026-08-21 06:52:15
+JD014600012751563131               QRO-QRO   QRW1   CI   2026-08-21 08:21:03  2026-08-21 08:21:03  FOCUS CHECK BANDA
+JD014600012751563130               QRO-QRO   QRW1   CI   2026-08-21 08:21:24  2026-08-21 08:21:24  FOCUS CHECK BANDA
+6750448843                         QRO-QRO   QRW1   CI   2026-08-21 08:21:24  2026-08-21 08:21:24  FOCUS CHECK BANDA
+JD014600012751563131               QRO-QRO   QRW1   FD   2026-08-21 12:37:53  2026-08-21 12:37:53  ARAUTOS ZF QRO X2 2108 AM
+JD014600012751563130               QRO-QRO   QRW1   FD   2026-08-21 12:38:02  2026-08-21 12:38:02  ARAUTOS ZF QRO X2 2108 AM
+6750448843                         QRO-QRO   QRW1   FD   2026-08-21 12:38:02  2026-08-21 12:38:02  ARAUTOS ZF QRO X2 2108 AM
+
+AWB : 4137465872
+
+Orig  Dest  Shipment Time     Prod  Pcs  Kilos  Decl. Value    Description of Goods
+-----------------------------------------------------------------------------------------------------------
+GDL   QRO   2026-08-20 15:20  G     1    11.00                 ROPA DE CAMA
+Shpr Acct : 980092080                                   Payer Acct : 980092080
+Shipper                                                 Receiver
+------------------------------------------------------  ---------------------------------------------------
+Name   : SMARTBAMBOO                                    Name   : JUAN CORONA CORONA
+Ctc Nm : Reuven Rozenman                                Ctc Nm : JUAN CORONA CORONA
+Addr 1 : lateral perinorte #33                          Addr 1 : calle 5 de mayo # 30
+Addr 2 : El Vigia                                       Addr 2 : Santa Catarina
+City   : ZAPOPAN                                        City   : SANTA CATARINA
+State  : JC                                             State  : GT
+Ctry   : MX                                             Ctry   : MX
+Zip    : 45140                                          Zip    : 37950
+Phone  : 3312296766                                     Phone  : 4271126907
+Ref    :
+
+       AWB/PID         Orig  Dest  Fac-ID    Route  Cd        Event Dtm         Data Available     Event Remark
+----------------------------------------------------------------------------------------------------------------------
+4137465872                         GDL-GDL          IA   2026-08-19 19:46:11  2026-08-19 19:54:46
+JD014600012796318921               GDL-GDL   BESN   SA   2026-08-20 15:20:58  2026-08-20 15:21:07  RETAIL GDLBEN
+4137465872                         GDL-GDL   BESN   SA   2026-08-20 15:20:58  2026-08-20 15:21:07  RETAIL GDLBEN
+JD014600012796318921               GDL-GDL   BESN   HN   2026-08-20 18:46:55  2026-08-20 18:57:37  TRANSFERRED TO COURIER
+4137465872                         GDL-GDL   BESN   HN   2026-08-20 18:46:55  2026-08-20 18:57:37  TRANSFERRED TO COURIER
+JD014600012796318921               GDL-GDL   GDBE   PU   2026-08-20 18:56:45  2026-08-20 18:56:56
+4137465872                         GDL-GDL   GDBE   PU   2026-08-20 18:56:45  2026-08-20 18:56:56  undefined
+JD014600012796318921               GDL-GDL          PL   2026-08-20 20:00:38  2026-08-20 20:00:50
+4137465872                         GDL-GDL          PL   2026-08-20 20:00:38  2026-08-20 20:00:50
+JD014600012796318921   GDL   QRO   GDL-GDL   HU     PL   2026-08-20 21:35:28  2026-08-20 21:35:29
+4137465872             GDL   QRO   GDL-GDL   HU     PL   2026-08-20 21:35:28  2026-08-20 21:35:29
+JD014600012796318921   GDL   QRO   GDL-GDL   HU     DF   2026-08-20 21:36:58  2026-08-20 21:36:54  GDL>GDQ0230>2008>OCN84987523>QRO>0230
+4137465872             GDL   QRO   GDL-GDL   HU     DF   2026-08-20 21:36:58  2026-08-20 21:36:54  GDL>GDQ0230>2008>OCN84987523>QRO>0230
+JD014600012796318921               QRO-DHU   HU     TD   2026-08-21 02:50:00  2026-08-21 03:03:05  TRAFFIC
+4137465872                         QRO-DHU   HU     TD   2026-08-21 02:50:00  2026-08-21 03:03:05  TRAFFIC
+JD014600012796318921   GDL   QRO   QRO-DHU   HU     AF   2026-08-21 03:02:06  2026-08-21 03:02:06  LATE ARRIVAL
+4137465872             GDL   QRO   QRO-DHU   HU     AF   2026-08-21 03:02:06  2026-08-21 03:02:06  LATE ARRIVAL
+JD014600012796318921   GDL   QRO   QRO-DHU          CI   2026-08-21 03:27:19  2026-08-21 03:27:19  AUTOSORT COY SCANNER AIRSCAN
+4137465872             GDL   QRO   QRO-DHU          CI   2026-08-21 03:27:19  2026-08-21 03:27:19  AUTOSORT COY SCANNER AIRSCAN
+JD014600012796318921               QRO-DHU   IBOP   SI   2026-08-21 03:28:45  2026-08-21 03:28:45  XRAYED BY KML
+4137465872                         QRO-DHU   IBOP   SI   2026-08-21 03:28:45  2026-08-21 03:28:45  XRAYED BY KML
+JD014600012796318921   GDL   QRO   QRO-DHU          PL   2026-08-21 03:37:14  2026-08-21 03:37:14  AUTOSORT COMPLETE
+4137465872             GDL   QRO   QRO-DHU          PL   2026-08-21 03:37:14  2026-08-21 03:37:14  AUTOSORT COMPLETE
+JD014600012796318921   GDL         QRO-DHU          RW   2026-08-21 03:37:17  2026-08-21 03:37:17  <001.90>  <0036.0 x 0024.5 x 0046.0>
+4137465872             GDL         QRO-DHU          RW   2026-08-21 03:37:17  2026-08-21 03:37:17  <001.90>  <0036.0 x 0024.5 x 0046.0>
+JD014600012796318921               QRO-DHU          PL   2026-08-21 05:03:06  2026-08-21 05:03:09
+4137465872                         QRO-DHU          PL   2026-08-21 05:03:06  2026-08-21 05:03:09
+JD014600012796318921   QRO   QRO   QRO-DHU   HU     PL   2026-08-21 05:04:49  2026-08-21 05:04:49
+4137465872             QRO   QRO   QRO-DHU   HU     PL   2026-08-21 05:04:49  2026-08-21 05:04:49
+JD014600012796318921   QRO   QRO   QRO-DHU   HU     DF   2026-08-21 05:06:58  2026-08-21 05:06:04  QRO>QQR0600>2108>OCN85156853>QRO>0600
+4137465872             QRO   QRO   QRO-DHU   HU     DF   2026-08-21 05:06:58  2026-08-21 05:06:04  QRO>QQR0600>2108>OCN85156853>QRO>0600
+JD014600012796318921   QRO   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:45  2026-08-21 06:52:45
+4137465872             QRO   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:45  2026-08-21 06:52:45
+JD014600012796318921               QRO-QRO   QRW1   CI   2026-08-21 07:36:46  2026-08-21 07:36:46  FOCUS CHECK BANDA
+4137465872                         QRO-QRO   QRW1   CI   2026-08-21 07:36:46  2026-08-21 07:36:46  FOCUS CHECK BANDA
+JD014600012796318921               QRO-QRO   QRW1   FD   2026-08-21 12:38:01  2026-08-21 12:38:01  ARAUTOS ZF QRO X2 2108 AM
+4137465872                         QRO-QRO   QRW1   FD   2026-08-21 12:38:01  2026-08-21 12:38:01  ARAUTOS ZF QRO X2 2108 AM
+
+AWB : 8302817773
+
+Orig  Dest  Shipment Time     Prod  Pcs  Kilos  Decl. Value    Description of Goods
+-----------------------------------------------------------------------------------------------------------
+LEN   QRO   2026-08-20 17:04  G     1    0.70   617.25 MXN     5 Piezas Cepillo Cerdas De Jabali,
+Shpr Acct : 988226357                                   Payer Acct : 988226357
+Shipper                                                 Receiver
+------------------------------------------------------  ---------------------------------------------------
+Name   : BJX1                                           Name   : PEDRO ALEJANDRO VAZQUEZ GARCIA
+Ctc Nm : BJX1                                           Ctc Nm : PEDRO ALEJANDRO VAZQUEZ GARCIA
+Addr 1 : Calle Oliver Evans Number 107 Carretera a San  Addr 1 : NUEVO MEXICO S/N
+Addr 2 : Parque Industrial Bajio (PILBA)                Addr 2 : XICHU
+City   : LEON                                           City   : XICHU
+State  : GT                                             State  : GT
+Ctry   : MX                                             Ctry   : MX
+Zip    : 37680                                          Zip    : 37930
+Phone  : 12062662992                                    Phone  : 4192941074
+Ref    :
+
+       AWB/PID         Orig  Dest  Fac-ID    Route  Cd        Event Dtm         Data Available     Event Remark
+----------------------------------------------------------------------------------------------------------------------
+8302817773                         KUL-SYS          IA   2026-08-20 13:19:18  2026-08-21 03:24:17
+JD0081108268302817773              LEN-LEN   LEW1   CI   2026-08-20 17:04:44  2026-08-20 17:04:44  DIRECT INJECTION
+8302817773                         LEN-LEN   LEW1   CI   2026-08-20 17:04:44  2026-08-20 17:04:44  DIRECT INJECTION
+JD0081108268302817773              LEN-LEN          PL   2026-08-20 17:08:33  2026-08-20 17:08:33
+8302817773                         LEN-LEN          PL   2026-08-20 17:08:33  2026-08-20 17:08:33
+JD0081108268302817773  LEN   MEX   LEN-LEN   HU     PL   2026-08-20 21:25:08  2026-08-20 21:25:09
+8302817773             LEN   MEX   LEN-LEN   HU     PL   2026-08-20 21:25:08  2026-08-20 21:25:09
+JD0081108268302817773  LEN   MEX   LEN-LEN   HU     DF   2026-08-20 21:25:58  2026-08-20 21:25:34  LEN>LEQ0030>2008>OCN85015335>QRO>0030
+8302817773             LEN   MEX   LEN-LEN   HU     DF   2026-08-20 21:25:58  2026-08-20 21:25:34  LEN>LEQ0030>2008>OCN85015335>QRO>0030
+JD0081108268302817773  LEN   MEX   QRO-DHU   HU     AF   2026-08-21 00:34:48  2026-08-21 00:34:50
+8302817773             LEN   MEX   QRO-DHU   HU     AF   2026-08-21 00:34:48  2026-08-21 00:34:50
+JD0081108268302817773  LEN   QRO   QRO-DHU          CI   2026-08-21 01:07:31  2026-08-21 01:07:31  AUTOSORT COY SCANNER AIRSCAN
+8302817773             LEN   QRO   QRO-DHU          CI   2026-08-21 01:07:31  2026-08-21 01:07:31  AUTOSORT COY SCANNER AIRSCAN
+JD0081108268302817773  LEN   QRO   QRO-DHU          PL   2026-08-21 01:10:26  2026-08-21 01:10:26  AUTOSORT COMPLETE
+8302817773             LEN   QRO   QRO-DHU          PL   2026-08-21 01:10:26  2026-08-21 01:10:26  AUTOSORT COMPLETE
+JD0081108268302817773  LEN         QRO-DHU          RW   2026-08-21 01:10:27  2026-08-21 01:10:27  <000.50>  <0033.0 x 0014.0 x 0046.0>
+8302817773             LEN         QRO-DHU          RW   2026-08-21 01:10:27  2026-08-21 01:10:27  <000.50>  <0033.0 x 0014.0 x 0046.0>
+JD0081108268302817773              QRO-DHU          PL   2026-08-21 05:03:13  2026-08-21 05:03:14
+8302817773                         QRO-DHU          PL   2026-08-21 05:03:13  2026-08-21 05:03:14
+JD0081108268302817773  QRO   QRO   QRO-DHU   HU     PL   2026-08-21 05:04:53  2026-08-21 05:04:54
+8302817773             QRO   QRO   QRO-DHU   HU     PL   2026-08-21 05:04:53  2026-08-21 05:04:54
+JD0081108268302817773  QRO   QRO   QRO-DHU   HU     DF   2026-08-21 05:06:58  2026-08-21 05:06:04  QRO>QQR0600>2108>OCN85156853>QRO>0600
+8302817773             QRO   QRO   QRO-DHU   HU     DF   2026-08-21 05:06:58  2026-08-21 05:06:04  QRO>QQR0600>2108>OCN85156853>QRO>0600
+JD0081108268302817773  QRO   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:53  2026-08-21 06:52:54
+8302817773             QRO   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:53  2026-08-21 06:52:54
+JD0081108268302817773              QRO-QRO   QRW1   FD   2026-08-21 12:37:59  2026-08-21 12:37:59  ARAUTOS ZF QRO X2 2108 AM
+8302817773                         QRO-QRO   QRW1   FD   2026-08-21 12:37:59  2026-08-21 12:37:59  ARAUTOS ZF QRO X2 2108 AM
+
+AWB : 9984016372
+
+Orig  Dest  Shipment Time     Prod  Pcs  Kilos  Decl. Value    Description of Goods
+-----------------------------------------------------------------------------------------------------------
+MEX   QRO   2026-08-20 14:38  N     1    4.00   0.00 MXN       PAQUETE-3604125
+Shpr Acct : 983367143                                   Payer Acct : 983367143
+Shipper                                                 Receiver
+------------------------------------------------------  ---------------------------------------------------
+Name   : MERIKCOM                                       Name   : NATURA PRIM
+Ctc Nm : OSCAR ERICK GONALEZ VALERO                     Ctc Nm : ANA IRAIS MARTINEZ PEREZ
+Addr 1 : henry ford 338                                 Addr 1 : FOTOESTUDIO "IRAIS", ATRAS DE LA PRIMARIA BEN
+Addr 2 : bondojito                                      Addr 2 : ITO JUAREZ, ANTES DE LA TIENDA 3B, AVENIDA FR
+City   : GUSTAVO A MADERO                               City   : SAN JOAQUIN, SAN JOAQUIN, QUERETARO
+State  : DF                                             State  : QT
+Ctry   : MX                                             Ctry   : MX
+Zip    : 07850                                          Zip    : 76550
+Phone  : 5551895365                                     Phone  : 4421060418
+Ref    :
+
+       AWB/PID         Orig  Dest  Fac-ID    Route  Cd        Event Dtm         Data Available     Event Remark
+----------------------------------------------------------------------------------------------------------------------
+9984016372                         MEX-HMX          IA   2026-08-20 13:05:50  2026-08-20 13:13:45
+JD014600012790828377               MEX-HMX   HMV3   PU   2026-08-20 14:38:36  2026-08-20 14:38:45  043658
+9984016372                         MEX-HMX   HMV3   PU   2026-08-20 14:38:36  2026-08-20 14:38:45  043658 / 983367143
+JD014600012790828377               MEX-HMX          PL   2026-08-20 16:33:03  2026-08-20 16:33:04
+9984016372                         MEX-HMX          PL   2026-08-20 16:33:03  2026-08-20 16:33:04
+JD014600012790828377   MEX   JJC   MEX-HMX   HU     PL   2026-08-20 19:59:53  2026-08-20 19:59:53
+9984016372             MEX   JJC   MEX-HMX   HU     PL   2026-08-20 19:59:53  2026-08-20 19:59:53
+JD014600012790828377   MEX   JJC   MEX-HMX   HU     DF   2026-08-20 20:00:58  2026-08-20 20:00:11  MEX>HMJ2145>2008>OCN84999445>JJC>2145
+9984016372             MEX   JJC   MEX-HMX   HU     DF   2026-08-20 20:00:58  2026-08-20 20:00:11  MEX>HMJ2145>2008>OCN84999445>JJC>2145
+JD014600012790828377   MEX   JJC   JJC-DHU   HU     AF   2026-08-20 21:33:10  2026-08-20 21:33:11
+9984016372             MEX   JJC   JJC-DHU   HU     AF   2026-08-20 21:33:10  2026-08-20 21:33:11
+JD014600012790828377   MEX   QRO   JJC-DHU          CI   2026-08-20 22:10:17  2026-08-20 22:10:17  AUTOSORT COY SCANNER SO.2.2
+9984016372             MEX   QRO   JJC-DHU          CI   2026-08-20 22:10:17  2026-08-20 22:10:17  AUTOSORT COY SCANNER SO.2.2
+JD014600012790828377   MEX   QRO   JJC-DHU          PL   2026-08-20 22:13:27  2026-08-20 22:13:27  AUTOSORT COMPLETE
+9984016372             MEX   QRO   JJC-DHU          PL   2026-08-20 22:13:27  2026-08-20 22:13:27  AUTOSORT COMPLETE
+JD014600012790828377   MEX         JJC-DHU          RW   2026-08-20 22:13:28  2026-08-20 22:13:28  <4.45>  <36.2 x 15.4 x 39.7>
+9984016372             MEX         JJC-DHU          RW   2026-08-20 22:13:28  2026-08-20 22:13:28  <4.45>  <36.2 x 15.4 x 39.7>
+JD014600012790828377               JJC-DHU          PL   2026-08-21 01:21:21  2026-08-21 01:21:29
+9984016372                         JJC-DHU          PL   2026-08-21 01:21:21  2026-08-21 01:21:29
+JD014600012790828377   JJC   QRO   JJC-DHU   HU     PL   2026-08-21 01:22:34  2026-08-21 01:23:16
+9984016372             JJC   QRO   JJC-DHU   HU     PL   2026-08-21 01:22:34  2026-08-21 01:23:16
+JD014600012790828377   JJC   QRO   JJC-DHU   HU     DF   2026-08-21 01:38:58  2026-08-21 01:38:24  JJC>JQR0445>2108>OCN85135341>QRO>0445
+9984016372             JJC   QRO   JJC-DHU   HU     DF   2026-08-21 01:38:58  2026-08-21 01:38:24  JJC>JQR0445>2108>OCN85135341>QRO>0445
+JD014600012790828377   JJC   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:14  2026-08-21 06:52:15
+9984016372             JJC   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:14  2026-08-21 06:52:15
+JD014600012790828377               QRO-QRO   QRW1   CI   2026-08-21 08:23:55  2026-08-21 08:23:55  FOCUS CHECK BANDA
+9984016372                         QRO-QRO   QRW1   CI   2026-08-21 08:23:55  2026-08-21 08:23:55  FOCUS CHECK BANDA
+JD014600012790828377               QRO-QRO   QRW1   FD   2026-08-21 12:37:58  2026-08-21 12:37:58  ARAUTOS ZF QRO X2 2108 AM
+9984016372                         QRO-QRO   QRW1   FD   2026-08-21 12:37:58  2026-08-21 12:37:58  ARAUTOS ZF QRO X2 2108 AM
+
+AWB : 3644700614  Duplicate AWB!
+
+Orig  Dest  Shipment Time     Prod  Pcs  Kilos  Decl. Value    Description of Goods
+-----------------------------------------------------------------------------------------------------------
+CYY   QRO   2026-08-18 12:36  G     5    26.61                 Items: 74
+Shpr Acct : 988184109                                   Payer Acct : 988184109
+Shipper                                                 Receiver
+------------------------------------------------------  ---------------------------------------------------
+Name   : NATURA                                         Name   : N/A
+Ctc Nm : Natura Distribuidora de Mexico S.A.            Ctc Nm : LUCILA RAMIREZ LOPEZ
+Addr 1 : GUERRERO, 149                                  Addr 1 : Progreso 9 B
+Addr 2 : RANCHO SECO, CELAYA                            Addr 2 : s/n Entre Hidalgo y Zaragoza, a un costado de
+City   : CELAYA                                         City   : SAN JOSE ITURBIDE
+State  : GT                                             State  : GT
+Ctry   : MX                                             Ctry   : MX
+Zip    : 38090                                          Zip    : 37986
+Phone  : 5591384100                                     Phone  : 3921108753
+Ref    :
+
+AWB : 3644700614  Duplicate AWB!
+
+Orig  Dest  Shipment Time     Prod  Pcs  Kilos  Decl. Value    Description of Goods
+-----------------------------------------------------------------------------------------------------------
+CYY   QRO                           1    26.60
+Shpr Acct : FLM                                         Payer Acct :
+Shipper                                                 Receiver
+------------------------------------------------------  ---------------------------------------------------
+Name   :                                                Name   :
+Ctc Nm :                                                Ctc Nm :
+Addr 1 :                                                Addr 1 :
+Addr 2 :                                                Addr 2 :
+City   :                                                City   :
+State  :                                                State  :
+Ctry   :                                                Ctry   :
+Zip    :                                                Zip    :
+Phone  :                                                Phone  :
+Ref    :
+
+       AWB/PID         Orig  Dest  Fac-ID    Route  Cd        Event Dtm         Data Available     Event Remark
+----------------------------------------------------------------------------------------------------------------------
+3644700614                         CYY-CYY          IA   2026-08-18 08:00:49  2026-08-18 08:10:00
+JD014600012750072171               CYY-CYY   CYW2   PU   2026-08-18 12:36:55  2026-08-18 12:36:55  00
+JD014600012750072171               CYY-CYY          PL   2026-08-18 12:36:55  2026-08-18 12:36:55
+3644700614                         CYY-CYY          PL   2026-08-18 12:36:55  2026-08-18 12:36:55
+3644700614                         CYY-CYY   CYW2   PU   2026-08-18 12:36:55  2026-08-18 12:36:55  00
+JD014600012750072172               CYY-CYY   CYW2   PU   2026-08-18 13:25:08  2026-08-18 13:25:13
+JD014600012750072174               CYY-CYY   CYW2   PU   2026-08-18 13:25:08  2026-08-18 13:25:13
+3644700614                         CYY-CYY   CYW2   PU   2026-08-18 13:25:08  2026-08-18 13:25:13
+JD014600012750072174               CYY-CYY          PL   2026-08-18 13:27:17  2026-08-18 13:27:17
+JD014600012750072172               CYY-CYY          PL   2026-08-18 13:27:21  2026-08-18 13:27:22
+3644700614                         CYY-CYY          PL   2026-08-18 13:27:21  2026-08-18 13:27:22
+JD014600012750072171   CYY   CYY   CYY-CYY   HU     PL   2026-08-18 13:59:32  2026-08-18 13:59:33
+JD014600012750072171   CYY   CYY   CYY-CYY   HU     DF   2026-08-18 13:59:58  2026-08-18 13:59:53  CYY>NAT1630>1808>OCN85187270>QRO>1600
+JD014600012750072172   CYY   JJC   CYY-CYY   HU     PL   2026-08-18 14:22:00  2026-08-18 14:22:01
+JD014600012750072174   CYY   JJC   CYY-CYY   HU     PL   2026-08-18 14:22:00  2026-08-18 14:22:01
+3644700614             CYY   JJC   CYY-CYY   HU     PL   2026-08-18 14:22:00  2026-08-18 14:22:01
+JD014600012750072172   CYY   JJC   CYY-CYY   HU     DF   2026-08-18 14:22:58  2026-08-18 14:22:25  CYY>NAT1900>1808>OCN84752986>JJC>1900
+JD014600012750072174   CYY   JJC   CYY-CYY   HU     DF   2026-08-18 14:22:58  2026-08-18 14:22:25  CYY>NAT1900>1808>OCN84752986>JJC>1900
+3644700614             CYY   JJC   CYY-CYY   HU     DF   2026-08-18 14:22:58  2026-08-18 14:22:25  CYY>NAT1900>1808>OCN84752986>JJC>1900
+JD014600012750072171   CYY   CYY   QRO-DHU   HU     AF   2026-08-18 15:57:40  2026-08-18 15:57:40
+3644700614             CYY   CYY   QRO-DHU   HU     AF   2026-08-18 15:57:40  2026-08-18 15:57:40
+JD014600012750072172   CYY   JJC   JJC-DHU   HU     AF   2026-08-18 17:43:47  2026-08-18 17:43:48
+JD014600012750072174   CYY   JJC   JJC-DHU   HU     AF   2026-08-18 17:43:47  2026-08-18 17:43:48
+3644700614             CYY   JJC   JJC-DHU   HU     AF   2026-08-18 17:43:47  2026-08-18 17:43:48
+JD014600012750072172   CYY   QRO   JJC-DHU          CI   2026-08-18 19:24:33  2026-08-18 19:24:33  AUTOSORT COY SCANNER SO.1.2
+JD014600012750072174   CYY   QRO   JJC-DHU          CI   2026-08-18 19:24:52  2026-08-18 19:24:52  AUTOSORT COY SCANNER SO.1.2
+3644700614             CYY   QRO   JJC-DHU          CI   2026-08-18 19:24:52  2026-08-18 19:24:52  AUTOSORT COY SCANNER SO.1.2
+JD014600012750072172   CYY   QRO   JJC-DHU          PL   2026-08-18 19:25:47  2026-08-18 19:25:47  AUTOSORT COMPLETE
+JD014600012750072172   CYY         JJC-DHU          RW   2026-08-18 19:25:48  2026-08-18 19:25:48  <2.40>  <29.5 x 28.1 x 39.6>
+JD014600012750072174   CYY   QRO   JJC-DHU          PL   2026-08-18 19:26:06  2026-08-18 19:26:06  AUTOSORT COMPLETE
+3644700614             CYY   QRO   JJC-DHU          PL   2026-08-18 19:26:06  2026-08-18 19:26:06  AUTOSORT COMPLETE
+JD014600012750072174   CYY         JJC-DHU          RW   2026-08-18 19:26:07  2026-08-18 19:26:07  <4.30>  <29.5 x 22.1 x 39.5>
+3644700614             CYY         JJC-DHU          RW   2026-08-18 19:26:07  2026-08-18 19:26:07  <4.30>  <29.5 x 22.1 x 39.5>
+JD014600012750072171   CYY   QRO   QRO-DHU          CI   2026-08-18 23:59:39  2026-08-18 23:59:39  AUTOSORT COY SCANNER AIRSCAN
+3644700614             CYY   QRO   QRO-DHU          CI   2026-08-18 23:59:39  2026-08-18 23:59:39  AUTOSORT COY SCANNER AIRSCAN
+JD014600012750072171   CYY   QRO   QRO-DHU          PL   2026-08-19 00:02:34  2026-08-19 00:02:34  AUTOSORT COMPLETE
+3644700614             CYY   QRO   QRO-DHU          PL   2026-08-19 00:02:34  2026-08-19 00:02:34  AUTOSORT COMPLETE
+JD014600012750072171   CYY         QRO-DHU          RW   2026-08-19 00:02:37  2026-08-19 00:02:37  <009.30>  <0028.5 x 0028.0 x 0040.0>
+3644700614             CYY         QRO-DHU          RW   2026-08-19 00:02:37  2026-08-19 00:02:37  <009.30>  <0028.5 x 0028.0 x 0040.0>
+JD014600012750072172               JJC-DHU          PL   2026-08-19 01:43:18  2026-08-19 01:43:37
+JD014600012750072174               JJC-DHU          PL   2026-08-19 01:43:18  2026-08-19 01:43:37
+JD014600012750072172   JJC   QRO   JJC-DHU   HU     PL   2026-08-19 01:45:50  2026-08-19 01:46:52
+JD014600012750072174   JJC   QRO   JJC-DHU   HU     PL   2026-08-19 01:45:50  2026-08-19 01:46:52
+3644700614             JJC   QRO   JJC-DHU   HU     PL   2026-08-19 01:45:50  2026-08-19 01:46:52
+JD014600012750072172   JJC   QRO   JJC-DHU   HU     DF   2026-08-19 01:46:58  2026-08-19 01:46:13  JJC>JQR0445>1908>OCN84865255>QRO>0445
+JD014600012750072174   JJC   QRO   JJC-DHU   HU     DF   2026-08-19 01:46:58  2026-08-19 01:46:13  JJC>JQR0445>1908>OCN84865255>QRO>0445
+3644700614             JJC   QRO   JJC-DHU   HU     DF   2026-08-19 01:46:58  2026-08-19 01:46:13  JJC>JQR0445>1908>OCN84865255>QRO>0445
+JD014600012750072171               QRO-DHU          PL   2026-08-19 04:30:53  2026-08-19 04:30:54
+3644700614                         QRO-DHU          PL   2026-08-19 04:30:53  2026-08-19 04:30:54
+JD014600012750072171   QRO   QRO   QRO-DHU   HU     PL   2026-08-19 05:01:54  2026-08-19 05:01:54
+3644700614             QRO   QRO   QRO-DHU   HU     PL   2026-08-19 05:01:54  2026-08-19 05:01:54
+JD014600012750072171   QRO   QRO   QRO-DHU   HU     DF   2026-08-19 05:03:58  2026-08-19 05:03:34  QRO>QQR0600>1908>OCN84887600>QRO>0600
+3644700614             QRO   QRO   QRO-DHU   HU     DF   2026-08-19 05:03:58  2026-08-19 05:03:34  QRO>QQR0600>1908>OCN84887600>QRO>0600
+JD014600012750072172   JJC   QRO   QRO-QRO   HU     AR   2026-08-19 06:33:24  2026-08-19 06:33:25
+JD014600012750072174   JJC   QRO   QRO-QRO   HU     AR   2026-08-19 06:33:24  2026-08-19 06:33:25
+JD014600012750072171   QRO   QRO   QRO-QRO   HU     AR   2026-08-19 06:33:56  2026-08-19 06:33:57
+3644700614             QRO   QRO   QRO-QRO   HU     AR   2026-08-19 06:33:56  2026-08-19 06:33:57
+JD014600012750072174               QRO-QRO   QRW1   CI   2026-08-19 08:31:54  2026-08-19 08:31:54  FOCUS CHECK BANDA
+JD014600012750072172               QRO-QRO   QRW1   CI   2026-08-19 08:32:18  2026-08-19 08:32:18  FOCUS CHECK BANDA
+3644700614                         QRO-QRO   QRW1   CI   2026-08-19 08:32:18  2026-08-19 08:32:18  FOCUS CHECK BANDA
+JD014600012750072174               QRO-QRO   QRW1   FD   2026-08-19 12:00:48  2026-08-19 12:00:48  ARAUTOS ZF QRO X2 1908 AM
+JD014600012750072172               QRO-QRO   QRW1   FD   2026-08-19 12:00:50  2026-08-19 12:00:50  ARAUTOS ZF QRO X2 1908 AM
+JD014600012750072171               QRO-QRO   QRW1   FD   2026-08-19 12:01:03  2026-08-19 12:01:03  ARAUTOS ZF QRO X2 1908 AM
+3644700614                         QRO-QRO   QRW1   FD   2026-08-19 12:01:03  2026-08-19 12:01:03  ARAUTOS ZF QRO X2 1908 AM
+JD014600012750072173               CYY-CYY   CYW2   PU   2026-08-20 10:01:10  2026-08-20 10:01:17
+3644700614                         CYY-CYY   CYW2   PU   2026-08-20 10:01:10  2026-08-20 10:01:17
+JD014600012750072173               CYY-CYY          PL   2026-08-20 10:01:15  2026-08-20 10:01:16
+3644700614                         CYY-CYY          PL   2026-08-20 10:01:15  2026-08-20 10:01:16
+JD014600012750072173   CYY   JJC   CYY-CYY   HU     PL   2026-08-20 11:22:33  2026-08-20 11:22:34
+3644700614             CYY   JJC   CYY-CYY   HU     PL   2026-08-20 11:22:33  2026-08-20 11:22:34
+JD014600012750072173   CYY   JJC   CYY-CYY   HU     DF   2026-08-20 11:22:58  2026-08-20 11:23:04  CYY>NAT1500>2008>OCN85021650>JJC>1500
+3644700614             CYY   JJC   CYY-CYY   HU     DF   2026-08-20 11:22:58  2026-08-20 11:23:04  CYY>NAT1500>2008>OCN85021650>JJC>1500
+JD014600012750072171               QRO-QRO   QRX8   LV   2026-08-20 11:30:53  2026-08-20 12:31:18
+JD014600012750072174               QRO-QRO   QRX8   LV   2026-08-20 11:30:57  2026-08-20 12:31:20
+JD014600012750072172               QRO-QRO   QRX8   LV   2026-08-20 11:31:08  2026-08-20 12:32:47
+3644700614                         QRO-QRO   QRX8   LV   2026-08-20 11:31:08  2026-08-20 12:32:47
+JD014600012750072174               QRO-QRO   QRX2   OK   2026-08-20 11:32:00  2026-08-20 22:30:04  Lucila Ramírez
+JD014600012750072171               QRO-QRO   QRX8   OK   2026-08-20 11:32:25  2026-08-20 12:32:47  LUCILA RAMIREZ LOPEZ
+JD014600012750072172               QRO-QRO   QRX8   OK   2026-08-20 11:32:25  2026-08-20 12:32:47  LUCILA RAMIREZ LOPEZ
+3644700614                         QRO-QRO   QRX8   PD   2026-08-20 11:32:25  2026-08-20 12:32:47  LUCILA RAMIREZ LOPEZ
+3644700614                         QRO-QRO   QRX8   LV   2026-08-20 11:52:20  2026-08-20 12:52:42
+3644700614                         QRO-QRO   QRX8   OK   2026-08-20 11:52:35  2026-08-20 12:52:58  LUCILA RAMIREZ LOPEZ
+JD014600012750072170               CYY-CYY   CYW4   PU   2026-08-20 13:34:20  2026-08-20 13:34:26
+3644700614                         CYY-CYY   CYW4   PU   2026-08-20 13:34:20  2026-08-20 13:34:26  FLM
+JD014600012750072170               CYY-CYY          PL   2026-08-20 13:56:54  2026-08-20 13:56:56
+JD014600012750072170   CYY   JJC   CYY-CYY   HU     PL   2026-08-20 14:21:51  2026-08-20 14:21:51
+3644700614             CYY   JJC   CYY-CYY   HU     PL   2026-08-20 14:21:51  2026-08-20 14:21:51
+JD014600012750072170   CYY   JJC   CYY-CYY   HU     DF   2026-08-20 14:22:58  2026-08-20 14:22:11  CYY>NAT1830>2008>OCN85020714>JJC>1830
+3644700614             CYY   JJC   CYY-CYY   HU     DF   2026-08-20 14:22:58  2026-08-20 14:22:11  CYY>NAT1830>2008>OCN85020714>JJC>1830
+JD014600012750072173   CYY   JJC   JJC-DHU   HU     AF   2026-08-20 16:34:54  2026-08-20 16:34:55
+3644700614             CYY   JJC   JJC-DHU   HU     AF   2026-08-20 16:34:54  2026-08-20 16:34:55
+JD014600012750072170   CYY   JJC   JJC-DHU   HU     AF   2026-08-20 17:50:20  2026-08-20 17:50:20
+3644700614             CYY   JJC   JJC-DHU   HU     AF   2026-08-20 17:50:20  2026-08-20 17:50:20
+JD014600012750072173   CYY   QRO   JJC-DHU          CI   2026-08-20 18:45:52  2026-08-20 18:45:52  AUTOSORT COY SCANNER SO.2.2
+3644700614             CYY   QRO   JJC-DHU          CI   2026-08-20 18:45:52  2026-08-20 18:45:52  AUTOSORT COY SCANNER SO.2.2
+JD014600012750072173   CYY   QRO   JJC-DHU          PL   2026-08-20 18:46:49  2026-08-20 18:46:49  AUTOSORT COMPLETE
+3644700614             CYY   QRO   JJC-DHU          PL   2026-08-20 18:46:49  2026-08-20 18:46:49  AUTOSORT COMPLETE
+JD014600012750072173               JJC-DHU          RW   2026-08-20 18:46:52  2026-08-20 18:46:52  <3.55>  <29.1 x 27.9 x 39.6>
+3644700614                         JJC-DHU          RW   2026-08-20 18:46:52  2026-08-20 18:46:52  <3.55>  <29.1 x 27.9 x 39.6>
+JD014600012750072170   CYY   QRO   JJC-DHU          CI   2026-08-20 19:43:10  2026-08-20 19:43:10  AUTOSORT COY SCANNER SO.2.2
+3644700614             CYY   QRO   JJC-DHU          CI   2026-08-20 19:43:10  2026-08-20 19:43:10  AUTOSORT COY SCANNER SO.2.2
+JD014600012750072170   CYY   QRO   JJC-DHU          PL   2026-08-20 19:44:07  2026-08-20 19:44:07  AUTOSORT COMPLETE
+JD014600012750072170               JJC-DHU          RW   2026-08-20 19:44:07  2026-08-20 19:44:07  <0.55>  <19.5 x 18.8 x 27.8>
+3644700614             CYY   QRO   JJC-DHU          PL   2026-08-20 19:44:07  2026-08-20 19:44:07  AUTOSORT COMPLETE
+3644700614                         JJC-DHU          RW   2026-08-20 19:44:07  2026-08-20 19:44:07  <0.55>  <19.5 x 18.8 x 27.8>
+JD014600012750072170               JJC-DHU          PL   2026-08-21 01:21:21  2026-08-21 01:21:42
+JD014600012750072173               JJC-DHU          PL   2026-08-21 01:21:21  2026-08-21 01:22:38
+JD014600012750072170   JJC   QRO   JJC-DHU   HU     PL   2026-08-21 01:22:34  2026-08-21 01:23:16
+JD014600012750072173   JJC   QRO   JJC-DHU   HU     PL   2026-08-21 01:22:34  2026-08-21 01:23:16
+3644700614             JJC   QRO   JJC-DHU   HU     PL   2026-08-21 01:22:34  2026-08-21 01:23:16
+JD014600012750072170   JJC   QRO   JJC-DHU   HU     DF   2026-08-21 01:38:58  2026-08-21 01:38:24  JJC>JQR0445>2108>OCN85135341>QRO>0445
+JD014600012750072173   JJC   QRO   JJC-DHU   HU     DF   2026-08-21 01:38:58  2026-08-21 01:38:24  JJC>JQR0445>2108>OCN85135341>QRO>0445
+3644700614             JJC   QRO   JJC-DHU   HU     DF   2026-08-21 01:38:58  2026-08-21 01:38:24  JJC>JQR0445>2108>OCN85135341>QRO>0445
+JD014600012750072170   JJC   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:14  2026-08-21 06:52:15
+JD014600012750072173   JJC   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:14  2026-08-21 06:52:15
+3644700614             JJC   QRO   QRO-QRO   HU     AR   2026-08-21 06:52:14  2026-08-21 06:52:15
+JD014600012750072170               QRO-QRO   QRW1   CI   2026-08-21 09:00:56  2026-08-21 09:00:56  FOCUS CHECK BANDA
+3644700614                         QRO-QRO   QRW1   CI   2026-08-21 09:00:56  2026-08-21 09:00:56  FOCUS CHECK BANDA
+JD014600012750072173               QRO-QRO   QRW1   FD   2026-08-21 12:37:42  2026-08-21 12:37:42  ARAUTOS ZF QRO X2 2108 AM
+JD014600012750072170               QRO-QRO   QRW1   FD   2026-08-21 12:37:57  2026-08-21 12:37:57  ARAUTOS ZF QRO X2 2108 AM
+3644700614                         QRO-QRO   QRW1   FD   2026-08-21 12:37:57  2026-08-21 12:37:57  ARAUTOS ZF QRO X2 2108 AM
+
+AWB : 3152441703
+
+Orig  Dest  Shipment Time     Prod  Pcs  Kilos  Decl. Value    Description of Goods
+-----------------------------------------------------------------------------------------------------------
+CYY   QRO   2026-08-20 08:02  G     2    4.42                  Items: 22
+Shpr Acct : 988184109                                   Payer Acct : 988184109
+Shipper                                                 Receiver
+------------------------------------------------------  ---------------------------------------------------
+Name   : NATURA                                         Name   : N/A
+Ctc Nm : Nat
+...

@@ -1,0 +1,1266 @@
+/**
+ * 🏛️ TLACHIALONI & AMOXCALLI QRO - AUTOMATIZACIONES Y CONTROL (v39.0 PROD)
+ * Ecosistema OLLIN - Arauto Express Querétaro
+ * 
+ * Este archivo consolida:
+ * 1️⃣ El Lector de IA para Bookings de DHL (con Gemini 3.6 Flash) - Prompt robusto de teléfonos.
+ * 2️⃣ El procesador asíncrono de reportes BATCH UNIFICADO con:
+ *     - DECODIFICACIÓN Y CRUCE ATÓMICO EN MEMORIA: Escanea en caliente Gmail buscando Queries (01_QUERY_QRO),
+ *       desencripta las codificaciones Base64 y Quoted-Printable en RAM y los asocia directamente con las guías.
+ *     - EXTRACCIÓN FLEXIBLE DE TELÉFONOS: Regex tolerante a guiones, paréntesis y espacios, con recorte estricto a 10 dígitos.
+ *     - Filtro para evitar que el teléfono del destinatario se contamine con extensiones o códigos de país.
+ *     - Buscador inteligente de cabeceras tolerante a líneas en blanco o parámetros de DHL.
+ *     - Mapeo dinámico y flexible tolerante a variaciones de columnas (49 vs 52 columnas).
+ *     - Regla del Doble "J" para protección de PIDs largos en AppSheet (JJD en rampa, JD en Bóveda).
+ *     - Escudo de Rebote (Bounce-back) por correo a DHL si faltan pestañas.
+ *     - Notificaciones de éxito y material listo a Irvin Reyes.
+ * 3️⃣ Consola de logs en vivo integrada directamente con el frontend.
+ */
+
+// IDs de Infraestructura del Ecosistema OLLIN
+const ID_BD_APP_RUTA_2025 = "1Rj7Ce6jWIFTXTamfcgO2h-uhFKBuNhSB8m_tBY_g__w"; // Base de AppSheet / Pochtecas
+const ID_BOVEDA_BATCH_MAESTRO = "1wIz5YlSbpOLtDY9UNShZ9LHdcez_Vyxlu1wYxBZKTkw"; // Amoxcalli Almacén (Matriz CP, RAW)
+const ID_BD_CENTRAL_2023 = "1osolxYzL12I05J2CUy5PBAGpPD2Z3XeU37RzUlFPPO8"; // Amoxcalli Operativo (Batch AWB, Batch Piece)
+const EMAIL_ADMIN_IRVIN = "irvin.reyes@arauto.express";
+
+// Diccionario de Mapeo Inteligente (Idéntico al de LEN para evitar colapso de columnas desplazadas)
+const DICCIONARIO_MAPEO = {
+  "hwb no": ["hwb no", "hwb", "guia", "search", "waybill", "airbill", "waybill no"],
+  "piece id": ["piece id", "pid", "piece_id", "pieceid", "piece id/ship id"],
+  "piece no": ["piece no", "pieces", "bultos", "piezas", "piece_no", "piece count"],
+  "receiver name": ["receiver name", "consignee name", "destinatario", "nombre_recibe", "receiver contact name"],
+  "rcvr addr 1": ["rcvr addr 1", "receiver address 1", "address 1", "rcvr addr1", "rcvr_addr_1"],
+  "rcvr addr 2": ["rcvr addr 2", "receiver address 2", "address 2", "rcvr addr2", "rcvr_addr_2"],
+  "rcvr addr 3": ["rcvr addr 3", "receiver address 3", "address 3", "rcvr addr3", "rcvr_addr_3"],
+  "rcvr postcode": ["rcvr postcode", "receiver postcode", "rcvr postal code", "postal code", "cp", "postcode", "rcvr_postcode"],
+  "shpr tel": ["shpr tel", "shipper tel", "shipper telephone", "shpr_tel"],
+  "rcvr tel": ["rcvr tel", "receiver tel", "receiver telephone", "rcvr_tel", "recipient tel", "recipient phone", "phone", "tel", "telefono"]
+};
+
+/**
+ * 🌐 SERVIDOR DE INTERFAZ WEB (TLACHIALONI QRO)
+ * Levanta la aplicación web responsiva optimizada para móviles.
+ */
+function doGet(e) {
+  return HtmlService.createTemplateFromFile('Index')
+      .evaluate()
+      .setTitle('Tlachialoni QRO - Centro de Control')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+/**
+ * 1️⃣ SECCIÓN BATCH: PROCESAR REPORTES DE GMAIL CON ESCUDO DE REBOTE Y CRUCE ATÓMICO
+ * Se ejecuta a petición de la interfaz de forma específica por ID de mensaje.
+ */
+function procesarBatchQRO(messageId) {
+  const executionLogs = [];
+  function log(msg) {
+    const time = new Date().toLocaleTimeString("es-MX");
+    executionLogs.push("[" + time + "] " + msg);
+  }
+
+  log("🚀 Iniciando procesamiento unificado y atómico de Batch para Querétaro...");
+
+  let messages = [];
+  let threads = [];
+
+  if (messageId) {
+    log("🔍 Buscando correo específico de Batch en Gmail por ID: " + messageId + "...");
+    try {
+      const msg = GmailApp.getMessageById(messageId);
+      if (msg) {
+        messages.push(msg);
+        threads.push(msg.getThread());
+        log("✅ Correo encontrado: '" + msg.getSubject() + "' de " + msg.getFrom());
+      } else {
+        log("❌ No se encontró el correo con ID: " + messageId);
+      }
+    } catch (e) {
+      log("❌ Error al recuperar correo por ID: " + e.message);
+    }
+  } else {
+    log("🔍 Escaneando Gmail por correos pendientes con etiqueta 02_REPORTE_QRO...");
+    const activeThreads = GmailApp.search('label:02_REPORTE_QRO is:unread');
+    log("📊 Encontrados " + activeThreads.length + " hilos de correo pendientes.");
+    activeThreads.forEach(t => {
+      threads.push(t);
+      messages.push(t.getMessages().pop());
+    });
+  }
+
+  if (messages.length === 0) {
+    log("⚠️ No se encontraron correos de Batch para procesar.");
+    return { exito: false, procesados: 0, mensaje: "No hay reportes nuevos", logs: executionLogs };
+  }
+
+  let totalProcesados = 0;
+
+  for (let i = 0; i < messages.length; i++) {
+    const lastMessage = messages[i];
+    const thread = threads[i];
+    const sender = lastMessage.getFrom();
+    const cc = lastMessage.getCc();
+    const replyTo = sender + (cc ? "," + cc : "");
+    const attachments = lastMessage.getAttachments();
+    
+    log("📂 Analizando archivos adjuntos del correo...");
+    if (attachments.length === 0) {
+      log("⚠️ El correo '" + lastMessage.getSubject() + "' no contiene archivos adjuntos. Ignorando.");
+      thread.markUnread(); // Mantener pendiente
+      continue;
+    }
+
+    const file = attachments[0];
+    log("📄 Archivo detectado: '" + file.getName() + "' (" + Math.round(file.getSize() / 1024) + " KB)");
+    const blob = file.copyBlob();
+    
+    // ================= CONVERSIÓN ÚNICA A GOOGLE SHEETS (API RETRY SHIELD) =================
+    log("⏳ Convirtiendo archivo de Excel de DHL a Google Sheets en memoria...");
+    const resource = {
+      title: "temp_batch_qro_processing",
+      mimeType: MimeType.GOOGLE_SHEETS
+    };
+    
+    let tempFileJson;
+    try {
+      tempFileJson = insertFileWithRetry(resource, blob, { convert: true }, 3, log);
+    } catch (err) {
+      log("❌ ERROR crítico de plataforma en Google Drive: " + err.message);
+      enviarCorreoFallo(replyTo, "Error en la plataforma de conversión de Google Drive: " + err.message, file.getName());
+      thread.markUnread();
+      continue;
+    }
+
+    let spreadsheetTemp;
+    let excelSheets;
+    try {
+      spreadsheetTemp = SpreadsheetApp.openById(tempFileJson.id);
+      excelSheets = spreadsheetTemp.getSheets().map(s => s.getName());
+      log("✅ Estructura de pestañas de DHL detectada: " + excelSheets.join(", "));
+    } catch (errOpen) {
+      log("❌ ERROR al abrir el archivo temporal de Sheets: " + errOpen.message);
+      try { Drive.Files.remove(tempFileJson.id); } catch(e){}
+      enviarCorreoFallo(replyTo, "Error al abrir el archivo temporal convertido: " + errOpen.message, file.getName());
+      thread.markUnread();
+      continue;
+    }
+
+    // VALIDACIÓN DE HOJAS EN EL EXCEL (Shipment, Piece, Event)
+    const hojasCriticas = ["Shipment", "Piece", "Event"];
+    const faltantes = [];
+    hojasCriticas.forEach(h => {
+      if (excelSheets.indexOf(h) === -1) {
+        faltantes.push(h);
+      }
+    });
+
+    if (faltantes.length > 0) {
+      log("❌ ESCUDO DE REBOTE ACTIVADO: Faltan pestañas críticas: " + faltantes.join(", "));
+      enviarCorreoFallo(replyTo, "Falta una o más de las 3 hojas críticas requeridas (Shipment, Piece o Event). Faltantes: " + faltantes.join(", "), file.getName());
+      thread.markUnread(); // Conservar sin leer
+      try { Drive.Files.remove(tempFileJson.id); } catch(e){}
+      continue;
+    }
+
+    // PROCESAMIENTO DINÁMICO DE DATOS (Mapeo tolerante y Cruce Atómico en RAM)
+    try {
+      log("⏳ Iniciando inyección dual y cruce atómico en memoria...");
+      const resultData = procesarYGuardarDatosBatchConLogs(spreadsheetTemp, excelSheets, log);
+      
+      log("✅ Inyección dual completada con éxito.");
+      log("📊 Totales: " + resultData.guias + " Guías registradas, " + resultData.piezas + " PIDs formateados con Doble 'J' (JJD).");
+      
+      log("📧 Enviando correo de confirmación de éxito a DHL y copias...");
+      enviarCorreoExito(replyTo, resultData, file.getName());
+      
+      log("GM Encriptaciones: Enviando alerta de material listo al buzón de Irvin Reyes...");
+      enviarAlertaIrvin(resultData, file.getName());
+      
+      totalProcesados++;
+      thread.markRead(); // Marcar como procesado definitivamente
+      
+      // Remover etiquetas asociadas (02_REPORTE_QRO y 01_QUERY_QRO) para mantener el buzón limpio
+      try {
+        const activeLabels = thread.getLabels();
+        activeLabels.forEach(label => {
+          const uName = label.getName().toUpperCase();
+          if (uName.indexOf("02_REPORTE_QRO") !== -1 || uName.indexOf("01_QUERY_QRO") !== -1) {
+            thread.removeLabel(label);
+            log("🧹 Etiqueta '" + label.getName() + "' removida con éxito del correo.");
+          }
+        });
+      } catch(e_label) {
+        log("⚠️ No se pudieron remover todas las etiquetas: " + e_label.message);
+      }
+      
+      log("🎉 Correo procesado exitosamente, marcado como LEÍDO y des-etiquetado.");
+    } catch (err) {
+      log("❌ ERROR crítico durante el almacenamiento: " + err.message);
+      enviarCorreoFallo(replyTo, "Error en el procesamiento interno: " + err.message, file.getName());
+      thread.markUnread(); // Mantener pendiente ante fallos locales
+    } finally {
+      // GARANTÍA DE LIMPIEZA ABSOLUTA: Eliminar la hoja temporal en cualquier circunstancia
+      log("🧹 Eliminando archivo temporal de conversión...");
+      try {
+        Drive.Files.remove(tempFileJson.id);
+      } catch(errCleanup) {
+        log("⚠️ Error menor al eliminar archivo temporal: " + errCleanup.message);
+      }
+    }
+  }
+
+  log("🏁 Proceso de Batch finalizado.");
+  let msgFin = totalProcesados > 0 ? "Proceso completado con éxito." : "No se procesaron registros nuevos debido a inconsistencias o errores mapeados.";
+  return { exito: totalProcesados > 0, procesados: totalProcesados, mensaje: msgFin, logs: executionLogs };
+}
+
+/**
+ * ESCUDO CONTRA ERRORES TRANSITORIOS DE GOOGLE DRIVE (API RETRY SHIELD)
+ * Re-intenta la conversión de Excel a Google Sheets hasta 3 veces ante caídas temporales de Google (Internal Error 500).
+ */
+function insertFileWithRetry(resource, blob, options, maxRetries, logFunc) {
+  var retries = maxRetries || 3;
+  var lastError = null;
+  for (var attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return Drive.Files.insert(resource, blob, options);
+    } catch (e) {
+      lastError = e;
+      var msg = "⚠️ Error de comunicación con Google Drive (Intento " + attempt + "/" + retries + "): " + e.message;
+      if (logFunc) {
+        logFunc(msg);
+      } else {
+        Logger.log(msg);
+      }
+      if (attempt < retries) {
+        Utilities.sleep(1500 * attempt); // Espera progresiva antes del reintento
+      }
+    }
+  }
+  throw new Error("Fallo crítico de Google Drive tras " + retries + " intentos de conversión: " + lastError.message);
+}
+
+/**
+ * Busca de forma dinámica la fila de cabeceras en las primeras 20 filas de la hoja.
+ * Es sumamente resistente a líneas en blanco o filas de parámetros añadidas por DHL.
+ */
+function encontrarFilaHeaderYIndices(datos) {
+  for (let r = 0; r < Math.min(datos.length, 20); r++) {
+    const fila = datos[r];
+    const indices = obtenerIndicesColumnas(fila);
+    // Si encontramos al menos el HWB No en esta fila, asumimos que es la fila de cabecera real
+    if (indices["hwb no"] !== undefined) {
+      return {
+        filaHeader: r,
+        indices: indices
+      };
+    }
+  }
+  return null;
+}
+
+/**
+ * Procesa en memoria la Google Sheet temporal buscando correspondencias de cabeceras de forma tolerante a filas redundantes.
+ */
+function procesarYGuardarDatosBatchConLogs(spreadsheet, nombresHojas, log) {
+  
+  // 1. Leer Hoja 'Piece' para generar mapa dinámico de PIDs
+  log("📖 Leyendo datos de la pestaña 'Piece'...");
+  const hojaPiece = spreadsheet.getSheetByName("Piece");
+  const datosPiece = hojaPiece.getDataRange().getDisplayValues();
+  
+  // Usar el buscador de cabeceras en Piece
+  const busquedaPiece = encontrarFilaHeaderYIndices(datosPiece);
+  if (!busquedaPiece) {
+    throw new Error("No se pudo localizar la fila de cabeceras en la pestaña 'Piece'. Asegúrate de que contenga la columna 'HWB No'.");
+  }
+  const filaHeaderPiece = busquedaPiece.filaHeader;
+  const indicesPiece = busquedaPiece.indices;
+
+  if (indicesPiece["piece id"] === undefined) {
+    throw new Error("No se pudo localizar la columna crítica 'Piece ID' en la pestaña 'Piece'. Asegúrate de que el archivo conserve su estructura original.");
+  }
+
+  log("📍 Columnas mapeadas en Piece (Fila Header " + (filaHeaderPiece + 1) + "): HWB No (Col " + (indicesPiece["hwb no"] + 1) + "), Piece ID (Col " + (indicesPiece["piece id"] + 1) + ")");
+
+  // DictPids_RAW en RAM con filas completas de Piece
+  const dictPIDs = {};
+  for (let i = filaHeaderPiece + 1; i < datosPiece.length; i++) {
+    const fila = datosPiece[i];
+    const guia = String(fila[indicesPiece["hwb no"]]).trim();
+    const pid = String(fila[indicesPiece["piece id"]]).trim();
+    if (guia && pid) {
+      if (!dictPIDs[guia]) dictPIDs[guia] = [];
+      dictPIDs[guia].push({
+        pid: pid,
+        row: fila
+      });
+    }
+  }
+  log("🧩 " + Object.keys(dictPIDs).length + " Guías con sus respectivos PIDs mapeados en RAM.");
+
+  // 2. Leer Hoja 'Shipment'
+  log("📖 Leyendo datos de la pestaña 'Shipment'...");
+  const hojaShipment = spreadsheet.getSheetByName("Shipment");
+  const datosShipment = hojaShipment.getDataRange().getDisplayValues();
+  
+  // Usar el buscador de cabeceras en Shipment
+  const busquedaShipment = encontrarFilaHeaderYIndices(datosShipment);
+  if (!busquedaShipment) {
+    throw new Error("No se pudo localizar la fila de cabeceras en la pestaña 'Shipment'. Asegúrate de que contenga la columna 'HWB No'.");
+  }
+  const filaHeaderShipment = busquedaShipment.filaHeader;
+  const indicesShipment = busquedaShipment.indices;
+
+  if (indicesShipment["hwb no"] === undefined || indicesShipment["rcvr postcode"] === undefined) {
+    throw new Error("No se encontraron las cabeceras críticas de dirección ('HWB No' o 'Receiver Postcode') en la pestaña Shipment.");
+  }
+  log("📍 Columnas mapeadas en Shipment (Fila Header " + (filaHeaderShipment + 1) + "): HWB No (Col " + (indicesShipment["hwb no"] + 1) + "), C.P. Destino (Col " + (indicesShipment["rcvr postcode"] + 1) + ")");
+
+  // ================= CRUCE ATÓMICO EN MEMORIA CON QUERIES DE DHL (DESENCRIPTACIÓN FLEXIBLE) =================
+  log("📞 Escaneando en caliente Gmail buscando Queries de soporte pendientes de cruzarse...");
+  const queryThreads = GmailApp.search('label:01_QUERY_QRO is:unread');
+  log("📊 Encontrados " + queryThreads.length + " hilos de Query pendientes en el buzón.");
+  const mapQueries = {};
+  const hilosQueryAProcesar = [];
+
+  queryThreads.forEach(t => {
+    const lastMsg = t.getMessages().pop();
+    const body = lastMsg.getPlainBody();
+    const htmlBody = lastMsg.getBody();
+    const contactos = extraerContactosDeQuery(htmlBody, body);
+    for (let awb in contactos) {
+      mapQueries[awb] = contactos[awb];
+    }
+    hilosQueryAProcesar.push(t);
+  });
+  log("🔓 " + Object.keys(mapQueries).length + " contactos de soporte descifrados y sanitizados en la RAM de rampa.");
+
+  // Conectar con la base de datos de Almacén (BOVEDA_BATCH_MAESTRO)
+  const boveda = SpreadsheetApp.openById(ID_BOVEDA_BATCH_MAESTRO);
+  const hojaRawShipment = boveda.getSheetByName("RAW_SHIPMENT");
+  const hojaRawPiece = boveda.getSheetByName("RAW_PIECE");
+  
+  // Conectar con la base de datos de Operación Histórica (BD_CENTRAL_2023)
+  let baseCentral, hojaBatchAWBCentral, hojaBatchPieceCentral;
+  try {
+    baseCentral = SpreadsheetApp.openById(ID_BD_CENTRAL_2023);
+    hojaBatchAWBCentral = baseCentral.getSheetByName("Batch AWB");
+    hojaBatchPieceCentral = baseCentral.getSheetByName("Batch Piece");
+    log("🏛️ Conectado con éxito a la base de datos histórica BD CENTRAL 2023.");
+  } catch (e) {
+    log("⚠️ Advertencia de infraestructura: No se pudo conectar a BD CENTRAL 2023: " + e.message);
+  }
+  
+  // Conectar con la base de App (BD_APP_RUTA_2025)
+  const baseApp = SpreadsheetApp.openById(ID_BD_APP_RUTA_2025);
+  const hojaGuiasApp = baseApp.getSheetByName("GUIAS_ASIGNADAS") || baseApp.getSheetByName("RECOLECCIONES_ASIGNADAS");
+  const hojaPiezasApp = baseApp.getSheetByName("PIEZAS_PID");
+
+  let guiasInyectadas = 0;
+  let pidsInyectados = 0;
+  let queriesCruzadasCount = 0;
+
+  // Listas de acumulación para inyección masiva (Bulk Write en una sola llamada)
+  const rowsRawShipment = [];
+  const rowsBatchAWBCentral = [];
+  const rowsGuiasApp = [];
+  const rowsRawPiece = [];
+  const rowsBatchPieceCentral = [];
+  const rowsPiezasApp = [];
+
+  log("⏳ Analizando e integrando " + (datosShipment.length - 1 - filaHeaderShipment) + " registros en la RAM de rampa...");
+
+  for (let i = filaHeaderShipment + 1; i < datosShipment.length; i++) {
+    const fila = datosShipment[i];
+    const guia = String(fila[indicesShipment["hwb no"]]).trim();
+    if (!guia) continue;
+
+    // Extraer campos utilizando el mapeo dinámico inmune a desplazamientos
+    const cp = String(fila[indicesShipment["rcvr postcode"]]).trim().replace(/[^0-9]/g, "");
+    const idxReceiver = indicesShipment["receiver name"];
+    const destinatario = idxReceiver !== undefined ? String(fila[idxReceiver]).trim() : "N/A";
+    
+    const addr1 = indicesShipment["rcvr addr 1"] !== undefined ? String(fila[indicesShipment["rcvr addr 1"]]).trim() : "";
+    const addr2 = indicesShipment["rcvr addr 2"] !== undefined ? String(fila[indicesShipment["rcvr addr 2"]]).trim() : "";
+    const addr3 = indicesShipment["rcvr addr 3"] !== undefined ? String(fila[indicesShipment["rcvr addr 3"]]).trim() : "";
+    const direccionCompleta = [addr1, addr2, addr3].filter(Boolean).join(", ");
+
+    const telChofer = autoAsignarPochtecaPorCP(cp);
+
+    // CRUCE DE TELÉFONO EN CALIENTE DESDE LA MEMORIA RAM
+    let telQuery = "";
+    if (mapQueries[guia]) {
+      telQuery = mapQueries[guia];
+      queriesCruzadasCount++;
+      log("🔗 Guía " + guia + " cruzada asíncronamente con el teléfono de Query: " + telQuery);
+    }
+
+    // A. Acumular guía madre completa para Bóveda Central (RAW_SHIPMENT) y BD CENTRAL 2023 (Batch AWB)
+    rowsRawShipment.push(fila);
+    if (hojaBatchAWBCentral) {
+      rowsBatchAWBCentral.push(fila);
+    }
+
+    // B. Extraer y sanitizar el teléfono original de destinatario desde el excel si existe (Problema 2 - Filtro Ext)
+    const idxTel = indicesShipment["rcvr tel"];
+    let telOriginal = "";
+    if (idxTel !== undefined) {
+      telOriginal = String(fila[idxTel]).trim().replace(/[^0-9]/g, "");
+      // Si tiene código de país mexicano (12 dígitos que empiezan con 52), se lo quitamos
+      if (telOriginal.length === 12 && telOriginal.indexOf("52") === 0) {
+        telOriginal = telOriginal.substring(2);
+      }
+      // Si contiene extensiones pegadas al final, forzar el recorte de seguridad de 10 dígitos exactos
+      if (telOriginal.length > 10) {
+        telOriginal = telOriginal.substring(0, 10);
+      }
+    }
+    const telDestinatario = telQuery || telOriginal || "";
+
+    // C. Acumular datos para BD_APP_RUTA_2025 para el celular de los Pochtecas
+    rowsGuiasApp.push([
+      guia,
+      destinatario,
+      direccionCompleta,
+      cp,
+      telChofer,
+      "PENDIENTE",
+      telDestinatario,
+      Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm:ss")
+    ]);
+
+    // D. Mapear PIDs y acumularlos con la regla de la doble "J" y copias crudas alineadas
+    const pidsDeGuia = dictPIDs[guia] || [];
+    pidsDeGuia.forEach(item => {
+      const rawRowPiece = [...item.row]; // Clonar la fila cruda de Piece para no alterar la memoria
+      
+      // Formatear el Piece ID a una sola J para las bases históricas y facturación
+      const pidBoveda = formatearPidUnaJ(item.pid);
+      if (indicesPiece["piece id"] !== undefined) {
+        rawRowPiece[indicesPiece["piece id"]] = pidBoveda;
+      }
+      
+      // Acumular Fila Completa de Piece en la Bóveda (RAW_PIECE)
+      rowsRawPiece.push(rawRowPiece);
+
+      // Acumular Fila Completa de Piece en la base de datos histórica central (Batch Piece)
+      if (hojaBatchPieceCentral) {
+        rowsBatchPieceCentral.push(rawRowPiece);
+      }
+
+      // 2. PID con doble J (JJD) para AppSheet/Pochtecas para blindar contra error científico (Custom 4 Columnas)
+      const pidAppSheet = formatearPidDobleJ(item.pid);
+      rowsPiezasApp.push([
+        guia,
+        pidAppSheet,
+        "PENDIENTE",
+        Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm:ss")
+      ]);
+    });
+  }
+
+  // ================= EJECUCIÓN SÍNCRONA DE ESCRITURA EN BLOQUE (BULK WRITE) =================
+  log("💾 Guardando registros en base de datos en bloque (inyección dual de alto rendimiento)...");
+  
+  if (rowsRawShipment.length > 0) {
+    const lastRow = hojaRawShipment.getLastRow();
+    hojaRawShipment.getRange(lastRow + 1, 1, rowsRawShipment.length, rowsRawShipment[0].length).setValues(rowsRawShipment);
+    guiasInyectadas = rowsRawShipment.length;
+  }
+  
+  if (hojaBatchAWBCentral && rowsBatchAWBCentral.length > 0) {
+    const lastRow = hojaBatchAWBCentral.getLastRow();
+    hojaBatchAWBCentral.getRange(lastRow + 1, 1, rowsBatchAWBCentral.length, rowsBatchAWBCentral[0].length).setValues(rowsBatchAWBCentral);
+  }
+  
+  if (rowsGuiasApp.length > 0) {
+    const lastRow = hojaGuiasApp.getLastRow();
+    hojaGuiasApp.getRange(lastRow + 1, 1, rowsGuiasApp.length, rowsGuiasApp[0].length).setValues(rowsGuiasApp);
+  }
+  
+  if (rowsRawPiece.length > 0) {
+    const lastRow = hojaRawPiece.getLastRow();
+    hojaRawPiece.getRange(lastRow + 1, 1, rowsRawPiece.length, rowsRawPiece[0].length).setValues(rowsRawPiece);
+  }
+  
+  if (hojaBatchPieceCentral && rowsBatchPieceCentral.length > 0) {
+    const lastRow = hojaBatchPieceCentral.getLastRow();
+    hojaBatchPieceCentral.getRange(lastRow + 1, 1, rowsBatchPieceCentral.length, rowsBatchPieceCentral[0].length).setValues(rowsBatchPieceCentral);
+  }
+  
+  if (rowsPiezasApp.length > 0) {
+    const lastRow = hojaPiezasApp.getLastRow();
+    hojaPiezasApp.getRange(lastRow + 1, 1, rowsPiezasApp.length, rowsPiezasApp[0].length).setValues(rowsPiezasApp);
+    pidsInyectados = rowsPiezasApp.length;
+  }
+
+    // Copiar formulas en la hoja Batch AWB de la BD CENTRAL 2023 desde la columna AX (columna 50) hacia abajo
+  if (hojaBatchAWBCentral && guiasInyectadas > 0) {
+    try {
+      var lastRow = hojaBatchAWBCentral.getLastRow();
+      var startRow = lastRow - guiasInyectadas + 1;
+      var startCol = 50; // AX
+      var maxCols = hojaBatchAWBCentral.getMaxColumns();
+      
+      // Si la hoja no tiene suficientes columnas para llegar a AX (columna 50), las insertamos
+      if (maxCols < startCol) {
+        hojaBatchAWBCentral.insertColumnsAfter(maxCols, startCol - maxCols);
+        maxCols = hojaBatchAWBCentral.getMaxColumns();
+      }
+      
+      var numCols = maxCols - startCol + 1;
+      
+      if (startRow > 2) {
+        log("📊 Copiando fórmulas de soporte en 'Batch AWB' (Col AX) para los " + guiasInyectadas + " registros nuevos...");
+        // Copiamos las fórmulas desde la fila 2 (plantilla limpia protegida)
+        var sourceRange = hojaBatchAWBCentral.getRange(2, startCol, 1, numCols);
+        var targetRange = hojaBatchAWBCentral.getRange(startRow, startCol, guiasInyectadas, numCols);
+        sourceRange.copyTo(targetRange);
+        log("✅ Fórmulas de 'Batch AWB' copiadas con éxito.");
+      }
+    } catch(errFormulas) {
+      log("⚠️ Advertencia al copiar fórmulas en Batch AWB: " + errFormulas.message);
+    }
+  }
+
+  // Marcar como leídas las Queries que fueron cruzadas de forma atómica y remover su etiqueta 01_QUERY_QRO
+  if (hilosQueryAProcesar.length > 0) {
+    log("🧹 Marcando " + hilosQueryAProcesar.length + " hilos de Query cruzados como LEÍDOS y removiendo etiqueta '01_QUERY_QRO'...");
+    try {
+      const labelQuery = GmailApp.getUserLabels().find(l => l.getName().toUpperCase() === "01_QUERY_QRO");
+      hilosQueryAProcesar.forEach(t => {
+        t.markRead();
+        if (labelQuery) {
+          t.removeLabel(labelQuery);
+        }
+      });
+      log("✅ Etiqueta '01_QUERY_QRO' removida de los correos cruzados.");
+    } catch(errLabel) {
+      log("⚠️ Advertencia al remover etiqueta de Query: " + errLabel.message);
+    }
+  }
+
+  return {
+    guias: guiasInyectadas,
+    piezas: pidsInyectados,
+    queries: queriesCruzadasCount,
+    fecha: new Date().toLocaleDateString("es-MX")
+  };
+}
+
+/**
+ * Escanea la fila de cabeceras de DHL y mapea los índices de forma tolerante y flexible.
+ * Es 100% inmune a cambios de espacios, mayúsculas, minúsculas, guiones o puntos.
+ */
+function obtenerIndicesColumnas(filaCabecera) {
+  const indices = {};
+  for (let i = 0; i < filaCabecera.length; i++) {
+    const cabeceraStr = String(filaCabecera[i]).toLowerCase().replace(/\s+/g, " ").trim();
+    if (!cabeceraStr) continue;
+    
+    // 1. HWB No (Guía madre)
+    if (cabeceraStr.indexOf("hwb") !== -1 || cabeceraStr.indexOf("waybill") !== -1 || cabeceraStr.indexOf("guia") !== -1 || cabeceraStr.indexOf("airbill") !== -1) {
+      indices["hwb no"] = i;
+    }
+    // 2. Piece ID (Código de bulto individual PID)
+    else if (cabeceraStr.indexOf("piece id") !== -1 || cabeceraStr === "pid" || cabeceraStr === "pieceid" || cabeceraStr.indexOf("piece id/ship id") !== -1 || cabeceraStr === "piece_id") {
+      indices["piece id"] = i;
+    }
+    // 3. Piece No (Cantidad de bultos)
+    else if (cabeceraStr.indexOf("piece no") !== -1 || cabeceraStr.indexOf("pieces") !== -1 || cabeceraStr.indexOf("bultos") !== -1 || cabeceraStr.indexOf("piezas") !== -1 || cabeceraStr.indexOf("piece count") !== -1) {
+      indices["piece no"] = i;
+    }
+    // 4. Receiver Name (Destinatario)
+    else if (cabeceraStr.indexOf("receiver name") !== -1 || cabeceraStr.indexOf("consignee name") !== -1 || cabeceraStr.indexOf("destinatario") !== -1 || cabeceraStr.indexOf("nombre_recibe") !== -1 || cabeceraStr.indexOf("receiver contact name") !== -1) {
+      indices["receiver name"] = i;
+    }
+    // 5. Address 1
+    else if (cabeceraStr.indexOf("rcvr addr 1") !== -1 || cabeceraStr.indexOf("receiver address 1") !== -1 || cabeceraStr.indexOf("rcvr addr1") !== -1 || cabeceraStr.indexOf("rcvr_addr_1") !== -1 || cabeceraStr === "direccion" || cabeceraStr === "address 1") {
+      indices["rcvr addr 1"] = i;
+    }
+    // 6. Address 2
+    else if (cabeceraStr.indexOf("rcvr addr 2") !== -1 || cabeceraStr.indexOf("receiver address 2") !== -1 || cabeceraStr.indexOf("rcvr addr2") !== -1 || cabeceraStr.indexOf("rcvr_addr_2") !== -1 || cabeceraStr === "address 2") {
+      indices["rcvr addr 2"] = i;
+    }
+    // 7. Address 3
+    else if (cabeceraStr.indexOf("rcvr addr 3") !== -1 || cabeceraStr.indexOf("receiver address 3") !== -1 || cabeceraStr.indexOf("rcvr addr3") !== -1 || cabeceraStr.indexOf("rcvr_addr_3") !== -1 || cabeceraStr === "address 3") {
+      indices["rcvr addr 3"] = i;
+    }
+    // 8. Receiver Postcode (Código Postal)
+    else if (cabeceraStr.indexOf("rcvr postcode") !== -1 || cabeceraStr.indexOf("receiver postcode") !== -1 || cabeceraStr.indexOf("rcvr postal code") !== -1 || cabeceraStr.indexOf("postal code") !== -1 || cabeceraStr === "cp" || cabeceraStr === "postcode" || cabeceraStr.indexOf("rcvr_postcode") !== -1 || cabeceraStr === "codigo postal") {
+      indices["rcvr postcode"] = i;
+    }
+    // 9. Shipper Tel (Teléfono remitente)
+    else if (cabeceraStr.indexOf("shpr tel") !== -1 || cabeceraStr.indexOf("shipper tel") !== -1 || cabeceraStr.indexOf("shpr_tel") !== -1) {
+      indices["shpr tel"] = i;
+    }
+    // 10. Receiver Tel (Teléfono destinatario)
+    else if (cabeceraStr.indexOf("rcvr tel") !== -1 || cabeceraStr.indexOf("receiver tel") !== -1 || cabeceraStr.indexOf("rcvr_tel") !== -1 || cabeceraStr.indexOf("receiver contact phone") !== -1 || cabeceraStr.indexOf("telefono") !== -1 || cabeceraStr.indexOf("receiver phone") !== -1 || cabeceraStr.indexOf("recipient phone") !== -1 || cabeceraStr.indexOf("recipient tel") !== -1 || cabeceraStr === "telefono" || cabeceraStr === "tel" || cabeceraStr === "phone") {
+      indices["rcvr tel"] = i;
+    }
+  }
+  return indices;
+}
+
+function formatearPidDobleJ(pid) {
+  if (!pid) return "";
+  let cleanPid = pid.toString().trim();
+  if (cleanPid.indexOf("JD") === 0 && cleanPid.indexOf("JJD") !== 0) {
+    cleanPid = "J" + cleanPid; // Prepend extra J -> JJD
+  }
+  return cleanPid;
+}
+
+function formatearPidUnaJ(pid) {
+  if (!pid) return "";
+  let cleanPid = pid.toString().trim();
+  if (cleanPid.indexOf("JJD") === 0) {
+    cleanPid = cleanPid.substring(1); // Remove extra J -> JD
+  }
+  return cleanPid;
+}
+
+/**
+ * ESCUDO DE REBOTE ❌ - Envía plantilla de correo detallando fallo
+ */
+function enviarCorreoFallo(destinatario, errorMsg, nombreArchivo) {
+  const subject = "RECHAZO DE REPORTES BATCH - QRO: Archivo Incompleto";
+  const body = "Estimado equipo de DHL,\n\n" +
+               "Le informamos que el reporte enviado (" + nombreArchivo + ") no pudo ser procesado ni inyectado en el sistema OLLIN de Arauto Express Querétaro debido al siguiente inconveniente técnico:\n\n" +
+               "❌ Motivo: " + errorMsg + "\n\n" +
+               "Requisitos indispensables del archivo para procesamiento:\n" +
+               "1. Contener estrictamente las pestañas con nombres exactos: \"Shipment\", \"Piece\" y \"Event\".\n" +
+               "2. No alterar las cabeceras críticas mapeadas en nuestro sistema.\n\n" +
+               "Por favor, corrija los puntos señalados y vuelva a realizar el envío a este buzón de correo electrónico.\n\n" +
+               "Atentamente,\n" +
+               "Mesa de Control - Tlachialoni Querétaro\n" +
+               "Arauto Express S.A. de C.V.";
+
+  MailApp.sendEmail(destinatario, subject, body);
+}
+
+/**
+ * CONFIRMACIÓN DE ÉXITO ✅ - Notifica el éxito de la ingesta
+ */
+function enviarCorreoExito(destinatario, datos, nombreArchivo) {
+  const subject = "CONFIRMACIÓN DE INTEGRACIÓN BATCH QRO - Éxito ✅";
+  const body = "Estimado equipo de DHL,\n\n" +
+               "Le confirmamos que el reporte enviado (" + nombreArchivo + ") fue procesado de manera exitosa en nuestro cerebro logístico de Querétaro.\n\n" +
+               "Detalles de la Carga:\n" +
+               "✅ Guías (Manifiestos) Integradas: " + datos.guias + "\n" +
+               "✅ Piezas (PIDs) Mapeadas en Rampa: " + datos.piezas + "\n" +
+               "✅ Teléfonos de Query asociados en RAM: " + datos.queries + "\n" +
+               "📅 Fecha de Registro: " + datos.fecha + "\n\n" +
+               "La información ha sido enraizada en las consolas de control y en los dispositivos móviles de nuestros Pochtecas en ruta para el inicio de su jornada.\n\n" +
+               "Atentamente,\n" +
+               "Mesa de Control - Tlachialoni Querétaro\n" +
+               "Arauto Express S.A. de C.V.";
+
+  MailApp.sendEmail(destinatario, subject, body);
+}
+
+/**
+ * NOTIFICACIÓN EJECUTIVA - Envía alerta en caliente a Irvin Reyes
+ */
+function enviarAlertaIrvin(datos, nombreArchivo) {
+  const subject = "📢 ALERTA OLLIN: Material Listo en Consola QRO";
+  const body = "Hola Irvin,\n\n" +
+               "Te notificamos que el Amoxcalli ha procesado un nuevo lote con éxito proveniente de DHL:\n\n" +
+               "📄 Archivo: " + nombreArchivo + "\n" +
+               "📦 Guías listas para despacho: " + datos.guias + "\n" +
+               "🏷️ Piezas/PIDs validados con Doble \"J\": " + datos.piezas + "\n" +
+               "📞 Contactos de Queries cruzados en caliente: " + datos.queries + "\n\n" +
+               "El lote completo ya se encuentra pre-asignado y listo para visualización y despacho a campo en tu consola TLACHIALONI.\n\n" +
+               "Atentamente,\n" +
+               "Cerebro Asíncrono OLLIN";
+
+  MailApp.sendEmail(EMAIL_ADMIN_IRVIN, subject, body);
+}
+
+/**
+ * 2️⃣ SECCIÓN DESPACHO IA: EXTRAER DATOS CON GEMINI 3.6 FLASH (Prompt Estricto)
+ */
+function analizarCapturaBookingConGemini(base64Image, mimeType) {
+  const apiKey = PropertiesService.getScriptProperties().getProperty("GEMINI_API_KEY");
+  if (!apiKey) {
+    throw new Error("❌ Error: No se ha configurado la variable global 'GEMINI_API_KEY' en Apps Script.");
+  }
+  if (!base64Image) {
+    throw new Error("❌ Error: No se recibió ningún archivo Base64 para analizar.");
+  }
+
+  const url = "https://generativelanguage.googleapis.com/v1/models/gemini-3.6-flash:generateContent?key=" + apiKey;
+  
+  const promptInstrucciones = 
+    "Actúa como un extractor logístico experto de DHL para la empresa Arauto Express. " +
+    "Analiza minuciosamente esta captura de pantalla de un Booking de recolección (pickup) de DHL " +
+    "y extrae los siguientes datos de forma precisa. Devuelve ÚNICA Y EXCLUSIVAMENTE un objeto JSON " +
+    "con las llaves exactas indicadas a continuación, sin preámbulos, sin bloques de código ```json o markdown, ni texto adicional. " +
+    "Si un dato no es visible en la imagen, ponlo en blanco o null.\n\n" +
+    "Campos requeridos en el JSON:\n" +
+    "{\n" +
+    "  \"id_booking\": \"Número de Booking / Reserva / Shipper Acct o identificador de DHL (ej: 988240191)\",\n" +
+    "  \"remitente\": \"Nombre completo de la persona o contacto remitente que entrega\",\n" +
+    "  \"direccion\": \"Dirección física completa incluyendo calles, número y referencias visibles (ej. Telesecundaria)\",\n" +
+    "  \"cp\": \"Código Postal de 5 dígitos (extrae únicamente los números)\",\n" +
+    "  \"piezas_estimadas\": \"Cantidad de piezas/bultos estimados (NoPcs, típicamente un entero)\",\n" +
+    "  \"telefono\": \"Número telefónico de contacto visible (Devuelve SOLO 10 dígitos exactos, elimina el +52, sin guiones, sin espacios)\"\n" +
+    "}";
+
+  const payload = {
+    "contents": [{
+      "parts": [
+        { "text": promptInstrucciones },
+        {
+          "inlineData": {
+            "mimeType": mimeType || "image/jpeg",
+            "data": base64Image
+          }
+        }
+      ]
+    }],
+    "generationConfig": {
+      "responseMimeType": "application/json"
+    }
+  };
+  
+  const opciones = {
+    "method": "POST",
+    "contentType": "application/json",
+    "payload": JSON.stringify(payload),
+    "muteHttpExceptions": true
+  };
+  
+  try {
+    const respuesta = UrlFetchApp.fetch(url, opciones);
+    const codigoRespuesta = respuesta.getResponseCode();
+    const contenido = respuesta.getContentText();
+    
+    if (codigoRespuesta !== 200) {
+      throw new Error("Error en API de Gemini (Código " + codigoRespuesta + "): " + contenido);
+    }
+    
+    const jsonRespuesta = JSON.parse(contenido);
+    const textoExtraido = jsonRespuesta.candidates[0].content.parts[0].text;
+    const datosExtraidos = JSON.parse(textoExtraido.trim());
+    
+    const cpLimpio = datosExtraidos.cp ? datosExtraidos.cp.toString().trim() : "";
+    datosExtraidos.chofer_sugerido = autoAsignarPochtecaPorCP(cpLimpio);
+    
+    return { exito: true, datos: datosExtraidos };
+  } catch(err) {
+    return { exito: false, error: err.message };
+  }
+}
+
+/**
+ * 3️⃣ SECCIÓN COMÚN: AUTO-ASIGNACIÓN DE POCHTECA POR CP
+ */
+function autoAsignarPochtecaPorCP(cp) {
+  if (!cp) return "sin_asignar@arauto.express";
+  
+  try {
+    const boveda = SpreadsheetApp.openById(ID_BOVEDA_BATCH_MAESTRO);
+    const hojaMatriz = boveda.getSheetByName("MATRIZ_CP");
+    if (!hojaMatriz) return "sin_asignar@arauto.express";
+    
+    const datos = hojaMatriz.getDataRange().getValues();
+    for (let i = 1; i < datos.length; i++) {
+      if (String(datos[i][0]).trim() === cp.toString().trim()) {
+        const chofer = String(datos[i][1]).trim();
+        return chofer || "sin_asignar@arauto.express";
+      }
+    }
+  } catch(e) {
+    Logger.log("Error en lectura de Matriz CP: " + e.message);
+  }
+  return "sin_asignar@arauto.express";
+}
+
+/**
+ * 4️⃣ SECCIÓN COMÚN: CATÁLOGO DE POCHTECAS MÓVIL
+ */
+function obtenerChoferesQRO() {
+  try {
+    const baseApp = SpreadsheetApp.openById(ID_BD_APP_RUTA_2025);
+    const hojaChoferes = baseApp.getSheetByName("CAT_USUARIOS");
+    if (hojaChoferes) {
+      const datos = hojaChoferes.getDataRange().getValues();
+      const lista = [];
+      for (let i = 1; i < datos.length; i++) {
+        const correo = datos[i][0];
+        const nombre = datos[i][1];
+        const rol = datos[i][2];
+        if (correo && nombre && String(rol).toUpperCase() === "POCHTECA") {
+          lista.push({ nombre: nombre.trim(), correo: correo.trim() });
+        }
+      }
+      if (lista.length > 0) return lista;
+    }
+  } catch(e) {
+    Logger.log("Error al leer CAT_USUARIOS: " + e.message);
+  }
+  
+  return [
+    { nombre: "Edgar Rodríguez", correo: "edgar.rodriguez.arauto@gmail.com" },
+    { nombre: "Daniel Juárez", correo: "xichudaniel@gmail.com" },
+    { nombre: "Víctor Amador", correo: "victor18amadorm@gmail.com" }
+  ];
+}
+
+/**
+ * 5️⃣ SECCIÓN COMÚN: MONITOR CALLE EN VIVO (Hoy)
+ */
+function obtenerPickupsActivosQRO() {
+  try {
+    const libroLocal = SpreadsheetApp.getActiveSpreadsheet();
+    const hojaPU = libroLocal.getSheetByName("RECOLECCIONES_VALIDACION");
+    if (!hojaPU) return [];
+    
+    const ultimaFila = hojaPU.getLastRow();
+    if (ultimaFila < 2) return [];
+    
+    const filaInicio = Math.max(2, ultimaFila - 49);
+    const totalFilas = ultimaFila - filaInicio + 1;
+    const datos = hojaPU.getRange(filaInicio, 1, totalFilas, 18).getValues();
+    
+    const lista = [];
+    for (let i = datos.length - 1; i >= 0; i--) {
+      const fila = datos[i];
+      if (fila[0] && String(fila[0]).trim() !== "") {
+        lista.push({
+          id_pu: String(fila[0]),
+          id_booking: String(fila[1]),
+          remitente: String(fila[2]),
+          direccion: String(fila[3]),
+          cp: String(fila[4]),
+          chofer: String(fila[5]),
+          estatus: String(fila[6] || "PENDIENTE"),
+          piezas_estimadas: fila[7],
+          hora_llegada: fila[14] || ""
+        });
+      }
+    }
+    return lista;
+  } catch(e) {
+    Logger.log("Error en monitor calle: " + e.message);
+    return [];
+  }
+}
+
+/**
+ * Ejecuta el despacho final de un booking cargado con IA.
+ */
+function ejecutarDespachoBookingACampo(payloadJson) {
+  const lock = LockService.getScriptLock();
+  try {
+    if (!lock.tryLock(30000)) {
+      throw new Error("El sistema está ocupado. Intenta de nuevo.");
+    }
+    
+    const datos = JSON.parse(payloadJson);
+    const idBookingLimpio = String(datos.id_booking).trim();
+    
+    const idPU = "PU-" + Math.random().toString(36).substr(2, 8).toUpperCase();
+    const fechaHoy = new Date();
+    const horaServidor = fechaHoy.toLocaleTimeString();
+    
+    const libroLocal = SpreadsheetApp.getActiveSpreadsheet();
+    const hojaPU = libroLocal.getSheetByName("RECOLECCIONES_VALIDACION");
+    if (!hojaPU) throw new Error("No se encontró la hoja 'RECOLECCIONES_VALIDACION'.");
+    
+    hojaPU.appendRow([
+      idPU,
+      idBookingLimpio,
+      datos.remitente,
+      datos.direccion,
+      datos.cp,
+      datos.chofer,
+      "PENDIENTE",
+      datos.piezas_estimadas,
+      0, "", "", "", "", "",
+      horaServidor,
+      false, "",
+      fechaHoy
+    ]);
+    
+    const libroApp = SpreadsheetApp.openById(ID_BD_APP_RUTA_2025);
+    const hojaAppPU = libroApp.getSheetByName("RECOLECCIONES_ASIGNADAS");
+    if (!hojaAppPU) throw new Error("No se encontró la pestaña 'RECOLECCIONES_ASIGNADAS' en la base de la App.");
+    
+    hojaAppPU.appendRow([
+      idPU,
+      idBookingLimpio,
+      datos.remitente,
+      datos.direccion,
+      datos.cp,
+      "08:00",
+      "17:00",
+      datos.chofer,
+      "PENDIENTE",
+      datos.piezas_estimadas,
+      "", "", "", "", "", ""
+    ]);
+    
+    return { exito: true, id_pu: idPU };
+  } catch(err) {
+    return { exito: false, error: err.message };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * 6️⃣ INTERFAZ WEB AUXILIAR: BUSCAR RECIENTES PROCESADOS EN GMAIL (Soporte Dual)
+ */
+function buscarCorreosBatchQRO() {
+  try {
+    const threads = GmailApp.search('label:02_REPORTE_QRO OR label:01_QUERY_QRO', 0, 15);
+    const lista = [];
+    threads.forEach(t => {
+      const lastMsg = t.getMessages().pop();
+      const labels = t.getLabels().map(l => l.getName());
+      
+      let tipo = "REPORTE";
+      labels.forEach(l => {
+        const uLabel = l.toUpperCase();
+        if (uLabel.indexOf("01_QUERY_QRO") !== -1) {
+          tipo = "QUERY";
+        }
+      });
+
+      lista.push({
+        subject: lastMsg.getSubject(),
+        sender: lastMsg.getFrom().split("<")[0].replace(/"/g, "").trim(),
+        date: lastMsg.getDate().toLocaleDateString("es-MX"),
+        isUnread: t.isUnread(),
+        tipo: tipo,
+        id: lastMsg.getId()
+      });
+    });
+    return lista;
+  } catch(e) {
+    return [];
+  }
+}
+
+/**
+ * Descodifica cadenas codificadas en Quoted-Printable (Limpieza de caracteres de escape QP de red)
+ */
+function decodeQuotedPrintable(str) {
+  if (!str) return "";
+  // Unificar saltos de línea suaves de transferencia de red (DHL cortes de línea con '=')
+  str = str.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  str = str.replace(/=\n/g, "");
+  // Reemplazar códigos de escape hexadecimales QP (=3D, =20, =09, etc.)
+  return str.replace(/=([0-9A-F]{2})/gi, function(match, hex) {
+    return String.fromCharCode(parseInt(hex, 16));
+  });
+}
+
+/**
+ * Desencriptador maestro de transferencias MIME (Base64 y Quoted-Printable)
+ */
+function desencriptarQueryText(htmlBody, plainTextBody) {
+  let textoBody = (plainTextBody || htmlBody || "").toString();
+  
+  // Detectar e interpretar si el texto completo viaja encriptado en Base64 puro
+  if (/^[A-Za-z0-9+/=\s\r\n]{40,}$/.test(textoBody.trim().replace(/[\r\n\s]/g, ""))) {
+    try {
+      const decodedBytes = Utilities.base64Decode(textoBody.trim());
+      textoBody = Utilities.newBlob(decodedBytes).getDataAsString("UTF-8");
+    } catch(e) {
+      // Si falla, conservar texto original para procesamiento fallback
+    }
+  }
+  
+  // Siempre procesar descodificación Quoted-Printable de forma preventiva
+  textoBody = decodeQuotedPrintable(textoBody);
+  
+  return textoBody;
+}
+
+/**
+ * Filtro extractor ESTRUCTURADO para mapear guías con teléfonos.
+ * Optimizado para leer volcados de sistema de DHL (Tablas GEMA/OPUS).
+ */
+
+/**
+ * Elimina las etiquetas HTML de un texto de manera robusta,
+ * conservando los saltos de línea para el parser estructurado.
+ */
+function stripHtml(html) {
+  if (!html) return "";
+  // Reemplazar saltos de línea HTML comunes con saltos de línea reales \n para mantener la estructura vertical de las columnas
+  var clean = html.replace(/<br\s*\/?>/gi, "\n")
+                  .replace(/<\/p>/gi, "\n")
+                  .replace(/<\/tr>/gi, "\n")
+                  .replace(/<\/div>/gi, "\n");
+                  
+  // Reemplazar el resto de las etiquetas con espacios
+  clean = clean.replace(/<[^>]+>/g, " ");
+  
+  // Reemplazar entidades HTML comunes
+  clean = clean.replace(/&nbsp;/ig, " ")
+               .replace(/&amp;/ig, "&")
+               .replace(/&lt;/ig, "<")
+               .replace(/&gt;/ig, ">")
+               .replace(/&#39;/g, "'")
+               .replace(/&quot;/ig, '"');
+               
+  return clean;
+}
+
+/**
+ * Filtro extractor de alta fidelidad para mapear guías de 10 dígitos con números de teléfono vecinos.
+ * Traducido milimétricamente del código estable y probado de León (v41.0 LEN).
+ * Es 100% inmune a etiquetas HTML de red, saltos de línea suaves y teléfonos corporativos de DHL.
+ */
+function extraerContactosDeQuery(htmlBody, plainTextBody) {
+  // Desencriptar y descodificar preventivamente flujos MIME
+  const textoDecodificado = desencriptarQueryText(htmlBody, plainTextBody);
+  const mapaContactos = {};
+  
+  // Limpiar etiquetas HTML de forma robusta conservando saltos de línea estructurales
+  const textoLimpio = stripHtml(textoDecodificado);
+  
+  // Split por cualquier variación de AWB, HWB, Waybill, etc. con dos puntos obligatorios (:),
+  // para evitar falsas divisiones en el AWB/PID de las tablas de eventos de DHL
+  const bloques = textoLimpio.split(/(?:A\s*W\s*B|H\s*W\s*B|W\s*a\s*y\s*b\s*i\s*l\s*l|G\s*u\s*í\s*a|G\s*u\s*i\s*a)\s*:/i);
+  if (bloques.length <= 1) {
+    return mapaContactos; // Retornar vacío si no hay bloques de guías
+  }
+  
+  // Quitar el primer bloque (asunto o encabezado antes del primer AWB)
+  bloques.shift();
+  
+  bloques.forEach(function(bloque, idx) {
+    const lines = bloque.split(/\r?\n/);
+    let guia = "";
+    
+    // 1. Encontrar la guía de 10 dígitos (primera línea no vacía o fallback)
+    for (let l = 0; l < lines.length; l++) {
+      const line_stripped = lines[l].trim();
+      if (line_stripped) {
+        const guiaMatch = line_stripped.match(/^[^0-9]*(\d{10})/);
+        if (guiaMatch) {
+          guia = normalizarAwb_QRO(guiaMatch[1]);
+          break;
+        }
+      }
+    }
+    
+    // Fallback: Buscar los primeros 10 dígitos en la parte superior del bloque si no empezó limpio
+    if (!guia) {
+      const nearStart = bloque.substring(0, 100);
+      const fallbackMatch = nearStart.match(/\b(\d{10})\b/);
+      if (fallbackMatch) {
+        guia = fallbackMatch[1];
+      }
+    }
+    
+    if (!guia) return; // Si no hay guía, saltar este bloque
+    
+    // 2. Procesar línea por línea buscando teléfono
+    for (let l = 0; l < lines.length; l++) {
+      const line_raw = lines[l];
+      if (line_raw.toLowerCase().indexOf("phone") !== -1 || line_raw.toLowerCase().indexOf("tel") !== -1) {
+        // Dividir la línea en columnas por tabulador o por 4 o más espacios
+        const cols = line_raw.trim().split(/\s{4,}|\t/);
+        
+        // Si hay 2 o más columnas, la derecha es del Destinatario (Receiver)
+        if (cols.length >= 2) {
+          const right_col = cols[cols.length - 1]; // Última columna (Destinatario)
+          const tel_match = right_col.match(/(?:Phone|Tel|Teléfono|Mobile)?\s*:?\s*([\+\d][\d\s\-]{6,})/i);
+          if (tel_match) {
+            const clean_tel = limpiarYValidarTelefono_QRO(tel_match[1]);
+            if (clean_tel) {
+              mapaContactos[guia] = clean_tel;
+              break; // Teléfono encontrado, salir de las líneas de este bloque
+            }
+          }
+        } else {
+          // Si solo hay una columna, fallback a esa columna
+          const single_col = cols[0];
+          const tel_match = single_col.match(/(?:Phone|Tel|Teléfono|Mobile)?\s*:?\s*([\+\d][\d\s\-]{6,})/i);
+          if (tel_match) {
+            const clean_tel = limpiarYValidarTelefono_QRO(tel_match[1]);
+            if (clean_tel) {
+              mapaContactos[guia] = clean_tel;
+              break; // Teléfono encontrado, salir de las líneas de este bloque
+            }
+          }
+        }
+      }
+    }
+  });
+  
+  return mapaContactos;
+}
+
+/**
+ * Normaliza y limpia un número de guía, resolviendo problemas de notación científica o decimales.
+ */
+function normalizarAwb_QRO(awbVal) {
+  if (!awbVal) return "";
+  let str = String(awbVal).trim();
+  if (str.indexOf("e") !== -1 || str.indexOf("E") !== -1) {
+    let num = Number(str);
+    if (!isNaN(num)) {
+      str = num.toFixed(0);
+    }
+  }
+  if (str.indexOf(".") !== -1) {
+    str = str.split(".")[0];
+  }
+  return str.replace(/\D/g, "");
+}
+
+/**
+ * Limpia un teléfono dejándolo en 10 dígitos numéricos puros,
+ * y bloquea teléfonos corporativos/de soporte de DHL (los números prohibidos).
+ */
+function limpiarYValidarTelefono_QRO(telRaw) {
+  if (!telRaw) return "";
+  var str = String(telRaw).replace(/\D/g, "").trim();
+  if (str.length < 10) return "";
+  if (str.length > 10) {
+    str = str.substring(str.length - 10);
+  }
+  var numerosProhibidos = [
+    "5591384100",
+    "5591384101",
+    "5591384102",
+    "0180076563"
+  ];
+  if (numerosProhibidos.indexOf(str) !== -1) {
+    return "";
+  }
+  return str;
+}
+
+
+/**
+ * 📞 PROCESADOR DE EMAILS DE QUERY INDEPENDIENTE (DESENCRIPTADOR DE TELÉFONOS EN CALIENTE)
+ * Busca correos de DHL con teléfonos ocultos, los descodifica y los acopla en calle de forma periódica.
+ */
+function procesarQueriesQRO(messageId) {
+  const executionLogs = [];
+  function log(msg) {
+    const time = new Date().toLocaleTimeString("es-MX");
+    executionLogs.push("[" + time + "] " + msg);
+  }
+
+  log("🚀 Iniciando procesamiento asíncrono e independiente de Query...");
+
+  let messages = [];
+  let threads = [];
+
+  if (messageId) {
+    log("🔍 Buscando correo específico de Query en Gmail por ID: " + messageId + "...");
+    try {
+      const msg = GmailApp.getMessageById(messageId);
+      if (msg) {
+        messages.push(msg);
+        threads.push(msg.getThread());
+        log("✅ Correo encontrado: '" + msg.getSubject() + "' de " + msg.getFrom());
+      } else {
+        log("❌ No se encontró el correo con ID: " + messageId);
+      }
+    } catch (e) {
+      log("❌ Error al recuperar correo por ID: " + e.message);
+    }
+  } else {
+    log("🔍 Escaneando Gmail por correos pendientes (is:unread) con etiqueta 01_QUERY_QRO...");
+    const activeThreads = GmailApp.search('label:01_QUERY_QRO is:unread');
+    log("📊 Encontrados " + activeThreads.length + " hilos de Query pendientes.");
+    activeThreads.forEach(t => {
+      threads.push(t);
+      messages.push(t.getMessages().pop());
+    });
+  }
+
+  if (messages.length === 0) {
+    log("⚠️ No se encontraron correos de Query para procesar.");
+    return { exito: false, procesados: 0, mensaje: "No hay Queries nuevas", logs: executionLogs };
+  }
+
+  const lock = LockService.getScriptLock();
+  try {
+    if (!lock.tryLock(30000)) {
+      log("❌ No se pudo adquirir el bloqueo de red. Sistema ocupado.");
+      return { exito: false, error: "El sistema está ocupado procesando otra solicitud.", logs: executionLogs };
+    }
+
+    const baseApp = SpreadsheetApp.openById(ID_BD_APP_RUTA_2025);
+    const hojaGuiasApp = baseApp.getSheetByName("GUIAS_ASIGNADAS") || baseApp.getSheetByName("RECOLECCIONES_ASIGNADAS");
+    
+    if (!hojaGuiasApp) {
+      log("❌ ERROR: No se encontró la hoja de guías en la base de datos.");
+      return { exito: false, error: "No se encontró la pestaña de guías asignadas.", logs: executionLogs };
+    }
+
+    let totalActualizados = 0;
+
+    messages.forEach((lastMsg, idx) => {
+      const thread = threads[idx];
+      const body = lastMsg.getPlainBody();
+      const htmlBody = lastMsg.getBody();
+      
+      log("⏳ Analizando texto del correo y descifrando teléfonos...");
+      const contactos = extraerContactosDeQuery(htmlBody, body);
+      const llaves = Object.keys(contactos);
+      log("📞 Encontrados " + llaves.length + " pares de guías y teléfonos en el texto.");
+
+      let hwbEncontradosEnEsteCorreo = 0;
+
+      llaves.forEach(awb => {
+        const tel = contactos[awb];
+        const datosGuias = hojaGuiasApp.getDataRange().getValues();
+        let encontrado = false;
+
+        for (let j = 1; j < datosGuias.length; j++) {
+          const guiaSheet = String(datosGuias[j][0]).trim(); // Columna A: HWB_Guia
+          if (normalizarAwb_QRO(guiaSheet) === normalizarAwb_QRO(awb)) {
+            // Columna G (Índice 7): Tel_Query (Escribimos en la columna de soporte)
+            hojaGuiasApp.getRange(j + 1, 7).setValue(tel.toString());
+            totalActualizados++;
+            hwbEncontradosEnEsteCorreo++;
+            encontrado = true;
+            log("✅ Guía " + awb + " asociada con el teléfono: " + tel);
+          }
+        }
+        if (!encontrado) {
+          log("⚠️ Guía " + awb + " descifrada pero NO encontrada en la base de la App.");
+        }
+      });
+
+      // 🚨 COLA ASÍNCRONA AUTOMÁTICA OLLIN (v39.0 PROD)
+      // Solo removemos la etiqueta y marcamos como leída si pudimos asociar al menos un teléfono.
+      // Si no, la dejamos intacta (unread) para que se asocie en la siguiente vuelta (ej. tras entrar el Excel).
+      if (hwbEncontradosEnEsteCorreo > 0 || llaves.length === 0) {
+        thread.markRead(); // Marcar como procesado definitivamente
+        try {
+          const labelQuery = GmailApp.getUserLabels().find(l => l.getName().toUpperCase() === "01_QUERY_QRO");
+          if (labelQuery) {
+            thread.removeLabel(labelQuery);
+          }
+          log("🧹 Hilo de Query procesado con éxito y des-etiquetado.");
+        } catch(eLabel) {
+          log("⚠️ Advertencia al remover etiqueta de Query: " + eLabel.message);
+        }
+      } else {
+        log("⏳ Hilo de Query conservado en buzón (is:unread) en espera de que las guías se inyecten desde el Excel.");
+      }
+    });
+
+    return { exito: true, procesados: totalActualizados, mensaje: "Se asociaron e inyectaron " + totalActualizados + " teléfonos de QUERY.", logs: executionLogs };
+  } catch (err) {
+    log("❌ ERROR crítico durante la inyección de Query: " + err.message);
+    return { exito: false, error: err.message, logs: executionLogs };
+  } finally {
+    lock.releaseLock();
+  }
+}

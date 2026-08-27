@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Tlachialoni QRO - Centro de Control</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts (Space Grotesk & Inter) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f7fafc;
+    }
+    .brand-font {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .gold-accent {
+      color: #D4AF37;
+    }
+    .gold-bg {
+      background-color: #D4AF37;
+    }
+    .green-brand {
+      background-color: #1e3f20;
+    }
+    .green-brand-hover:hover {
+      background-color: #142b15;
+    }
+  </style>
+</head>
+<body class="text-slate-800">
+
+  <!-- 🟢 NAVBAR SUPERIOR (ARAUTO OFICIAL VERDE/ORO) -->
+  <nav class="green-brand text-white shadow-md border-b-4 border-[#D4AF37]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center space-x-3">
+          <i class="fa-solid fa-eye text-[#D4AF37] text-2xl animate-pulse"></i>
+          <div>
+            <span class="brand-font text-lg font-bold tracking-wide block">TLACHIALONI QRO</span>
+            <span class="text-xs text-[#D4AF37] tracking-wider block font-semibold">ECOSISTEMA OLLIN • ARAUTO EXPRESS</span>
+          </div>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="hidden md:inline-block text-xs bg-[#D4AF37] text-[#1e3f20] px-2 py-1 rounded font-bold">V42.0 PROD</span>
+          <button onclick="actualizarTodo()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-sm font-semibold transition flex items-center space-x-1">
+            <i class="fa-solid fa-arrows-rotate"></i>
+            <span>Sincronizar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- 🟢 FILOSOFÍA Y MENSAJE DE BIENVENIDA -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div class="space-y-1">
+        <h1 class="brand-font text-2xl font-bold text-slate-900">Observatorio de Rampa y Calle</h1>
+        <p class="text-sm text-slate-500">"La información digital propone, pero la acción física dispone." Control absoluto y blindaje de datos de Querétaro.</p>
+      </div>
+      <div class="flex items-center space-x-3 self-start md:self-auto bg-amber-50 border border-amber-200 px-4 py-2.5 rounded-xl">
+        <i class="fa-solid fa-triangle-exclamation text-amber-600 text-lg"></i>
+        <div class="text-xs text-amber-800">
+          <span class="font-bold">Gobernanza de Datos:</span> Los números de soporte se limpian asíncronamente en RAM a 10 dígitos exactos.
+        </div>
+      </div>
+    </div>
+
+    <!-- 🟢 PROCESAMIENTO CENTRAL UNIFICADO (v43.0 PROD - BOTÓN ÚNICO) -->
+    <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-100 space-y-4">
+      <div class="flex items-center space-x-2 pb-2 border-b border-slate-100">
+        <i class="fa-solid fa-gears text-[#D4AF37] text-2xl animate-spin-slow"></i>
+        <h2 class="brand-font font-bold text-lg text-slate-900">Consola Central del Batch Logístico (v43.0)</h2>
+      </div>
+      <p class="text-sm text-slate-500">
+        Presiona el botón unificado para importar el reporte Excel y cruzar automáticamente los teléfonos de soporte de Gmail. El sistema ejecutará las tareas en secuencia sincronizada para evitar desfases.
+      </p>
+      <div class="pt-2">
+        <button id="btn-unificado" onclick="ejecutarProcesamiento()" class="w-full bg-[#1e3f20] hover:bg-[#142b15] text-[#D4AF37] font-bold py-4 rounded-xl shadow-lg transition flex items-center justify-center space-x-3 border-2 border-[#D4AF37] hover:scale-[1.01] duration-200">
+          <i class="fa-solid fa-bolt text-lg"></i>
+          <span class="brand-font tracking-wide uppercase text-sm md:text-base">EJECUTAR PROCESAMIENTO UNIFICADO QRO</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 🟢 PANEL DUAL: RECOLECCIÓN IA & MONITOREO -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      
+      <!-- FASE A: RECEPCIÓN DE BOOKINGS CON IA (5/12) -->
+      <section class="lg:col-span-5 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-6 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div class="flex items-center space-x-2">
+              <i class="fa-solid fa-wand-magic-sparkles text-[#D4AF37] text-xl"></i>
+              <h2 class="brand-font font-bold text-lg text-slate-900">Recepción IA (Flash 3.6)</h2>
+            </div>
+            <span class="text-xs text-slate-400 font-medium">Paso 1: Captura</span>
+          </div>
+
+          <!-- Drag and Drop Image Box -->
+          <div class="mt-6">
+            <label id="drop-zone" class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition p-6 text-center space-y-3">
+              <i class="fa-solid fa-cloud-arrow-up text-slate-400 text-3xl"></i>
+              <div class="text-sm">
+                <span class="font-semibold text-emerald-600">Cargar captura de Booking</span> o arrastra el archivo aquí
+              </div>
+              <p class="text-xs text-slate-400">Formatos JPG, PNG, WEBP (Se procesará con Inteligencia Artificial)</p>
+              <input type="file" id="file-picker" accept="image/*" class="hidden" onchange="procesarImagen(this.files[0])">
+            </label>
+          </div>
+
+          <!-- Previsualizador de Datos de la IA -->
+          <div id="ia-preview" class="hidden mt-6 space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm">
+            <div class="font-bold text-xs text-slate-500 uppercase tracking-wider pb-2 border-b border-slate-200">Datos Extraídos por la IA</div>
+            
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <span class="text-xs text-slate-400 block font-semibold">ID Booking</span>
+                <input type="text" id="ia-booking" class="w-full bg-white border border-slate-300 rounded px-2 py-1 mt-0.5 text-xs focus:outline-emerald-600">
+              </div>
+              <div>
+                <span class="text-xs text-slate-400 block font-semibold">Remitente</span>
+                <input type="text" id="ia-remitente" class="w-full bg-white border border-slate-300 rounded px-2 py-1 mt-0.5 text-xs focus:outline-emerald-600">
+              </div>
+            </div>
+
+            <div>
+              <span class="text-xs text-slate-400 block font-semibold">Dirección Física</span>
+              <textarea id="ia-direccion" rows="2" class="w-full bg-white border border-slate-300 rounded px-2 py-1 mt-0.5 text-xs focus:outline-emerald-600"></textarea>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <span class="text-xs text-slate-400 block font-semibold">C.P.</span>
+                <input type="text" id="ia-cp" class="w-full bg-white border border-slate-300 rounded px-2 py-1 mt-0.5 text-xs focus:outline-emerald-600" onchange="recalcularChofer(this.value)">
+              </div>
+              <div>
+                <span class="text-xs text-slate-400 block font-semibold">Bultos</span>
+                <input type="number" id="ia-piezas" class="w-full bg-white border border-slate-300 rounded px-2 py-1 mt-0.5 text-xs focus:outline-emerald-600">
+              </div>
+              <div>
+                <span class="text-xs text-slate-400 block font-semibold">Teléfono</span>
+                <input type="text" id="ia-tel" class="w-full bg-white border border-slate-300 rounded px-2 py-1 mt-0.5 text-xs focus:outline-emerald-600">
+              </div>
+            </div>
+
+            <div>
+              <span class="text-xs text-slate-400 block font-semibold">Pochteca Sugerido (Por C.P.)</span>
+              <select id="ia-chofer" class="w-full bg-white border border-slate-300 rounded px-2 py-1 mt-0.5 text-xs focus:outline-emerald-600">
+                <!-- Se poblará dinámicamente -->
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botón de Despacho -->
+        <button id="btn-despacho" onclick="ejecutarDespacho()" class="hidden w-full mt-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center space-x-2">
+          <i class="fa-solid fa-paper-plane"></i>
+          <span>Despachar a Campo</span>
+        </button>
+      </section>
+
+      <!-- FASE B: MONITOR CALLE EN VIVO (7/12) -->
+      <section class="lg:col-span-7 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div class="flex items-center space-x-2">
+              <i class="fa-solid fa-truck-fast text-[#1e3f20] text-xl"></i>
+              <h2 class="brand-font font-bold text-lg text-slate-900">Monitor Calle en Vivo (Hoy)</h2>
+            </div>
+            <button onclick="cargarMonitor()" class="text-xs text-emerald-600 hover:text-emerald-800 font-semibold"><i class="fa-solid fa-arrows-rotate mr-1"></i>Refrescar</button>
+          </div>
+
+          <div class="overflow-x-auto mt-6">
+            <table class="min-w-full divide-y divide-slate-100 text-sm">
+              <thead class="bg-slate-50">
+                <tr>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">ID PU</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Booking</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Remitente</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">CP</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Pochteca</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Estatus</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-monitor" class="divide-y divide-slate-100">
+                <!-- Se poblará dinámicamente -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- 🟢 FASE C: BANDEJA BATCH & QUERIES (SOPORTE DUAL) -->
+    <section class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-envelope-open-text text-[#1e3f20] text-xl"></i>
+          <h2 class="brand-font font-bold text-lg text-slate-900">Buzón de Soporte y Reportes Dual (Gmail)</h2>
+        </div>
+        <button onclick="cargarCorreos()" class="text-xs text-emerald-600 hover:text-emerald-800 font-semibold"><i class="fa-solid fa-arrows-rotate mr-1"></i>Buscar Nuevos</button>
+      </div>
+
+      <div class="overflow-x-auto mt-6">
+        <table class="min-w-full divide-y divide-slate-100 text-sm">
+          <thead class="bg-slate-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Tipo</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Asunto</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Remitente (DHL)</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Fecha</th>
+              <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-correos" class="divide-y divide-slate-100">
+            <!-- Se poblará dinámicamente -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 🟢 CONSOLA DE LOGS EN VIVO -->
+    <section class="bg-slate-900 text-slate-300 p-6 rounded-2xl shadow-inner space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-terminal text-[#D4AF37]"></i>
+          <span class="brand-font text-sm font-bold text-white uppercase tracking-wider">Consola de Ejecución en Rampa</span>
+        </div>
+        <button onclick="document.getElementById('live-logs').innerHTML = ''" class="text-xs text-slate-500 hover:text-slate-300"><i class="fa-solid fa-trash-can mr-1"></i>Limpiar</button>
+      </div>
+      <div id="live-logs" class="font-mono text-xs max-h-40 overflow-y-auto space-y-1 scrollbar-thin">
+        <!-- Logs de Apps Script en caliente -->
+        [SISTEMA] Listo para iniciar operaciones. Consola Tlachialoni v41.0 sincronizada.
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 🟢 CAPA SCRIPT (LOGICA DE INTEGRACIÓN CON GOOGLE APPS SCRIPT) -->
+  <script>
+    // Variables de Estado Local
+    let pochtecas = [];
+    let processingImage = false;
+
+    // Inicializar operaciones al cargar la página
+    window.addEventListener('load', () => {
+      actualizarTodo();
+    });
+
+    function addLog(msg, error = false) {
+      const logs = document.getElementById('live-logs');
+      const time = new Date().toLocaleTimeString("es-MX");
+      const span = document.createElement('div');
+      span.className = error ? "text-rose-400 font-semibold" : "text-slate-300";
+      span.innerHTML = `[${time}] ${msg}`;
+      logs.appendChild(span);
+      logs.scrollTop = logs.scrollHeight;
+    }
+
+    function actualizarTodo() {
+      addLog("Sincronizando consola con el Amoxcalli...");
+      cargarCatalogos();
+      cargarMonitor();
+      cargarCorreos();
+    }
+
+    function cargarCatalogos() {
+      google.script.run
+        .withSuccessHandler((data) => {
+          pochtecas = data;
+          addLog(`Catálogo de Pochtecas cargado con éxito (${data.length} usuarios).`);
+          poblarSelectChoferes();
+        })
+        .withFailureHandler((err) => {
+          addLog("Error al recuperar catálogo de usuarios: " + err.message, true);
+        })
+        .obtenerChoferesQRO();
+    }
+
+    function poblarSelectChoferes() {
+      const select = document.getElementById('ia-chofer');
+      select.innerHTML = '<option value="sin_asignar@arauto.express">-- Sin Asignar / Externo --</option>';
+      pochtecas.forEach(p => {
+        select.innerHTML += `<option value="${p.correo}">${p.nombre} (${p.correo})</option>`;
+      });
+    }
+
+    function cargarMonitor() {
+      google.script.run
+        .withSuccessHandler((lista) => {
+          const tbody = document.getElementById('tabla-monitor');
+          if (lista.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">No hay recolecciones despachadas el día de hoy</td></tr>';
+            return;
+          }
+          tbody.innerHTML = '';
+          lista.forEach(item => {
+            let badgeColor = "bg-amber-100 text-amber-800";
+            if (item.estatus === "OK") badgeColor = "bg-emerald-100 text-emerald-800";
+            if (item.estatus === "NH" || item.estatus === "BA") badgeColor = "bg-rose-100 text-rose-800";
+
+            tbody.innerHTML += `
+              <tr class="hover:bg-slate-50 transition">
+                <td class="px-4 py-3 font-semibold text-slate-900">${item.id_pu}</td>
+                <td class="px-4 py-3 text-slate-500">${item.id_booking}</td>
+                <td class="px-4 py-3 font-medium text-slate-700">${item.remitente}</td>
+                <td class="px-4 py-3 text-slate-500">${item.cp || "N/A"}</td>
+                <td class="px-4 py-3 text-xs text-slate-600 font-semibold">${item.chofer.split('@')[0]}</td>
+                <td class="px-4 py-3 text-xs"><span class="px-2 py-0.5 rounded-full font-bold ${badgeColor}">${item.estatus}</span></td>
+              </tr>
+            `;
+          });
+          addLog("Monitor de calle en vivo actualizado.");
+        })
+        .withFailureHandler((err) => {
+          addLog("Error al refrescar monitor calle: " + err.message, true);
+        })
+        .obtenerPickupsActivosQRO();
+    }
+
+        function ejecutarProcesamiento() {
+      const btn = document.getElementById('btn-unificado');
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin mr-2"></i> Procesando Ecosistema OLLIN...`;
+      addLog("🚀 Detonando procesamiento unificado y secuencial (Batch + Queries)...");
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          btn.disabled = false;
+          btn.innerHTML = `<i class="fa-solid fa-bolt text-lg mr-2"></i> EJECUTAR PROCESAMIENTO UNIFICADO QRO`;
+          if (res.exito) {
+            addLog(`✅ PROCESO COMPLETADO: ${res.mensaje}`);
+            if (res.logs && res.logs.length > 0) {
+              res.logs.forEach(l => {
+                if (l.indexOf("❌") !== -1 || l.indexOf("⚠️") !== -1) {
+                  addLog(l, true);
+                } else {
+                  addLog(l);
+                }
+              });
+            }
+            actualizarTodo();
+          } else {
+            addLog(`❌ FALLO OPERATIVO: ${res.error || res.mensaje}`, true);
+            if (res.logs && res.logs.length > 0) {
+              res.logs.forEach(l => addLog(l, true));
+            }
+          }
+        })
+        .withFailureHandler((err) => {
+          btn.disabled = false;
+          btn.innerHTML = `<i class="fa-solid fa-bolt text-lg mr-2"></i> EJECUTAR PROCESAMIENTO UNIFICADO QRO`;
+          addLog("❌ Error técnico en servidor unificado: " + err.message, true);
+        })
+        .ejecutarProcesamientoUnificadoQRO();
+    }
+
+    function cargarCorreos() {
+      google.script.run
+        .withSuccessHandler((lista) => {
+          const tbody = document.getElementById('tabla-correos');
+          if (lista.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">No se encontraron correos pendientes en Gmail</td></tr>';
+            return;
+          }
+          tbody.innerHTML = '';
+          lista.forEach(mail => {
+            const isQuery = mail.tipo === "QUERY";
+            const typeBadge = isQuery 
+              ? "bg-[#D4AF37] text-[#1e3f20] font-bold" 
+              : "bg-indigo-100 text-indigo-800 font-bold";
+            const unreadStyle = mail.isUnread ? "font-bold text-slate-900 bg-emerald-50/50" : "text-slate-600";
+            
+            tbody.innerHTML += `
+              <tr class="hover:bg-slate-50 transition ${unreadStyle}">
+                <td class="px-4 py-3 text-xs"><span class="px-2 py-0.5 rounded-full ${typeBadge}">${mail.tipo}</span></td>
+                <td class="px-4 py-3 font-medium max-w-xs truncate">${mail.subject}</td>
+                <td class="px-4 py-3 text-slate-500">${mail.sender}</td>
+                <td class="px-4 py-3 text-slate-400 text-xs">${mail.date}</td>
+                <td class="px-4 py-3 text-center">
+                  <span class="px-2.5 py-1 text-xs font-semibold rounded ${mail.isUnread ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-500'}">${mail.isUnread ? 'Pendiente' : 'Procesado'}</span>
+                </td>
+              </tr>
+            `;
+          });
+          addLog("Bandeja de correos de soporte de Gmail actualizada.");
+        })
+        .withFailureHandler((err) => {
+          addLog("Error al recuperar correos de Gmail: " + err.message, true);
+        })
+        .buscarCorreosBatchQRO();
+    }
+
+    function forzarInyeccionMail(msgId, tipo) {
+      addLog(`Detonando inyección asíncrona para ${tipo} (ID: ${msgId})...`);
+      if (tipo === "QUERY") {
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res.exito) {
+              addLog(`ÉXITO: ${res.mensaje}`);
+              actualizarTodo();
+            } else {
+              addLog(`FALLO: ${res.error || res.mensaje}`, true);
+            }
+          })
+          .withFailureHandler((err) => {
+            addLog("Error técnico en procesamiento asíncrono de Query: " + err.message, true);
+          })
+          .procesarQueriesQRO(msgId);
+      } else {
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res.exito) {
+              addLog(`ÉXITO: ${res.mensaje}`);
+              actualizarTodo();
+            } else {
+              addLog(`FALLO: ${res.error || res.mensaje}`, true);
+            }
+          })
+          .withFailureHandler((err) => {
+            addLog("Error técnico en procesamiento asíncrono de Batch: " + err.message, true);
+          })
+          .procesarBatchQRO(msgId);
+      }
+    }
+
+    function recalcularChofer(cp) {
+      if (!cp) return;
+      google.script.run
+        .withSuccessHandler((chofer) => {
+          document.getElementById('ia-chofer').value = chofer;
+          addLog(`Pochteca auto-asignado por C.P. ${cp}: ${chofer}`);
+        })
+        .autoAsignarPochtecaPorCP(cp);
+    }
+
+    // Convertidor de Imagen a Base64 e Integración con Gemini
+    function procesarImagen(file) {
+      if (!file) return;
+      if (processingImage) return;
+
+      processingImage = true;
+      addLog(`Procesando imagen: ${file.name} (${Math.round(file.size/1024)} KB)...`);
+      
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = function () {
+        const base64Content = reader.result.split(',')[1];
+        const mimeType = file.type;
+
+        addLog("Enviando flujo visual a Gemini 3.6 Flash para interpretación...");
+        
+        google.script.run
+          .withSuccessHandler((res) => {
+            processingImage = false;
+            if (res.exito) {
+              addLog("Gemini interpretó con éxito la captura del Booking.");
+              
+              document.getElementById('ia-booking').value = res.datos.id_booking || "";
+              document.getElementById('ia-remitente').value = res.datos.remitente || "";
+              document.getElementById('ia-direccion').value = res.datos.direccion || "";
+              document.getElementById('ia-cp').value = res.datos.cp || "";
+              document.getElementById('ia-piezas').value = res.datos.piezas_estimadas || 1;
+              document.getElementById('ia-tel').value = res.datos.telefono || "";
+              document.getElementById('ia-chofer').value = res.datos.chofer_sugerido || "sin_asignar@arauto.express";
+
+              document.getElementById('ia-preview').classList.remove('hidden');
+              document.getElementById('btn-despacho').classList.remove('hidden');
+            } else {
+              addLog("Error en el lector de IA: " + res.error, true);
+            }
+          })
+          .withFailureHandler((err) => {
+            processingImage = false;
+            addLog("Error de red con la IA de Gemini: " + err.message, true);
+          })
+          .analizarCapturaBookingConGemini(base64Content, mimeType);
+      };
+    }
+
+    // Ejecuta el despacho final dual a rampa y calle
+    function ejecutarDespacho() {
+      addLog("Iniciando despacho y adquiriendo candado de exclusión (LockService)...");
+
+      const payload = {
+        id_booking: document.getElementById('ia-booking').value,
+        remitente: document.getElementById('ia-remitente').value,
+        direccion: document.getElementById('ia-direccion').value,
+        cp: document.getElementById('ia-cp').value,
+        piezas_estimadas: document.getElementById('ia-piezas').value,
+        telefono: document.getElementById('ia-tel').value,
+        chofer: document.getElementById('ia-chofer').value
+      };
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (res.exito) {
+            addLog(`ÉXITO: Booking despachado e inyectado con ID de rampa: ${res.id_pu}`);
+            // Limpiar formulario de IA
+            document.getElementById('ia-preview').classList.add('hidden');
+            document.getElementById('btn-despacho').classList.add('hidden');
+            document.getElementById('file-picker').value = '';
+            actualizarTodo();
+          } else {
+            addLog("Error de inyección dual: " + res.error, true);
+          }
+        })
+        .withFailureHandler((err) => {
+          addLog("Fallo crítico de despacho: " + err.message, true);
+        })
+        .ejecutarDespachoBookingACampo(JSON.stringify(payload));
+    }
+  </script>
+</body>
+</html>

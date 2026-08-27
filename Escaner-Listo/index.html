@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ollinqui Metralleta - Arauto Express</title>
+    <!-- Cargar librería de escaneo HTML5-QRCode vía CDN de alta velocidad -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h2 {
+            margin: 10px 0 5px 0;
+            color: #ff9800; /* Identidad de marca Arauto */
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-size: 1.2rem;
+        }
+        .driver-badge {
+            background-color: #1e1e1e;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            color: #aaaaaa;
+            margin-bottom: 15px;
+            border: 1px solid #333;
+        }
+        #reader {
+            width: 100%;
+            max-width: 450px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid #333;
+            background-color: #000;
+        }
+        #scanned-list {
+            width: 100%;
+            max-width: 450px;
+            margin-top: 15px;
+            background-color: #1e1e1e;
+            border-radius: 12px;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #333;
+        }
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #333;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+            color: #aaaaaa;
+        }
+        .scan-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            padding: 6px 0;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        .scan-item:last-child {
+            border-bottom: none;
+        }
+        .status-sync {
+            color: #4caf50;
+            font-weight: bold;
+        }
+        .status-pending {
+            color: #ff9800;
+            font-weight: bold;
+        }
+        #log-area {
+            width: 100%;
+            max-width: 450px;
+            height: 60px;
+            background-color: #000;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 0.75rem;
+            padding: 8px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            color: #00e5ff;
+            border: 1px solid #222;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>⚡ OLLINQUI METRALLETA</h2>
+    <div class="driver-badge" id="driver-info">Cargando chofer...</div>
+
+    <div id="reader"></div>
+    
+    <div id="log-area">Sistemas listos. Esperando escaneo...</div>
+
+    <div id="scanned-list">
+        <div class="list-header">
+            <span>Últimos Escaneos (Metralleta)</span>
+            <span id="sync-count">0 Sincronizados</span>
+        </div>
+        <div id="items-container">
+            <!-- Los items escaneados se inyectarán aquí -->
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURACIÓN DE CONEXIÓN MAESTRA ---
+        // 🛰️ URL real del Webhook Receptor de tu Google Apps Script de Validación
+        const URL_PROXY_SEGURO = "https://script.google.com/macros/s/AKfycbz1NnB2qSxCJOPY72ZCPkB0MOSbQ3sZI_uv_r02DL6wWX3441SZVVrqWkrdnPuusfg_/exec";
+
+        // Obtener chofer de la URL (Paso dinámico desde AppSheet)
+        const urlParams = new URLSearchParams(window.location.search);
+        const choferEmail = urlParams.get('chofer') || "sin.chofer@arauto.express";
+        document.getElementById('driver-info').innerText = "Chofer: " + choferEmail;
+
+        const logArea = document.getElementById('log-area');
+        const itemsContainer = document.getElementById('items-container');
+        const syncCountEl = document.getElementById('sync-count');
+
+        let scanHistory = JSON.parse(localStorage.getItem('ollinqui_scans') || '[]');
+        updateUI();
+
+        // Generador de sonido BEEP sintético por código (Funciona sin descargar audios)
+        function playBeep() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(1000, audioCtx.currentTime); // Tono agudo y limpio
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.08); // Duración de 80ms
+            } catch(e) {
+                console.log("AudioContext bloqueado o no soportado: ", e);
+            }
+        }
+
+        function addLog(msg) {
+            const time = new Date().toLocaleTimeString();
+            logArea.innerHTML = `[${time}] ${msg}<br>` + logArea.innerHTML;
+        }
+
+        // Validación estricta "J de Oro" para PIDs individuales
+        function esPidValido(code) {
+            return code.toUpperCase().startsWith("JJD") && code.length > 10;
+        }
+
+        // Procesar escaneo exitoso
+        function onScanSuccess(decodedText) {
+            const cleanText = decodedText.trim().toUpperCase();
+            
+            // 🛡️ Filtro de duplicados locales para evitar falsos dobles escaneos
+            if (scanHistory.some(item => item.pid === cleanText)) {
+                addLog(`⚠️ Ya escaneado en este lote: ${cleanText}`);
+                return;
+            }
+
+            // 🛡️ Filtro J de Oro
+            if (!esPidValido(cleanText)) {
+                addLog(`❌ Código Inválido (No cumple J de Oro): ${cleanText}`);
+                return;
+            }
+
+            // Registrar escaneo inmediato
+            playBeep();
+            addLog(`🟢 Escaneado con éxito: ${cleanText}`);
+            
+            const newScan = {
+                pid: cleanText,
+                chofer: choferEmail,
+                fecha: new Date().toISOString(),
+                sync: false
+            };
+
+            scanHistory.unshift(newScan);
+            if (scanHistory.length > 25) scanHistory.pop(); // Mantener historial corto en pantalla para rendimiento
+            
+            saveHistory();
+            updateUI();
+            
+            registrarEscaneoEnRampa(newScan.pid);
+        }
+
+        function saveHistory() {
+            localStorage.setItem('ollinqui_scans', JSON.stringify(scanHistory));
+        }
+
+        function updateUI() {
+            itemsContainer.innerHTML = '';
+            let syncCount = 0;
+            
+            scanHistory.forEach(item => {
+                if (item.sync) syncCount++;
+                const div = document.createElement('div');
+                div.className = 'scan-item';
+                div.innerHTML = `
+                    <span>${item.pid.substring(0, 20)}...</span>
+                    <span class="${item.sync ? 'status-sync' : 'status-pending'}">
+                        ${item.sync ? '✓ Sincronizado' : '⏳ Pendiente'}
+                    </span>
+                `;
+                itemsContainer.appendChild(div);
+            });
+            
+            syncCountEl.innerText = `${syncCount} Sincronizados`;
+        }
+
+        // Función de registro rápido usando el proxy seguro
+        function registrarEscaneoEnRampa(scannedPID) {
+            const payload = { pid: scannedPID, estatus: "A_BORDO" };
+            fetch(URL_PROXY_SEGURO, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            })
+            .then(() => {
+                const item = scanHistory.find(i => i.pid === scannedPID);
+                if (item) {
+                    item.sync = true;
+                    saveHistory();
+                    updateUI();
+                    addLog(`☁️ Sincronizado en Sheets: ${scannedPID}`);
+                }
+            })
+            .catch(err => {
+                addLog(`❌ Error de red (Guardado offline): ${err.message}`);
+            });
+        }
+
+
+        // 🔄 Loop del Buffer Offline: Reintenta sincronizar cada 15 segundos si recupera señal
+        setInterval(() => {
+            const pendientes = scanHistory.filter(item => !item.sync);
+            if (pendientes.length > 0 && navigator.onLine) {
+                addLog(`⚡ Intentando sincronizar ${pendientes.length} bultos en buffer offline...`);
+                pendientes.forEach(item => registrarEscaneoEnRampa(item.pid));
+            }
+        }, 15000);
+
+        // Inicializar escáner nativo de html5Qrcode
+        const html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", 
+            { 
+                fps: 20, 
+                qrbox: { width: 260, height: 160 },
+                aspectRatio: 1.0,
+                showTorchButtonIfSupported: true, // Botón para prender linterna en andén oscuro
+                rememberLastUsedCamera: true
+            },
+            /* verbose= */ false
+        );
+        html5QrcodeScanner.render(onScanSuccess);
+    </script>
+</body>
+</html>
