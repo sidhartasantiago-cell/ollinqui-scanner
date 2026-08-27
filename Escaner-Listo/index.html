@@ -221,9 +221,8 @@
             syncCountEl.innerText = `${syncCount} Sincronizados`;
         }
 
-        // Función de registro rápido usando el proxy seguro
+        // Función de registro rápido usando el proxy seguro con CORS y redirección follow
         function registrarEscaneoEnRampa(scannedPID) {
-            // Payload must match column names in AppSheet/Sheets
             const payload = {
                 pid: scannedPID,
                 Escaneo_Validacion: "A_BORDO",
@@ -232,17 +231,23 @@
             };
             fetch(URL_PROXY_SEGURO, {
                 method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "application/json" },
+                mode: "cors",
+                redirect: "follow",
+                headers: { "Content-Type": "text/plain" },
                 body: JSON.stringify(payload)
             })
-            .then(() => {
-                const item = scanHistory.find(i => i.pid === scannedPID);
-                if (item) {
-                    item.sync = true;
-                    saveHistory();
-                    updateUI();
-                    addLog(`☁️ Sincronizado en Sheets: ${scannedPID}`);
+            .then(response => response.json())
+            .then(resultado => {
+                if (resultado.status === "success") {
+                    const item = scanHistory.find(i => i.pid === scannedPID);
+                    if (item) {
+                        item.sync = true;
+                        saveHistory();
+                        updateUI();
+                        addLog(`☁️ Sincronizado en Sheets: ${scannedPID}`);
+                    }
+                } else {
+                    addLog(`⚠️ El bulto no se encuentra en PIEZAS_PID.`);
                 }
             })
             .catch(err => {
