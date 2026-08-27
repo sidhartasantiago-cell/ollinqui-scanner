@@ -111,6 +111,9 @@
             <span>Últimos Escaneos (Metralleta)</span>
             <span id="sync-count">0 Sincronizados</span>
         </div>
+        <button onclick="limpiarBufferManual()" style="background-color: #7f1d1d; color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.2); padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: bold;">
+          🧹 Limpiar Buffer
+        </button>
         <div id="items-container">
             <!-- Los items escaneados se inyectarán aquí -->
         </div>
@@ -254,6 +257,14 @@
                 addLog(`❌ Error de red (Guardado offline): ${err.message}`);
             });
         }
+function limpiarBufferManual() {
+  if (confirm("⚠️ ¿Estás seguro de que deseas vaciar el buffer del celular? Los bultos que sigan en amarillo se borrarán de la pantalla y no se guardarán. Hazlo solo si ya confirmaste que están en Sheets o si son pruebas del andén.")) {
+    localStorage.removeItem('ollinqui_scans');
+    scanHistory = [];
+    updateUI();
+    addLog("🧹 Buffer limpiado manualmente por el operador.");
+  }
+}
 
 
 
