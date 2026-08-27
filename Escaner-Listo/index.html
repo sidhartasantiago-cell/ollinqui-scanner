@@ -223,7 +223,13 @@
 
         // Función de registro rápido usando el proxy seguro
         function registrarEscaneoEnRampa(scannedPID) {
-            const payload = { pid: scannedPID, estatus: "A_BORDO" };
+            // Payload must match column names in AppSheet/Sheets
+            const payload = {
+                pid: scannedPID,
+                Escaneo_Validacion: "A_BORDO",
+                Estatus_PID: "OK",
+                chofer: choferEmail
+            };
             fetch(URL_PROXY_SEGURO, {
                 method: "POST",
                 mode: "no-cors",
@@ -243,6 +249,8 @@
                 addLog(`❌ Error de red (Guardado offline): ${err.message}`);
             });
         }
+
+
 
 
         // 🔄 Loop del Buffer Offline: Reintenta sincronizar cada 15 segundos si recupera señal
