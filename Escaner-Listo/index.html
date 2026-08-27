@@ -226,6 +226,29 @@
 
         // Función de registro rápido usando el proxy seguro con CORS y redirección follow
         function registrarEscaneoEnRampa(scannedPID) {
+  const payload = {
+    pid: scannedPID,
+    estatus: "A_BORDO",
+    chofer: choferEmail
+  };
+  fetch(URL_PROXY_SEGURO, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify(payload)
+  })
+  .then(() => {
+    const item = scanHistory.find(i => i.pid === scannedPID);
+    if (item) {
+      item.sync = true;
+      saveHistory();
+      updateUI();
+      addLog(`☁️ Sincronizado en Sheets: ${scannedPID}`);
+    }
+  })
+  .catch(err => {
+    addLog(`❌ Error de red (Guardado offline): ${err.message}`);
+  });
             const payload = {
                 pid: scannedPID,
                 Escaneo_Validacion: "A_BORDO",
