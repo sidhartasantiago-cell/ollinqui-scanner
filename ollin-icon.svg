@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" style="display:block;width:100%;height:100%;">
+  <defs>
+    <!-- Background Gradients -->
+    <radialGradient id="bgRadial" cx="50%" cy="42%" r="65%">
+      <stop offset="0%" stop-color="#0e3d28" />
+      <stop offset="45%" stop-color="#062116" />
+      <stop offset="85%" stop-color="#020d09" />
+      <stop offset="100%" stop-color="#010503" />
+    </radialGradient>
+
+    <!-- Metallic Gold Gradients -->
+    <linearGradient id="goldPrimary" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF5C2" />
+      <stop offset="20%" stop-color="#FCD34D" />
+      <stop offset="45%" stop-color="#D4AF37" />
+      <stop offset="70%" stop-color="#AA820A" />
+      <stop offset="90%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#FDE68A" />
+    </linearGradient>
+
+    <linearGradient id="goldWing1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFBEB" />
+      <stop offset="30%" stop-color="#FBBF24" />
+      <stop offset="70%" stop-color="#B45309" />
+      <stop offset="100%" stop-color="#78350F" />
+    </linearGradient>
+
+    <linearGradient id="goldWing2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FEF3C7" />
+      <stop offset="30%" stop-color="#F59E0B" />
+      <stop offset="70%" stop-color="#92400E" />
+      <stop offset="100%" stop-color="#451A03" />
+    </linearGradient>
+
+    <linearGradient id="goldBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE68A" stop-opacity="0.8" />
+      <stop offset="50%" stop-color="#D4AF37" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#B45309" stop-opacity="0.7" />
+    </linearGradient>
+
+    <!-- Emerald Core -->
+    <radialGradient id="jadeCore" cx="38%" cy="32%" r="65%">
+      <stop offset="0%" stop-color="#A7F3D0" />
+      <stop offset="25%" stop-color="#34D399" />
+      <stop offset="60%" stop-color="#059669" />
+      <stop offset="85%" stop-color="#064E3B" />
+      <stop offset="100%" stop-color="#022c22" />
+    </radialGradient>
+
+    <!-- Drop Shadows -->
+    <filter id="shadowHeavy" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#000000" flood-opacity="0.85" />
+    </filter>
+
+    <filter id="glowCore" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="#10B981" flood-opacity="0.7" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background Base Canvas (Safe for iOS Squircle & Android Circle Masks) -->
+  <rect width="512" height="512" fill="url(#bgRadial)" />
+
+  <!-- Subtle Concentric Solar Geometry (Nahuatl Cosmology) -->
+  <circle cx="256" cy="210" r="148" fill="none" stroke="#D4AF37" stroke-width="1.2" opacity="0.18" />
+  <circle cx="256" cy="210" r="132" fill="none" stroke="#10B981" stroke-width="1" opacity="0.2" stroke-dasharray="4 8" />
+  <circle cx="256" cy="210" r="110" fill="none" stroke="#D4AF37" stroke-width="1.5" opacity="0.25" stroke-dasharray="12 6" />
+
+  <!-- Outer Protective Tech Frame (Border) -->
+  <rect x="28" y="28" width="456" height="456" rx="92" fill="none" stroke="url(#goldBorder)" stroke-width="2.5" />
+  <rect x="38" y="38" width="436" height="436" rx="82" fill="none" stroke="#10B981" stroke-width="1" opacity="0.2" />
+
+  <!-- Luxury Corner Nodes -->
+  <g opacity="0.75" stroke="url(#goldPrimary)" stroke-width="3" fill="none" stroke-linecap="round">
+    <path d="M 68 52 L 52 52 L 52 68" />
+    <path d="M 444 52 L 460 52 L 460 68" />
+    <path d="M 52 444 L 52 460 L 68 460" />
+    <path d="M 460 444 L 460 460 L 444 460" />
+  </g>
+
+  <!-- ================= CENTRAL EMBLEM: NAHUI OLLIN GLYPH (MOVEMENT & LOGISTICS) ================= -->
+  <g filter="url(#shadowHeavy)" transform="translate(0, -10)">
+    
+    <!-- Wing Pair 1: Top-Left to Bottom-Right Interlaced Band -->
+    <path d="M 145 125 
+             C 185 105, 235 155, 256 195 
+             C 277 235, 327 285, 367 265
+             C 395 250, 405 205, 375 185
+             C 335 160, 290 190, 256 195
+             C 222 200, 175 150, 145 125 Z" 
+          fill="url(#goldWing1)" />
+
+    <!-- Wing Pair 2: Top-Right to Bottom-Left Interlaced Band -->
+    <path d="M 367 125 
+             C 327 105, 277 155, 256 195 
+             C 235 235, 185 285, 145 265
+             C 117 250, 107 205, 137 185
+             C 177 160, 222 190, 256 195
+             C 290 200, 337 150, 367 125 Z" 
+          fill="url(#goldWing2)" opacity="0.95" />
+
+    <!-- Geometric Stepped Feathers (Cosmic Eagle / Painani Speed) -->
+    <!-- Top Left Ray -->
+    <polygon points="120,135 155,108 175,135 142,158" fill="url(#goldPrimary)" />
+    <!-- Bottom Left Ray -->
+    <polygon points="120,255 155,282 175,255 142,232" fill="url(#goldWing1)" />
+    <!-- Top Right Ray -->
+    <polygon points="392,135 357,108 337,135 370,158" fill="url(#goldPrimary)" />
+    <!-- Bottom Right Ray -->
+    <polygon points="392,255 357,282 337,255 370,232" fill="url(#goldWing2)" />
+
+    <!-- Central Diamond Star of Direction (The 4 Directions of Anahuac) -->
+    <polygon points="256,132 278,190 334,210 278,230 256,288 234,230 178,210 234,190" 
+             fill="url(#goldPrimary)" stroke="#FFF8D6" stroke-width="2" />
+
+    <!-- Core Jade Disk (Chalchihuitl / Sacred Jade Stone / Querétaro Nexus) -->
+    <circle cx="256" cy="210" r="28" fill="url(#jadeCore)" stroke="#6EE7B7" stroke-width="3" filter="url(#glowCore)" />
+    <circle cx="256" cy="210" r="23" fill="none" stroke="#D1FAE5" stroke-width="1.2" opacity="0.6" />
+    <!-- Specular Highlight -->
+    <circle cx="248" cy="202" r="6.5" fill="#FFFFFF" opacity="0.85" />
+  </g>
+
+  <!-- ================= TYPOGRAPHY: OLLIN ================= -->
+  <g filter="url(#shadowHeavy)">
+    <text x="265" y="396" 
+          text-anchor="middle" 
+          fill="url(#goldPrimary)" 
+          font-family="system-ui, -apple-system, 'Plus Jakarta Sans', 'Montserrat', 'Segoe UI', sans-serif" 
+          font-size="68" 
+          font-weight="900" 
+          letter-spacing="16">OLLIN</text>
+  </g>
+
+  <!-- Executive Badge: QRO -->
+  <g transform="translate(256, 436)" filter="url(#shadowHeavy)">
+    <rect x="-64" y="-16" width="128" height="28" rx="14" fill="#042317" stroke="#10B981" stroke-width="1.5" />
+    <text x="0" y="3.5" 
+          text-anchor="middle" 
+          fill="#6EE7B7" 
+          font-family="system-ui, -apple-system, 'JetBrains Mono', 'Segoe UI', monospace" 
+          font-size="13" 
+          font-weight="800" 
+          letter-spacing="5">QRO</text>
+  </g>
+</svg>
