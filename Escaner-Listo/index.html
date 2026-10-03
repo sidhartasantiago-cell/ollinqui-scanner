@@ -3,10 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>PAINANI - Blindaje de Rampa QRO | Arauto Express</title>
+  <title>PAINANI v85.0 PROD - Blindaje de Rampa QRO | Arauto Express</title>
+
+  <!-- PWA & Mobile Web App Manifest -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" href="/icon-192.png">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <meta name="theme-color" content="#f2a900">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Painani">
+
   <style>
     /* =========================================================================
-       🎨 DISEÑO AMOLED DARK PURO - METRALLETA DE BLINDAJE DE RAMPA
+       🎨 DISEÑO AMOLED DARK PURO - METRALLETA DE BLINDAJE DE RAMPA v84.0 PROD
        ========================================================================= */
     :root {
       --bg-color: #000000;
@@ -20,6 +30,8 @@
       --danger-bg: #330007;
       --warning: #ff9800;       /* Ámbar de duplicado/advertencia */
       --cyan: #00e5ff;          /* Cian para PIDs */
+      --inter: #38bdf8;         /* Azul celeste para Piloto Internacional */
+      --inter-bg: #032030;
       --text-main: #ffffff;
       --text-muted: #888888;
     }
@@ -47,6 +59,7 @@
     body.flash-success { background-color: #00290e; }
     body.flash-error { background-color: #3b0000; }
     body.flash-warning { background-color: #3d2400; }
+    body.flash-inter { background-color: #002033; }
 
     .app-container {
       width: 100%;
@@ -92,6 +105,25 @@
       margin-top: 2px;
     }
 
+    .pwa-install-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      background: #181400;
+      color: var(--primary);
+      border: 1px solid #4d3800;
+      border-radius: 20px;
+      padding: 4px 10px;
+      margin-top: 6px;
+      cursor: pointer;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: background 0.2s;
+    }
+    .pwa-install-badge:hover { background: #2b2000; }
+
     .offline-alert {
       display: none;
       background: var(--danger-bg);
@@ -126,6 +158,46 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+    }
+
+    /* SELECTOR DE MODO OPERATIVO */
+    .mode-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .mode-btn {
+      background: #111;
+      color: #888;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 10px 8px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    .mode-btn.active-std {
+      background: #1f1700;
+      color: var(--primary);
+      border-color: var(--primary);
+      box-shadow: 0 0 10px rgba(242, 169, 0, 0.25);
+    }
+
+    .mode-btn.active-inter {
+      background: #002238;
+      color: var(--inter);
+      border-color: var(--inter);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
     }
 
     .form-group {
@@ -174,7 +246,6 @@
       gap: 8px;
       transition: background 0.15s, transform 0.05s;
     }
-
     .btn-primary:hover { background: var(--primary-hover); }
     .btn-primary:active { transform: scale(0.98); }
 
@@ -191,16 +262,55 @@
       padding: 16px;
       text-align: center;
       box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+      position: relative;
     }
 
     .odometer-meta {
       display: flex;
       justify-content: space-between;
+      align-items: center;
       font-size: 10px;
       color: var(--text-muted);
       text-transform: uppercase;
       font-weight: 700;
       margin-bottom: 6px;
+      gap: 6px;
+    }
+
+    .btn-quick-edit {
+      background: #1f1700;
+      border: 1px solid #574000;
+      color: var(--primary);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+    .btn-quick-edit:hover { background: #3b2c00; }
+
+    .mode-badge-active {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 9px;
+      font-weight: 900;
+      padding: 3px 7px;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+    }
+    .mode-badge-active.std {
+      background: #1f1700;
+      color: var(--primary);
+      border: 1px solid #574000;
+    }
+    .mode-badge-active.inter {
+      background: #002238;
+      color: var(--inter);
+      border: 1px solid #0284c7;
     }
 
     .odometer-main {
@@ -241,13 +351,11 @@
       color: #ff6677;
       border: 1px solid var(--danger);
     }
-
     .diff-badge.completo {
       background: var(--success-bg);
       color: var(--success);
       border: 1px solid var(--success);
     }
-
     .diff-badge.excedente {
       background: #002244;
       color: var(--cyan);
@@ -270,10 +378,43 @@
       transition: width 0.2s ease;
     }
 
-    .edd-switch-bar {
+    /* BARRA SECUNDARIA: AWB ASOCIADA (FILTRO ANTI-AWB) */
+    .awb-associated-bar {
+      background: #121008;
+      border: 1px solid #4a3b0a;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .awb-label {
+      color: #e5b338;
+      font-weight: 800;
+      font-size: 10px;
+      letter-spacing: 0.5px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 4px;
+    }
+
+    .awb-value {
+      font-family: monospace;
+      font-weight: 900;
+      color: #ffda6a;
+      background: #2b2000;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* QUICK EDD CHIPS BAR */
+    .edd-switch-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
       background: #111;
       padding: 8px 12px;
       border-radius: 8px;
@@ -281,21 +422,150 @@
       font-size: 11px;
     }
 
-    .edd-switch-bar span {
+    .edd-switch-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .edd-switch-top span {
       color: var(--text-muted);
       font-weight: 700;
       text-transform: uppercase;
+      font-size: 10px;
     }
 
-    .edd-switch-bar input[type="date"] {
+    .edd-switch-top input[type="date"] {
       background: #000;
       border: 1px solid #333;
       color: var(--primary);
-      padding: 4px 8px;
+      padding: 3px 6px;
       border-radius: 6px;
       font-weight: bold;
-      font-size: 12px;
+      font-size: 11px;
       outline: none;
+    }
+
+    .edd-chips-row {
+      display: flex;
+      gap: 5px;
+      overflow-x: auto;
+      padding-top: 2px;
+    }
+
+    .edd-chip {
+      background: #1a1a1a;
+      border: 1px solid #2e2e2e;
+      color: #aaa;
+      border-radius: 12px;
+      padding: 3px 8px;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .edd-chip:hover { border-color: #555; color: #fff; }
+    .edd-chip.active {
+      background: var(--primary);
+      color: #000;
+      border-color: var(--primary);
+      font-weight: 900;
+    }
+    .edd-chip.active-inter {
+      background: var(--inter);
+      color: #000;
+      border-color: var(--inter);
+      font-weight: 900;
+    }
+
+    /* BANNER DE ZONA RESUELTA (PILOTO INTERNACIONAL) */
+    .zona-pill-banner {
+      background: linear-gradient(90deg, #021a28 0%, #032b3f 100%);
+      border: 1px solid #0284c7;
+      border-radius: 10px;
+      padding: 10px 14px;
+      display: none;
+      flex-direction: column;
+      gap: 3px;
+      text-align: left;
+    }
+
+    .zona-pill-title {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--inter);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .zona-pill-main {
+      font-size: 14px;
+      font-weight: 900;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .zona-pill-route {
+      font-size: 11px;
+      color: #7dd3fc;
+      font-family: monospace;
+      font-weight: bold;
+      background: #082f49;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .zona-pill-sub {
+      font-size: 10px;
+      color: #94a3b8;
+    }
+
+    /* DASHBOARD EDD EN PILOTO INTERNACIONAL */
+    .edd-breakdown-card {
+      background: #0a0a0a;
+      border: 1px solid #1c2630;
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 11px;
+    }
+
+    .edd-breakdown-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--inter);
+      font-weight: 800;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+    }
+
+    .edd-groups-container {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .edd-group-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 8px;
+      background: #111a24;
+      border-radius: 6px;
+      border-left: 3px solid var(--inter);
+      font-size: 11px;
     }
 
     .scanner-box {
@@ -310,6 +580,10 @@
     .scanner-box.focused {
       border-color: var(--primary);
       box-shadow: 0 0 12px rgba(242, 169, 0, 0.15);
+    }
+    .scanner-box.focused.inter-mode {
+      border-color: var(--inter);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
     }
 
     .scanner-input {
@@ -330,7 +604,7 @@
       font-size: 11px;
       color: var(--text-muted);
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 0.5px;
       margin-top: 4px;
       font-weight: 700;
     }
@@ -401,19 +675,65 @@
       text-transform: uppercase;
     }
 
-    .history-badge.awb { background: #003311; color: var(--success); }
+    .history-badge.awb { background: #3b2800; color: #ffda6a; }
     .history-badge.pid { background: #001a33; color: var(--cyan); }
+    .history-badge.inter { background: #022c44; color: var(--inter); }
+    .history-badge.incidencia { background: #4a1500; color: #ff9800; border: 1px solid #ff5722; font-weight: 900; }
+
+    .btn-foto-ilegible {
+      background: linear-gradient(135deg, #2b1300 0%, #4a2100 100%);
+      color: #ff9800;
+      border: 1px solid #ff9800;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      letter-spacing: 0.5px;
+      box-shadow: 0 0 10px rgba(255, 152, 0, 0.2);
+      transition: all 0.2s ease;
+      margin-top: 4px;
+    }
+    .btn-foto-ilegible:hover {
+      background: #5c2b00;
+      box-shadow: 0 0 15px rgba(255, 152, 0, 0.4);
+    }
+    .btn-foto-ilegible:active {
+      transform: scale(0.98);
+    }
 
     .action-row {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
+      grid-template-columns: 1fr 1fr 1.2fr;
+      gap: 8px;
     }
 
     .btn-acta {
       background: #1e3f20;
       color: #99ffaa;
       border: 1px solid #2e5f30;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-action-edit {
+      background: #241c00;
+      color: #ffd043;
+      border: 1px solid #574000;
       border-radius: 8px;
       padding: 12px;
       font-size: 11px;
@@ -442,11 +762,12 @@
       gap: 6px;
     }
 
+    /* MODAL DEL ACTA NOTARIAL FÍSICA */
     .modal-overlay {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.85);
+      background: rgba(0,0,0,0.88);
       z-index: 100;
       align-items: center;
       justify-content: center;
@@ -458,37 +779,59 @@
       border: 2px solid var(--primary);
       border-radius: 14px;
       width: 100%;
-      max-width: 480px;
+      max-width: 500px;
       padding: 20px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
       box-shadow: 0 10px 40px rgba(0,0,0,0.9);
       max-height: 90vh;
       overflow-y: auto;
     }
 
     .modal-title {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 900;
       color: var(--primary);
       text-transform: uppercase;
       text-align: center;
       border-bottom: 1px solid #222;
-      padding-bottom: 10px;
+      padding-bottom: 8px;
     }
 
     .acta-preview {
       background: #000;
       border: 1px solid #222;
       border-radius: 8px;
-      padding: 14px;
+      padding: 12px;
       font-family: monospace;
-      font-size: 11px;
-      line-height: 1.5;
+      font-size: 10.5px;
+      line-height: 1.45;
       color: #ccc;
       white-space: pre-wrap;
       user-select: all;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+
+    .manifest-box {
+      background: #090909;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .manifest-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10px;
+      color: #aaa;
+      font-weight: 800;
+      text-transform: uppercase;
     }
 
     .btn-whatsapp {
@@ -523,16 +866,125 @@
       gap: 6px;
     }
 
+    .btn-cierre-rampa {
+      background: #d90429;
+      color: #ffffff;
+      border: 1px solid #ff4d6d;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 15px rgba(217, 4, 41, 0.4);
+      transition: background 0.2s;
+    }
+    .btn-cierre-rampa:hover { background: #b00020; }
+
     .btn-close-modal {
       background: none;
       border: 1px solid #333;
-      color: #888;
+      color: #bbb;
       border-radius: 8px;
-      padding: 8px;
+      padding: 10px;
       font-size: 11px;
       cursor: pointer;
       text-transform: uppercase;
+      font-weight: 700;
     }
+    .btn-close-modal:hover { background: #1a1a1a; }
+  
+    /* =========================================================================
+       🌐 ESTILOS FASE SECUNDARIA: INTERNACIONALES EDD (PAINANI v85.0 PROD)
+       ========================================================================= */
+    .phase-selector-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      background: #0a0a0a;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 4px;
+    }
+
+    .phase-tab {
+      background: transparent;
+      color: #777;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 10px 6px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    .phase-tab.active {
+      background: #181400;
+      color: var(--primary);
+      border-color: var(--primary);
+      box-shadow: 0 0 10px rgba(242, 169, 0, 0.25);
+    }
+
+    .phase-tab.active-inter {
+      background: #002238;
+      color: var(--inter);
+      border-color: var(--inter);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+    }
+
+    .btn-cierre-y-pasar-inter {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff;
+      border: 1px solid #38bdf8;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 15px rgba(2, 132, 199, 0.4);
+      transition: background 0.2s, transform 0.05s;
+    }
+    .btn-cierre-y-pasar-inter:hover { background: #0369a1; }
+    .btn-cierre-y-pasar-inter:active { transform: scale(0.98); }
+
+    .btn-inter-primary {
+      background: var(--inter);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 13px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s, transform 0.05s;
+    }
+    .btn-inter-primary:hover { background: #7dd3fc; }
+    .btn-inter-primary:active { transform: scale(0.98); }
+
   </style>
 </head>
 <body>
@@ -543,9 +995,12 @@
     <header>
       <div class="brand-title">
         <span>⚡ PAINANI</span>
-        <span class="brand-badge">BLINDAJE RAMPA</span>
+        <span class="brand-badge">v85.0 PROD</span>
       </div>
-      <p class="brand-subtitle">Acta Notarial Física de Recepción — Plaza Querétaro</p>
+      <p class="brand-subtitle">Blindaje de Rampa QRO — Anti-AWB & Ingesta Internacional por EDD</p>
+      <button class="pwa-install-badge" id="btnInstalarApp" onclick="instalarPainaniApp()">
+        📲 Guardar App en Pantalla
+      </button>
     </header>
 
     <!-- ALERTA OFFLINE -->
@@ -553,11 +1008,34 @@
       ⚠️ Sin red en andén: Los escaneos se guardan en el dispositivo y se sincronizarán al reconectar.
     </div>
 
+    <!-- SELECTOR DE FASES OPERATIVAS (PAINANI v85.0 PROD) -->
+    <div class="phase-selector-bar" id="phaseSelectorBar">
+      <button type="button" id="tabFaseCamion" class="phase-tab active" onclick="cambiarFaseOperativa('CAMION')">
+        🚚 1. Recepción Camión (Acta)
+      </button>
+      <button type="button" id="tabFaseInter" class="phase-tab" onclick="cambiarFaseOperativa('INTERNACIONAL')">
+        🌐 2. Internacionales (EDD Físico)
+      </button>
+    </div>
+
     <!-- FASE 1: APERTURA DE RECEPCIÓN (DATOS DEL CAMIÓN DHL) -->
     <div id="cardApertura" class="card">
       <div class="card-title">
         <span>📋 Apertura de Descarga DHL</span>
         <span style="font-size:10px; color:var(--text-muted);">Antes del Batch</span>
+      </div>
+
+      <!-- SELECTOR DE MODO: ESTÁNDAR VS INTERNACIONAL -->
+      <div class="form-group">
+        <label>Modo Operativo de Rampa:</label>
+        <div class="mode-selector">
+          <button type="button" id="btnModoEstandar" class="mode-btn active-std" onclick="seleccionarModoApertura('ESTANDAR')">
+            📦 Modo Estándar (Nac.)
+          </button>
+          <button type="button" id="btnModoInter" class="mode-btn" onclick="seleccionarModoApertura('INTERNACIONAL')">
+            🌐 Piloto Inter. por EDD
+          </button>
+        </div>
       </div>
 
       <div class="form-group">
@@ -591,7 +1069,10 @@
       <div class="odometer-card">
         <div class="odometer-meta">
           <span id="labelAsistente">DHL: --</span>
-          <span id="labelIdLote">ID: --</span>
+          <button class="mode-badge-active std" id="badgeModoActivo" onclick="alternarModoOperativo()">
+            📦 ESTÁNDAR
+          </button>
+          <button class="btn-quick-edit" onclick="abrirModalEdicion()">✏️ Editar</button>
         </div>
 
         <div class="odometer-main">
@@ -606,11 +1087,53 @@
         <div class="progress-bar-container">
           <div class="progress-bar-fill" id="progressBar"></div>
         </div>
+
+        <!-- BARRA SECUNDARIA: AWB ASOCIADA (FILTRO ANTI-AWB) -->
+        <div class="awb-associated-bar" id="awbAssociatedBar">
+          <span class="awb-label">
+            <span>📑 AWB ASOCIADA:</span>
+          </span>
+          <span class="awb-value" id="labelAwbAsociada">SIN AWB</span>
+        </div>
       </div>
 
+      <!-- SELECTOR DINÁMICO DE EDD Y CHIPS RÁPIDOS -->
       <div class="edd-switch-bar">
-        <span>📅 EDD Físico Activo:</span>
-        <input type="date" id="activeEddInput" onchange="actualizarEddActivo()">
+        <div class="edd-switch-top">
+          <span>📅 EDD Físico Activo:</span>
+          <input type="date" id="activeEddInput" onchange="actualizarEddActivo()">
+        </div>
+        <div class="edd-chips-row">
+          <button type="button" class="edd-chip active" id="chipHoy" onclick="setQuickEdd(0)">Hoy</button>
+          <button type="button" class="edd-chip" id="chipManana" onclick="setQuickEdd(1)">Mañana</button>
+          <button type="button" class="edd-chip" id="chipMas2" onclick="setQuickEdd(2)">+2 Días</button>
+          <button type="button" class="edd-chip" id="chipMas3" onclick="setQuickEdd(3)">+3 Días</button>
+        </div>
+      </div>
+
+      <!-- BANNER DE RESOLUCIÓN AUTOMÁTICA DE C.P. Y ZONA LOGÍSTICA (PILOTO INTERNACIONAL) -->
+      <div class="zona-pill-banner" id="zonaPillBanner">
+        <div class="zona-pill-title">
+          <span>🌐 ZONA LOGÍSTICA RESUELTA EN PANTALLA</span>
+        </div>
+        <div class="zona-pill-main">
+          <span id="zonaPillNombre">ZONA 3 - NORTE / JURIQUILLA</span>
+          <span class="zona-pill-route" id="zonaPillRuta">RUTA 03</span>
+        </div>
+        <div class="zona-pill-sub" id="zonaPillDetalle">
+          C.P. 76148 | Juriquilla — No requiere separación física en andén
+        </div>
+      </div>
+
+      <!-- DASHBOARD DE AGRUPACIÓN POR EDD (PILOTO INTERNACIONAL) -->
+      <div class="edd-breakdown-card" id="eddBreakdownCard">
+        <div class="edd-breakdown-header">
+          <span>📦 Ingesta por Fecha Prometida (EDD)</span>
+          <span id="eddTotalGrupos">0 grupos</span>
+        </div>
+        <div class="edd-groups-container" id="eddGroupsContainer">
+          <div style="color:#666; font-size:10px; text-align:center;">Sin bultos agrupados aún.</div>
+        </div>
       </div>
 
       <div class="scanner-box" id="scannerWrapper">
@@ -618,9 +1141,15 @@
         <div class="scanner-status" id="scannerStatus">🟢 Listo para ráfaga (Pistola Zebra / Honeywell)</div>
       </div>
 
+      <!-- 📸 MÓDULO FOTO ETIQUETA ILEGIBLE (PAINANI v84.0 PROD) -->
+      <button type="button" class="btn-foto-ilegible" id="btnFotoIlegible" onclick="dispararCapturaFotoIlegible()">
+        📸 Foto Etiqueta Ilegible (+1 PZA Notarial)
+      </button>
+      <input type="file" id="inputFotoIlegible" accept="image/*" capture="environment" style="display:none;" onchange="manejarCapturaFotoIlegible(event)">
+
       <div class="last-scan-banner" id="lastScanBanner" style="display:none;">
         <div>
-          <div class="last-scan-tag">Último bulto bipiado:</div>
+          <div class="last-scan-tag" id="lastScanHeaderTag">Último bulto bipiado:</div>
           <div class="last-scan-code" id="lastScanCode">--</div>
         </div>
         <div style="text-align:right;">
@@ -643,10 +1172,157 @@
 
       <div class="action-row">
         <button class="btn-cancel" onclick="deshacerUltimoEscaneo()">
-          ↩️ Deshacer Último
+          ↩️ Deshacer
+        </button>
+        <button class="btn-action-edit" onclick="abrirModalEdicion()">
+          ✏️ Editar
         </button>
         <button class="btn-acta" onclick="abrirModalActa()">
           📄 Generar Acta
+        </button>
+      </div>
+
+    </div>
+
+    <!-- ============================================================= -->
+    <!-- FASE OPERATIVA 2: ESCANEO SECUNDARIO DE INTERNACIONALES (EDD) -->
+    <!-- ============================================================= -->
+
+    <!-- APERTURA DE LOTE INTERNACIONAL -->
+    <div id="cardAperturaInter" class="card" style="display:none; border-color: #0369a1;">
+      <div class="card-title" style="color:var(--inter);">
+        <span>🌐 Apertura de Lote Internacional (EDD)</span>
+        <span style="font-size:10px; color:#7dd3fc;">Proceso Secundario</span>
+      </div>
+
+      <div class="form-group">
+        <label for="interIdOrigenInput">Acta de Camión DHL Vinculada (Origen):</label>
+        <input type="text" id="interIdOrigenInput" placeholder="Ej. REC-QRO-20260928-1234 o 'GENERAL'" autocomplete="off">
+      </div>
+
+      <div class="form-group">
+        <label for="interEddInicialInput">EDD Físico Predominante en Etiqueta:</label>
+        <input type="date" id="interEddInicialInput">
+      </div>
+
+      <div class="form-group">
+        <label for="interAuditorInput">Tlachixqui Auditor Arauto:</label>
+        <input type="text" id="interAuditorInput" value="Irvin Reyes">
+      </div>
+
+      <button class="btn-inter-primary" onclick="iniciarLoteInternacional()">
+        🌐 Iniciar Escaneo Secundario Internacional
+      </button>
+    </div>
+
+    <!-- PANEL DE ESCANEO ACTIVO INTERNACIONAL -->
+    <div id="interPanel" class="metralleta-wrapper" style="display:none;">
+      
+      <!-- ODÓMETRO INTERNACIONAL -->
+      <div class="odometer-card" style="border-color:#0369a1; background:#021526;">
+        <div class="odometer-meta">
+          <span id="labelInterOrigen" style="color:#7dd3fc; font-weight:bold;">ACTA: --</span>
+          <span class="mode-badge-active inter">🌐 INTERNACIONAL EDD</span>
+        </div>
+
+        <div class="odometer-main">
+          <span class="odometer-count" id="odometerInterCount" style="color:var(--inter);">0</span>
+          <span class="odometer-target" style="color:#94a3b8;">BULTOS CLASIFICADOS</span>
+        </div>
+
+        <div>
+          <span class="diff-badge completo" id="diffBadgeInter" style="background:#082f49; color:#38bdf8; border-color:#0284c7;">
+            ⚡ Escaneo secundario independiente
+          </span>
+        </div>
+      </div>
+
+      <!-- SELECTOR DINÁMICO DE EDD Y CHIPS RÁPIDOS PARA INTERNACIONAL -->
+      <div class="edd-switch-bar" style="border-color:#0369a1;">
+        <div class="edd-switch-top">
+          <span style="color:var(--inter); font-weight:bold;">📅 EDD Físico Asignado:</span>
+          <input type="date" id="activeEddInterInput" onchange="actualizarEddInterActivo()">
+        </div>
+        <div class="edd-chips-row">
+          <button type="button" class="edd-chip active-inter" id="chipInterHoy" onclick="setQuickEddInter(0)">Hoy</button>
+          <button type="button" class="edd-chip" id="chipInterManana" onclick="setQuickEddInter(1)">Mañana</button>
+          <button type="button" class="edd-chip" id="chipInterMas2" onclick="setQuickEddInter(2)">+2 Días</button>
+          <button type="button" class="edd-chip" id="chipInterMas3" onclick="setQuickEddInter(3)">+3 Días</button>
+        </div>
+      </div>
+
+      <!-- BANNER DE RESOLUCIÓN AUTOMÁTICA DE C.P. Y ZONA LOGÍSTICA INTERNACIONAL -->
+      <div class="zona-pill-banner" id="zonaPillBannerInter" style="display:flex;">
+        <div class="zona-pill-title">
+          <span>🌐 ZONA LOGÍSTICA RESUELTA EN PANTALLA</span>
+        </div>
+        <div class="zona-pill-main">
+          <span id="zonaPillNombreInter">ESCANEA UN CP O PID CON CP</span>
+          <span class="zona-pill-route" id="zonaPillRutaInter">RUTA --</span>
+        </div>
+        <div class="zona-pill-sub" id="zonaPillDetalleInter">
+          La PWA agrupa por EDD y asigna la zona sin separación física previa en andén.
+        </div>
+      </div>
+
+      <!-- DASHBOARD DE AGRUPACIÓN POR EDD INTERNACIONAL -->
+      <div class="edd-breakdown-card" id="eddBreakdownCardInter" style="display:flex;">
+        <div class="edd-breakdown-header">
+          <span>📦 Ingesta Internacional por Fecha Prometida (EDD)</span>
+          <span id="eddTotalGruposInter">0 grupos</span>
+        </div>
+        <div class="edd-groups-container" id="eddGroupsContainerInter">
+          <div style="color:#666; font-size:10px; text-align:center;">Sin bultos internacionales agrupados aún.</div>
+        </div>
+      </div>
+
+      <!-- CAJA DE ESCÁNER INTERNACIONAL -->
+      <div class="scanner-box inter-mode" id="scannerWrapperInter">
+        <input type="text" id="scannerInputInter" class="scanner-input" placeholder="Bip Internacional..." autocomplete="off">
+        <div class="scanner-status" id="scannerStatusInter" style="color:var(--inter);">🟢 Listo para ráfaga Internacional (Solo PIDs JJD/JD)</div>
+      </div>
+
+      <!-- 📸 MÓDULO FOTO ETIQUETA ILEGIBLE INTERNACIONAL -->
+      <button type="button" class="btn-foto-ilegible" id="btnFotoIlegibleInter" style="border-color:#0284c7; color:#7dd3fc;" onclick="dispararCapturaFotoIlegibleInter()">
+        📸 Foto Etiqueta Ilegible Internacional (+1 Bulto)
+      </button>
+      <input type="file" id="inputFotoIlegibleInter" accept="image/*" capture="environment" style="display:none;" onchange="manejarCapturaFotoIlegibleInter(event)">
+
+      <!-- BANNER ÚLTIMO ESCANEO INTERNACIONAL -->
+      <div class="last-scan-banner" id="lastScanBannerInter" style="display:none; border-color:#0369a1; background:#001b2e;">
+        <div>
+          <div class="last-scan-tag" id="lastScanHeaderTagInter">Último internacional bipiado:</div>
+          <div class="last-scan-code" id="lastScanCodeInter" style="color:var(--inter);">--</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="last-scan-tag" id="lastScanTimeInter">--</div>
+          <div id="lastScanEddInter" style="color:var(--inter); font-weight:bold; font-size:11px;">--</div>
+        </div>
+      </div>
+
+      <!-- HISTORIAL INTERNACIONAL -->
+      <div class="history-container">
+        <div class="history-header">
+          <span style="color:var(--inter);">Bultos Internacionales de este Lote</span>
+          <span id="syncIndicatorInter" style="color:var(--success);">✓ Sincronizado</span>
+        </div>
+        <div class="history-list" id="historyListInter">
+          <div style="text-align:center; color:#555; font-size:11px; padding:10px;">
+            Aún no has bipiado bultos en este lote internacional.
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTONES DE ACCIÓN INTERNACIONAL -->
+      <div class="action-row">
+        <button class="btn-cancel" onclick="deshacerUltimoEscaneoInter()">
+          ↩️ Deshacer
+        </button>
+        <button class="btn-csv" onclick="descargarRespaldoCSVInter()">
+          💾 CSV Inter.
+        </button>
+        <button class="btn-inter-primary" style="padding:10px;" onclick="abrirModalResumenInter()">
+          📜 Cerrar Lote y Ver Resumen
         </button>
       </div>
 
@@ -657,39 +1333,227 @@
   <!-- MODAL DEL ACTA NOTARIAL FÍSICA DE RECEPCIÓN -->
   <div class="modal-overlay" id="modalActa">
     <div class="modal-content">
-      <div class="modal-title">📜 Acta de Entrega-Recepción Rampa</div>
+      <div class="modal-title">📜 Acta Notarial de Discrepancia y Rampa</div>
       
-      <div class="acta-preview" id="actaTextPreview">Generando acta...</div>
+      <!-- HERRAMIENTA DE CRUCE CON MANIFIESTO DHL -->
+      <div class="manifest-box">
+        <div class="manifest-header">
+          <span>🔍 Cruzar con Manifiesto DHL (Opcional):</span>
+          <button class="btn-quick-edit" onclick="toggleManifiestoInput()">📋 Pegar PIDs</button>
+        </div>
+        <div id="manifiestoInputWrapper" style="display:none; margin-top:4px;">
+          <textarea id="manifiestoDhlInput" rows="3" placeholder="Pega aquí los PIDs del manifiesto DHL para identificar PIDs faltantes exactos..." style="width:100%; background:#000; color:#fff; border:1px solid #333; border-radius:6px; font-family:monospace; font-size:10px; padding:6px; outline:none; resize:vertical;"></textarea>
+          <button class="btn-primary" onclick="procesarManifiestoDhl()" style="padding:6px; font-size:10px; margin-top:4px;">
+            ⚡ Calcular PIDs Faltantes y Sobrantes
+          </button>
+        </div>
+      </div>
+
+      <div class="acta-preview" id="actaTextPreview">Generando acta notarial...</div>
 
       <button class="btn-whatsapp" onclick="copiarActaParaWhatsApp()">
-        📱 Copiar para WhatsApp de DHL
+        📱 Copiar Acta para WhatsApp DHL / Chat
       </button>
 
-      <button class="btn-csv" onclick="descargarRespaldoCSV()">
-        💾 Descargar Respaldo CSV (Offline)
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <button class="btn-csv" onclick="descargarRespaldoCSV()">
+          💾 Descargar CSV
+        </button>
+        <button class="btn-action-edit" onclick="abrirModalEdicionDesdeActa()">
+          ✏️ Modificar Datos
+        </button>
+      </div>
+
+      <button class="btn-cierre-y-pasar-inter" onclick="cerrarRampaYPasarAInternacionales()">
+        🌐 Cerrar Acta y Pasar a Escaneo Secundario Internacional (EDD)
       </button>
 
-      <button class="btn-primary" onclick="finalizarYCerrarCamion()" style="background:#222; color:#fff; border:1px solid #444;">
-        ✅ Cerrar Camión e Iniciar Nuevo Ciclo
+      <button class="btn-cierre-rampa" onclick="finalizarYCerrarRampa()">
+        🏁 Cierre de Proceso en Rampa e Iniciar Nuevo Ciclo
       </button>
 
       <button class="btn-close-modal" onclick="cerrarModalActa()">
-        Cerrar Ventana
+        ⬅️ Regresar a Seguir Bipiando
       </button>
+    </div>
+  </div>
+
+  <!-- MODAL DE EDICIÓN DE DATOS EN CALIENTE (SIN PERDER ESCANEOS) -->
+  <div class="modal-overlay" id="modalEdicion">
+    <div class="modal-content">
+      <div class="modal-title">✏️ Modificar Datos de Recepción</div>
+      <p style="font-size:11px; color:#aaa; text-align:center;">
+        Corrige datos sin perder escaneos (<span id="editTotalBipiados" style="color:var(--primary); font-weight:bold;">0</span> bultos conservados).
+      </p>
+
+      <div class="form-group">
+        <label>Modo de Operación:</label>
+        <div class="mode-selector">
+          <button type="button" id="btnEditModoStd" class="mode-btn" onclick="seleccionarModoEdicion('ESTANDAR')">
+            📦 Modo Estándar
+          </button>
+          <button type="button" id="btnEditModoInter" class="mode-btn" onclick="seleccionarModoEdicion('INTERNACIONAL')">
+            🌐 Piloto Inter. EDD
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="editAsistenteInput">Asistente / Chofer de DHL:</label>
+        <input type="text" id="editAsistenteInput">
+      </div>
+
+      <div class="form-group">
+        <label for="editDeclaradasInput">Piezas declaradas por DHL:</label>
+        <input type="number" id="editDeclaradasInput" min="1" inputmode="numeric">
+      </div>
+
+      <div class="form-group">
+        <label for="editAuditorInput">Auditor Responsable Arauto:</label>
+        <input type="text" id="editAuditorInput">
+      </div>
+
+      <div class="form-group">
+        <label for="editEddInput">EDD Físico Predominante:</label>
+        <input type="date" id="editEddInput">
+      </div>
+
+      <div class="form-group">
+        <label for="editAwbInput">AWB Asociada Manual (Guía Maestra):</label>
+        <input type="text" id="editAwbInput" placeholder="Ej. 4804831533 (10 dígitos)" maxlength="10">
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px;">
+        <button class="btn-primary" onclick="guardarEdicionRecepcion()">
+          💾 Guardar
+        </button>
+        <button class="btn-cancel" onclick="cerrarModalEdicion()" style="background:#222; color:#bbb; border:1px solid #444;">
+          ❌ Cancelar
+        </button>
+      </div>
     </div>
   </div>
 
   <script>
     // =========================================================================
-    // ⚙️ MOTOR JAVASCRIPT: PAINANI BLINDAJE DE RAMPA v82.0
+    // ⚙️ MOTOR JAVASCRIPT: PAINANI BLINDAJE DE RAMPA v84.0 PROD
     // =========================================================================
 
     // 🛰️ URL Productiva del Webhook Maestro (Receptor_PU.js / Canal Rampa)
     const URL_WEBHOOK_RAMPA = "https://script.google.com/macros/s/AKfycbwCKdmeHHqRwsNAMJTjxaEDiznvYdPggPchlrVhQcd5kbW7LfLn_qub-fCn6w6JmyRw/exec";
 
+    // 🗺️ MATRIZ CP Y ZONIFICACIÓN EMBEBIDA (OFFLINE-FIRST / PLAZA QUERÉTARO Y SIERRA GORDA)
+    const MATRIZ_CP_LOCAL = {
+      // Centro Urbano QRO
+      "76000": { zona: "ZONA 1 - CENTRO HISTÓRICO", ruta: "RUTA 01", col: "Centro Histórico" },
+      "76010": { zona: "ZONA 1 - CENTRO / CARRETAS", ruta: "RUTA 01", col: "Carretas" },
+      "76020": { zona: "ZONA 1 - CENTRO / ALAMEDA", ruta: "RUTA 01", col: "La Alameda" },
+      "76030": { zona: "ZONA 1 - CIMATARIO / SUR", ruta: "RUTA 01", col: "Cimatario" },
+      "76040": { zona: "ZONA 1 - LOMA DORADA", ruta: "RUTA 01", col: "Loma Dorada" },
+      "76050": { zona: "ZONA 1 - CASAS BLANCAS", ruta: "RUTA 01", col: "Casas Blancas" },
+      "76060": { zona: "ZONA 1 - CONSTITUYENTES", ruta: "RUTA 01", col: "Corredor Constituyentes" },
+      "76070": { zona: "ZONA 1 - CENTRO SUR / ESTADIO", ruta: "RUTA 01", col: "Centro Sur" },
+      "76080": { zona: "ZONA 1 - ÁLAMOS 1A Y 2A", ruta: "RUTA 01", col: "Álamos" },
+      "76085": { zona: "ZONA 1 - ARBOLEDAS", ruta: "RUTA 01", col: "Arboledas" },
+      "76086": { zona: "ZONA 1 - BOULEVARES", ruta: "RUTA 01", col: "Boulevares" },
+      "76087": { zona: "ZONA 1 - BALCÓN CAMPESINO", ruta: "RUTA 01", col: "Balcón Campesino" },
+      "76090": { zona: "ZONA 1 - EL VERGEL", ruta: "RUTA 01", col: "El Vergel" },
+      // Poniente
+      "76100": { zona: "ZONA 2 - PONIENTE / SAN PABLO", ruta: "RUTA 02", col: "San Pablo" },
+      "76110": { zona: "ZONA 2 - PONIENTE / SATÉLITE", ruta: "RUTA 02", col: "Satélite" },
+      "76116": { zona: "ZONA 2 - PONIENTE / EL SOL", ruta: "RUTA 02", col: "El Sol" },
+      "76118": { zona: "ZONA 2 - PONIENTE / LOARCA", ruta: "RUTA 02", col: "Eduardo Loarca" },
+      "76120": { zona: "ZONA 2 - PONIENTE / CARRILLO", ruta: "RUTA 02", col: "Felipe Carrillo Puerto" },
+      "76130": { zona: "ZONA 2 - PONIENTE / HUERTAS", ruta: "RUTA 02", col: "Las Huertas" },
+      "76138": { zona: "ZONA 2 - PONIENTE / VIÑEDOS", ruta: "RUTA 02", col: "Viñedos" },
+      "76140": { zona: "ZONA 2 - PONIENTE / TECNOLÓGICO", ruta: "RUTA 02", col: "Tecnológico" },
+      "76150": { zona: "ZONA 2 - TLACOTE / LA CAPILLA", ruta: "RUTA 02", col: "Tlacote el Bajo" },
+      // Norte / Juriquilla
+      "76148": { zona: "ZONA 3 - NORTE / JURIQUILLA", ruta: "RUTA 03", col: "Cumbres del Lago / Juriquilla" },
+      "76220": { zona: "ZONA 3 - NORTE / STA ROSA JÁUREGUI", ruta: "RUTA 03", col: "Santa Rosa Jáuregui" },
+      "76226": { zona: "ZONA 3 - NORTE / SANTA FE", ruta: "RUTA 03", col: "Juriquilla Santa Fe" },
+      "76229": { zona: "ZONA 3 - NORTE / MONTENEGRO", ruta: "RUTA 03", col: "Montenegro" },
+      "76230": { zona: "ZONA 3 - NORTE / JURIQUILLA CENTRO", ruta: "RUTA 03", col: "Juriquilla Centro" },
+      // Oriente / El Marqués
+      "76240": { zona: "ZONA 4 - ORIENTE / EL MARQUÉS", ruta: "RUTA 04", col: "La Cañada" },
+      "76246": { zona: "ZONA 4 - ORIENTE / ZIBATÁ", ruta: "RUTA 04", col: "Zibatá" },
+      "76247": { zona: "ZONA 4 - ORIENTE / ZAKIA", ruta: "RUTA 04", col: "Zakia" },
+      "76248": { zona: "ZONA 4 - ORIENTE / LA PRADERA", ruta: "RUTA 04", col: "La Pradera" },
+      "76249": { zona: "ZONA 4 - ORIENTE / EL REFUGIO", ruta: "RUTA 04", col: "El Refugio" },
+      "76260": { zona: "ZONA 4 - EL MARQUÉS / PARQUES IND.", ruta: "RUTA 04", col: "P.I. Bernardo Quintana" },
+      "76269": { zona: "ZONA 4 - CHICHIMEQUILLAS", ruta: "RUTA 04", col: "Chichimequillas" },
+      // Corregidora
+      "76900": { zona: "ZONA 5 - CORREGIDORA / EL PUEBLITO", ruta: "RUTA 05", col: "El Pueblito" },
+      "76902": { zona: "ZONA 5 - CORREGIDORA / CANDILES", ruta: "RUTA 05", col: "Candiles" },
+      "76903": { zona: "ZONA 5 - CORREGIDORA / BALVANERA", ruta: "RUTA 05", col: "Balvanera Industrial" },
+      "76904": { zona: "ZONA 5 - CORREGIDORA / TEJEDA", ruta: "RUTA 05", col: "Tejeda" },
+      "76908": { zona: "ZONA 5 - CORREGIDORA / PIRÁMIDES", ruta: "RUTA 05", col: "Pirámides" },
+      "76910": { zona: "ZONA 5 - CORREGIDORA / LA NEGRETA", ruta: "RUTA 05", col: "La Negreta" },
+      "76915": { zona: "ZONA 5 - CORREGIDORA / VISTA REAL", ruta: "RUTA 05", col: "Vista Real" },
+      "76922": { zona: "ZONA 5 - CORREGIDORA / STA BÁRBARA", ruta: "RUTA 05", col: "Santa Bárbara" },
+      // San Juan del Río & Tequisquiapan
+      "76800": { zona: "ZONA 6 - SAN JUAN DEL RÍO", ruta: "RUTA 06", col: "SJR Centro" },
+      "76802": { zona: "ZONA 6 - SJR / ORIENTE", ruta: "RUTA 06", col: "SJR Oriente" },
+      "76805": { zona: "ZONA 6 - SJR / INDUSTRIAL", ruta: "RUTA 06", col: "SJR Industrial" },
+      "76750": { zona: "ZONA 6 - TEQUISQUIAPAN", ruta: "RUTA 06", col: "Tequisquiapan Centro" },
+      "76700": { zona: "ZONA 6 - PEDRO ESCOBEDO", ruta: "RUTA 06", col: "Pedro Escobedo" },
+      // Semidesierto
+      "76500": { zona: "ZONA 7 - CADEREYTA", ruta: "RUTA 07", col: "Cadereyta de Montes" },
+      "76650": { zona: "ZONA 7 - EZEQUIEL MONTES", ruta: "RUTA 07", col: "Ezequiel Montes" },
+      "76270": { zona: "ZONA 7 - COLÓN / AEROPUERTO", ruta: "RUTA 07", col: "Colón / AIQ" },
+      // Sierra Gorda Querétaro
+      "76340": { zona: "ZONA 8 - SIERRA GORDA / JALPAN", ruta: "RUTA 08", col: "Jalpan de Serra" },
+      "76300": { zona: "ZONA 8 - SIERRA GORDA / PINAL", ruta: "RUTA 08", col: "Pinal de Amoles" },
+      "76320": { zona: "ZONA 8 - SIERRA GORDA / ARROYO SECO", ruta: "RUTA 08", col: "Arroyo Seco" },
+      "76380": { zona: "ZONA 8 - SIERRA GORDA / LANDA", ruta: "RUTA 08", col: "Landa de Matamoros" },
+      "76280": { zona: "ZONA 8 - SIERRA GORDA / PEÑAMILLER", ruta: "RUTA 08", col: "Peñamiller" },
+      "76290": { zona: "ZONA 8 - SIERRA GORDA / SAN JOAQUÍN", ruta: "RUTA 08", col: "San Joaquín" },
+      // Sierra Gorda Noreste Guanajuato (Daniel Juárez)
+      "37900": { zona: "ZONA 9 - SIERRA GTO / SAN LUIS DE LA PAZ", ruta: "RUTA 09", col: "San Luis de la Paz" },
+      "37920": { zona: "ZONA 9 - SIERRA GTO / VICTORIA", ruta: "RUTA 09", col: "Victoria" },
+      "37930": { zona: "ZONA 9 - SIERRA GTO / XICHÚ", ruta: "RUTA 09", col: "Xichú" },
+      "37940": { zona: "ZONA 9 - SIERRA GTO / ATARJEA", ruta: "RUTA 09", col: "Atarjea" },
+      "37980": { zona: "ZONA 9 - SIERRA GTO / DOCTOR MORA", ruta: "RUTA 09", col: "Doctor Mora" },
+      "37990": { zona: "ZONA 9 - SIERRA GTO / SANTA CATARINA", ruta: "RUTA 09", col: "Santa Catarina" }
+    };
+
     let focusLockInterval = null;
     let syncInterval = null;
     let recepcionActual = null;
+    let deferredPrompt = null;
+    let modoAperturaSeleccionado = "ESTANDAR";
+    let modoEdicionSeleccionado = "ESTANDAR";
+
+    // Registro de PWA Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('✅ Painani PWA SW registrado:', reg.scope))
+          .catch(err => console.log('ℹ️ SW info:', err));
+      });
+    }
+
+    // Captura de instalación PWA
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const btn = document.getElementById('btnInstalarApp');
+      if (btn) btn.style.display = 'inline-flex';
+    });
+
+    function instalarPainaniApp() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choice) => {
+          if (choice.outcome === 'accepted') {
+            console.log('Painani instalada con éxito');
+          }
+          deferredPrompt = null;
+        });
+      } else {
+        alert("📱 Para guardar Painani como App en tu teléfono:\n\n• En iPhone (Safari): Toca el botón 'Compartir' (cuadrado con flecha arriba) y selecciona 'Agregar a Inicio'.\n\n• En Android (Chrome): Toca el menú (tres puntos ⋮) y selecciona 'Instalar aplicación' o 'Agregar a la pantalla principal'.");
+      }
+    }
 
     window.onload = function() {
       const hoy = new Date().toISOString().split('T')[0];
@@ -700,16 +1564,109 @@
       window.addEventListener('offline', checkConexion);
       checkConexion();
 
+      const hoyInter = document.getElementById("interEddInicialInput");
+      if (hoyInter) hoyInter.value = hoy;
+      const activeEddInter = document.getElementById("activeEddInterInput");
+      if (activeEddInter) activeEddInter.value = hoy;
+
+      const guardadaInter = localStorage.getItem("painani_inter_activa");
+      if (guardadaInter) {
+        try {
+          loteInterActual = JSON.parse(guardadaInter);
+        } catch (e) {
+          console.error("Error al restaurar lote internacional:", e);
+        }
+      }
+
       const guardada = localStorage.getItem("painani_recepcion_activa");
       if (guardada) {
-        recepcionActual = JSON.parse(guardada);
-        activarModoMetralleta();
+        try {
+          recepcionActual = JSON.parse(guardada);
+          if (!recepcionActual.modo) recepcionActual.modo = "ESTANDAR";
+          if (!recepcionActual.awb_asociada) recepcionActual.awb_asociada = "";
+          activarModoMetralleta();
+        } catch (e) {
+          console.error("Error al restaurar sesión previa:", e);
+        }
+      } else if (loteInterActual) {
+        cambiarFaseOperativa("INTERNACIONAL");
       }
+
+      // Intervalo de sincronización recurrente para ambas colas
+      setInterval(() => {
+        if (faseOperativaActual === "INTERNACIONAL") {
+          sincronizarColaInterConSheets();
+        } else {
+          sincronizarColaConSheets();
+        }
+      }, 5000);
     };
 
     function checkConexion() {
-      const alert = document.getElementById("offlineAlert");
-      alert.style.display = navigator.onLine ? "none" : "block";
+      const alertEl = document.getElementById("offlineAlert");
+      alertEl.style.display = navigator.onLine ? "none" : "block";
+    }
+
+    // Selector de Modo en Apertura
+    function seleccionarModoApertura(modo) {
+      modoAperturaSeleccionado = modo;
+      const btnStd = document.getElementById("btnModoEstandar");
+      const btnInter = document.getElementById("btnModoInter");
+      if (modo === "ESTANDAR") {
+        btnStd.className = "mode-btn active-std";
+        btnInter.className = "mode-btn";
+      } else {
+        btnStd.className = "mode-btn";
+        btnInter.className = "mode-btn active-inter";
+      }
+    }
+
+    function seleccionarModoEdicion(modo) {
+      modoEdicionSeleccionado = modo;
+      const btnStd = document.getElementById("btnEditModoStd");
+      const btnInter = document.getElementById("btnEditModoInter");
+      if (modo === "ESTANDAR") {
+        btnStd.className = "mode-btn active-std";
+        btnInter.className = "mode-btn";
+      } else {
+        btnStd.className = "mode-btn";
+        btnInter.className = "mode-btn active-inter";
+      }
+    }
+
+    function alternarModoOperativo() {
+      if (!recepcionActual) return;
+      const nuevoModo = recepcionActual.modo === "ESTANDAR" ? "INTERNACIONAL" : "ESTANDAR";
+      recepcionActual.modo = nuevoModo;
+      guardarEstado();
+      actualizarVistasModo();
+      emitirAudio("exito");
+      setScannerStatus(`🔄 Modo cambiado a: ${nuevoModo === "INTERNACIONAL" ? "PILOTO INTERNACIONAL POR EDD" : "MODO ESTÁNDAR"}`, "var(--primary)");
+    }
+
+    function actualizarVistasModo() {
+      if (!recepcionActual) return;
+      const isInter = recepcionActual.modo === "INTERNACIONAL";
+      const badge = document.getElementById("badgeModoActivo");
+      const scannerBox = document.getElementById("scannerWrapper");
+      const zonaBanner = document.getElementById("zonaPillBanner");
+      const eddCard = document.getElementById("eddBreakdownCard");
+
+      if (isInter) {
+        badge.className = "mode-badge-active inter";
+        badge.innerText = "🌐 PILOTO INTER. EDD";
+        scannerBox.classList.add("inter-mode");
+        eddCard.style.display = "flex";
+        if (recepcionActual.ultimo_cp_resuelto) {
+          zonaBanner.style.display = "flex";
+        }
+      } else {
+        badge.className = "mode-badge-active std";
+        badge.innerText = "📦 ESTÁNDAR";
+        scannerBox.classList.remove("inter-mode");
+        eddCard.style.display = "none";
+      }
+      renderEddBreakdown();
     }
 
     function iniciarRecepcionRampa() {
@@ -723,7 +1680,7 @@
         return;
       }
       if (declaradas <= 0) {
-        alert("⚠️ Es obligatorio ingresar las piezas declaradas por DHL para calcular faltantes.");
+        alert("⚠️ Es obligatorio ingresar las piezas declaradas por DHL para calcular discrepancias.");
         return;
       }
       if (!edd) {
@@ -735,10 +1692,14 @@
 
       recepcionActual = {
         id: idRecepcion,
+        modo: modoAperturaSeleccionado,
         asistente_dhl: asistente,
         piezas_declaradas: declaradas,
         edd_predominante: edd,
         auditor: auditor,
+        awb_asociada: "",
+        ultimo_cp_resuelto: null,
+        pids_declarados_manifiesto: [],
         hora_inicio: new Date().toISOString(),
         escaneos: []
       };
@@ -762,12 +1723,14 @@
       document.getElementById("metralletaPanel").style.display = "flex";
 
       document.getElementById("labelAsistente").innerText = "DHL: " + recepcionActual.asistente_dhl;
-      document.getElementById("labelIdLote").innerText = recepcionActual.id;
       document.getElementById("odometerTarget").innerText = `/ ${recepcionActual.piezas_declaradas} PZS`;
       document.getElementById("activeEddInput").value = recepcionActual.edd_predominante;
 
+      actualizarBarraAwb();
+      actualizarVistasModo();
       actualizarOdometro();
       renderHistorial();
+      renderEddBreakdown();
 
       const input = document.getElementById("scannerInput");
       const wrapper = document.getElementById("scannerWrapper");
@@ -775,12 +1738,24 @@
 
       if (focusLockInterval) clearInterval(focusLockInterval);
       focusLockInterval = setInterval(() => {
+        if (document.getElementById("modalActa").style.display === "flex" ||
+            document.getElementById("modalEdicion").style.display === "flex") {
+          return;
+        }
         if (document.activeElement !== input) {
           input.focus();
         }
-      }, 500);
+      }, 600);
 
-      document.addEventListener("click", () => input.focus());
+      document.addEventListener("click", (e) => {
+        if (document.getElementById("modalActa").style.display === "flex" ||
+            document.getElementById("modalEdicion").style.display === "flex") {
+          return;
+        }
+        if (e.target.tagName !== "INPUT" && e.target.tagName !== "BUTTON" && e.target.tagName !== "TEXTAREA") {
+          input.focus();
+        }
+      });
 
       input.addEventListener("focus", () => wrapper.classList.add("focused"));
       input.addEventListener("blur", () => wrapper.classList.remove("focused"));
@@ -795,28 +1770,134 @@
       syncInterval = setInterval(sincronizarColaConSheets, 5000);
     }
 
+    function actualizarBarraAwb() {
+      const valEl = document.getElementById("labelAwbAsociada");
+      if (recepcionActual && recepcionActual.awb_asociada) {
+        valEl.innerText = recepcionActual.awb_asociada;
+        valEl.style.color = "var(--success)";
+      } else {
+        valEl.innerText = "SIN AWB";
+        valEl.style.color = "var(--primary)";
+      }
+    }
+
+    // Control de Quick EDD Chips
+    function setQuickEdd(diasOffset) {
+      const d = new Date();
+      d.setDate(d.getDate() + diasOffset);
+      const strFecha = d.toISOString().split('T')[0];
+      
+      document.getElementById("activeEddInput").value = strFecha;
+      if (recepcionActual) {
+        recepcionActual.edd_predominante = strFecha;
+        guardarEstado();
+      }
+
+      // Estilizar chips
+      const chips = ["chipHoy", "chipManana", "chipMas2", "chipMas3"];
+      chips.forEach((cId, idx) => {
+        const cEl = document.getElementById(cId);
+        if (cEl) {
+          if (idx === diasOffset) {
+            cEl.className = recepcionActual && recepcionActual.modo === "INTERNACIONAL" ? "edd-chip active-inter" : "edd-chip active";
+          } else {
+            cEl.className = "edd-chip";
+          }
+        }
+      });
+
+      flash(recepcionActual && recepcionActual.modo === "INTERNACIONAL" ? "flash-inter" : "flash-success");
+      setScannerStatus(`📅 EDD Activo asignado: ${strFecha}`, "var(--primary)");
+      renderEddBreakdown();
+    }
+
     function actualizarEddActivo() {
       const nuevoEdd = document.getElementById("activeEddInput").value;
       if (nuevoEdd && recepcionActual) {
         recepcionActual.edd_predominante = nuevoEdd;
         guardarEstado();
+        renderEddBreakdown();
       }
     }
 
-    function validarCodigoDHL(raw) {
-      const limpio = raw.trim().toUpperCase().replace(/[\s-]/g, "");
-      
-      const esAwb = /^\d{10}$/.test(limpio);
-      if (esAwb) {
+    // Motor de Resolución de C.P. y Zona Logística
+    function resolverCP(cpInput) {
+      const cpLimpio = String(cpInput || "").trim().padStart(5, "0").slice(0, 5);
+      if (MATRIZ_CP_LOCAL[cpLimpio]) {
+        return {
+          cp: cpLimpio,
+          zona: MATRIZ_CP_LOCAL[cpLimpio].zona,
+          ruta: MATRIZ_CP_LOCAL[cpLimpio].ruta,
+          colonia: MATRIZ_CP_LOCAL[cpLimpio].col,
+          conocido: true
+        };
+      }
+
+      // Resolución por prefijo territorial
+      if (cpLimpio.startsWith("760")) {
+        return { cp: cpLimpio, zona: "ZONA 1 - CENTRO / SUR", ruta: "RUTA 01", colonia: "QRO Urbano", conocido: false };
+      } else if (cpLimpio.startsWith("761")) {
+        return { cp: cpLimpio, zona: "ZONA 2 - PONIENTE", ruta: "RUTA 02", colonia: "QRO Poniente", conocido: false };
+      } else if (cpLimpio.startsWith("7620") || cpLimpio.startsWith("7621") || cpLimpio.startsWith("7622") || cpLimpio.startsWith("7623")) {
+        return { cp: cpLimpio, zona: "ZONA 3 - NORTE / JURIQUILLA", ruta: "RUTA 03", colonia: "Juriquilla / Santa Rosa", conocido: false };
+      } else if (cpLimpio.startsWith("7624") || cpLimpio.startsWith("7625") || cpLimpio.startsWith("7626")) {
+        return { cp: cpLimpio, zona: "ZONA 4 - ORIENTE / EL MARQUÉS", ruta: "RUTA 04", colonia: "El Marqués", conocido: false };
+      } else if (cpLimpio.startsWith("769")) {
+        return { cp: cpLimpio, zona: "ZONA 5 - CORREGIDORA", ruta: "RUTA 05", colonia: "Corregidora", conocido: false };
+      } else if (cpLimpio.startsWith("768")) {
+        return { cp: cpLimpio, zona: "ZONA 6 - SAN JUAN DEL RÍO", ruta: "RUTA 06", colonia: "San Juan del Río", conocido: false };
+      } else if (cpLimpio.startsWith("765") || cpLimpio.startsWith("766") || cpLimpio.startsWith("767")) {
+        return { cp: cpLimpio, zona: "ZONA 7 - SEMIDESIERTO", ruta: "RUTA 07", colonia: "Semidesierto QRO", conocido: false };
+      } else if (cpLimpio.startsWith("763") || cpLimpio.startsWith("7628") || cpLimpio.startsWith("7629")) {
+        return { cp: cpLimpio, zona: "ZONA 8 - SIERRA GORDA QRO", ruta: "RUTA 08", colonia: "Sierra Gorda QRO", conocido: false };
+      } else if (cpLimpio.startsWith("379")) {
+        return { cp: cpLimpio, zona: "ZONA 9 - SIERRA GTO (DANIEL JUÁREZ)", ruta: "RUTA 09", colonia: "Noreste Guanajuato", conocido: false };
+      }
+
+      return { cp: cpLimpio, zona: "ZONA FORÁNEA / ESPECIAL", ruta: "RUTA FORÁNEA", colonia: "Destino General", conocido: false };
+    }
+
+    function mostrarBannerZona(infoCp) {
+      const banner = document.getElementById("zonaPillBanner");
+      banner.style.display = "flex";
+      document.getElementById("zonaPillNombre").innerText = infoCp.zona;
+      document.getElementById("zonaPillRuta").innerText = infoCp.ruta;
+      document.getElementById("zonaPillDetalle").innerText = `C.P. ${infoCp.cp} | ${infoCp.colonia} — Agrupación directa por EDD en pantalla`;
+    }
+
+    // =========================================================================
+    // 🛡️ REGLA 1: FILTRO ANTI-AWB Y LEY "J DE ORO"
+    // =========================================================================
+    function parsearDisparo(raw) {
+      const limpio = raw.trim().toUpperCase().replace(/[\s]/g, "");
+
+      // 1. AWB: Exactamente 10 dígitos numéricos puros
+      if (/^\d{10}$/.test(limpio)) {
         return { valido: true, tipo: "AWB", codigo: limpio };
       }
 
-      const esPid = limpio.startsWith("JJD") || limpio.startsWith("JD") || (limpio.length >= 15 && /^\d+$/.test(limpio));
-      if (esPid) {
-        return { valido: true, tipo: "PID", codigo: limpio };
+      // 2. CP Puro: 5 dígitos numéricos
+      if (/^\d{5}$/.test(limpio)) {
+        return { valido: true, tipo: "CP", codigo: limpio };
       }
 
-      return { valido: false };
+      // 3. Ley "J de Oro": Solo suma si inicia con "JJD" o "JD" y tiene más de 10 dígitos
+      const matchPid = limpio.match(/(JJD|JD)[A-Z0-9]{8,}/);
+      if (matchPid) {
+        const pid = matchPid[0];
+        if (pid.length > 10) {
+          // Extraer CP si viene en la cadena (ej. Datamatrix o composite)
+          let cpDetectado = "";
+          const resto = limpio.replace(pid, "");
+          const matchCp = resto.match(/\b(76\d{3}|37\d{3}|\d{5})\b/) || limpio.match(/\|(\d{5})\|/) || limpio.match(/CP[:=]?(\d{5})/);
+          if (matchCp) cpDetectado = matchCp[1] || matchCp[0];
+
+          return { valido: true, tipo: "PID", codigo: pid, cp: cpDetectado };
+        }
+      }
+
+      // Código inválido
+      return { valido: false, codigo: limpio };
     }
 
     function procesarDisparoPistola() {
@@ -826,15 +1907,62 @@
 
       if (!valor) return;
 
-      const res = validarCodigoDHL(valor);
+      const res = parsearDisparo(valor);
 
       if (!res.valido) {
         emitirAudio("error");
         flash("flash-error");
-        setScannerStatus("❌ CÓDIGO RECHAZADO: No cumple nomenclatura DHL", "#ff3344");
+        setScannerStatus(`❌ RECHAZADO: '${res.codigo}' no cumple Ley J de Oro ni formato DHL`, "#ff3344");
         return;
       }
 
+      // =====================================================================
+      // ACCIÓN A: RECHAZO AWB ("LEY J DE ORO" - PAINANI v84.0 PROD)
+      // =====================================================================
+      if (res.tipo === "AWB") {
+        emitirAudio("error"); // Alerta sonora de error estricto
+        flash("flash-error"); // Pantalla roja instantánea
+
+        // Banner informativo en último escaneo con alerta roja
+        const banner = document.getElementById("lastScanBanner");
+        banner.style.display = "flex";
+        banner.style.borderColor = "var(--danger)";
+        document.getElementById("lastScanHeaderTag").innerText = "🚨 CÓDIGO RECHAZADO (GUÍA AWB PROHIBIDA):";
+        document.getElementById("lastScanCode").innerText = res.codigo;
+        document.getElementById("lastScanCode").style.color = "var(--danger)";
+        document.getElementById("lastScanTime").innerText = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        document.getElementById("lastScanEdd").innerText = "0 PZS — SOLO ESCANEAR PIDs (JJD/JD)";
+
+        setScannerStatus(`🚨 RECHAZO AWB: Las guías de 10 dígitos (${res.codigo}) están PROHIBIDAS. Solo escanea PIDs físicos (JJD/JD).`, "var(--danger)");
+        return; // RECHAZO TAJANTE: No suma al odómetro
+      }
+
+      // =====================================================================
+      // ACCIÓN B: CÓDIGO POSTAL RESUELTO (5 DÍGITOS)
+      // =====================================================================
+      if (res.tipo === "CP") {
+        const infoCp = resolverCP(res.codigo);
+        recepcionActual.ultimo_cp_resuelto = infoCp;
+        guardarEstado();
+        mostrarBannerZona(infoCp);
+        emitirAudio("exito");
+        flash("flash-inter");
+
+        // Si hay un escaneo previo reciente, asociarle el CP resuelto
+        if (recepcionActual.escaneos.length > 0 && !recepcionActual.escaneos[0].cp) {
+          recepcionActual.escaneos[0].cp = infoCp.cp;
+          recepcionActual.escaneos[0].zona = infoCp.zona;
+          guardarEstado();
+          renderHistorial();
+        }
+
+        setScannerStatus(`📍 C.P. ${infoCp.cp} ➔ ${infoCp.zona} (${infoCp.ruta})`, "var(--inter)");
+        return;
+      }
+
+      // =====================================================================
+      // ACCIÓN C: PID FÍSICO CERTIFICADO (SUMA AL ODÓMETRO)
+      // =====================================================================
       const yaExiste = recepcionActual.escaneos.some(item => item.codigo === res.codigo);
       if (yaExiste) {
         emitirAudio("duplicado");
@@ -844,26 +1972,42 @@
       }
 
       emitirAudio("exito");
-      flash("flash-success");
+      flash(recepcionActual.modo === "INTERNACIONAL" ? "flash-inter" : "flash-success");
       setScannerStatus("🟢 Listo para ráfaga", "var(--text-muted)");
 
       const eddFisico = document.getElementById("activeEddInput").value;
+      let cpAsignado = res.cp || "";
+      let infoZonaAsignada = null;
+
+      if (cpAsignado) {
+        infoZonaAsignada = resolverCP(cpAsignado);
+        recepcionActual.ultimo_cp_resuelto = infoZonaAsignada;
+        mostrarBannerZona(infoZonaAsignada);
+      } else if (recepcionActual.ultimo_cp_resuelto) {
+        infoZonaAsignada = recepcionActual.ultimo_cp_resuelto;
+      }
 
       const nuevoEscaneo = {
         id: "ESC-" + Date.now() + "-" + Utilities_randomSuffix(),
         codigo: res.codigo,
-        tipo: res.tipo,
+        tipo: "PID",
+        modo: recepcionActual.modo,
         edd: eddFisico,
+        awb_asociada: recepcionActual.awb_asociada || "",
+        cp: infoZonaAsignada ? infoZonaAsignada.cp : "",
+        zona: infoZonaAsignada ? infoZonaAsignada.zona : "",
         timestamp: new Date().toISOString(),
         hora_legible: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
         sync: false
       };
 
+      // Inyectar al inicio de la lista de piezas físicas
       recepcionActual.escaneos.unshift(nuevoEscaneo);
       guardarEstado();
 
       actualizarOdometro();
       renderHistorial();
+      renderEddBreakdown();
       actualizarBannerUltimo(nuevoEscaneo);
 
       setTimeout(sincronizarColaConSheets, 50);
@@ -880,27 +2024,32 @@
       setTimeout(() => document.body.classList.remove(cls), 150);
     }
 
+    // Audio-Feedback Multifrecuencia con Web Audio API
     function emitirAudio(tipo) {
       try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioCtx();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
         gain.connect(ctx.destination);
 
         if (tipo === "exito") {
+          // Bip agudo corto (900 Hz, 80 ms)
           osc.type = "sine";
           osc.frequency.setValueAtTime(900, ctx.currentTime);
           gain.gain.setValueAtTime(0.08, ctx.currentTime);
           osc.start();
           osc.stop(ctx.currentTime + 0.08);
         } else if (tipo === "error") {
+          // Tono en diente de sierra grave (130 Hz, 350 ms)
           osc.type = "sawtooth";
           osc.frequency.setValueAtTime(130, ctx.currentTime);
           gain.gain.setValueAtTime(0.2, ctx.currentTime);
           osc.start();
           osc.stop(ctx.currentTime + 0.35);
         } else if (tipo === "duplicado") {
+          // Tono triangular dual (450 Hz)
           osc.type = "triangle";
           osc.frequency.setValueAtTime(450, ctx.currentTime);
           gain.gain.setValueAtTime(0.12, ctx.currentTime);
@@ -908,19 +2057,40 @@
           osc.stop(ctx.currentTime + 0.1);
 
           setTimeout(() => {
-            const osc2 = ctx.createOscillator();
-            const gain2 = ctx.createGain();
+            const ctx2 = new AudioCtx();
+            const osc2 = ctx2.createOscillator();
+            const gain2 = ctx2.createGain();
             osc2.connect(gain2);
-            gain2.connect(ctx.destination);
+            gain2.connect(ctx2.destination);
             osc2.type = "triangle";
-            osc2.frequency.setValueAtTime(450, ctx.currentTime);
-            gain2.gain.setValueAtTime(0.12, ctx.currentTime);
+            osc2.frequency.setValueAtTime(450, ctx2.currentTime);
+            gain2.gain.setValueAtTime(0.12, ctx2.currentTime);
             osc2.start();
-            osc2.stop(ctx.currentTime + 0.1);
+            osc2.stop(ctx2.currentTime + 0.1);
           }, 120);
+        } else if (tipo === "guia") {
+          // 🔔 BEEP DE GUÍA ANTI-AWB (Doble tono armónico de advertencia: 750 Hz + 1050 Hz)
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(750, ctx.currentTime);
+          gain.gain.setValueAtTime(0.12, ctx.currentTime);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.08);
+
+          setTimeout(() => {
+            const ctx3 = new AudioCtx();
+            const osc3 = ctx3.createOscillator();
+            const gain3 = ctx3.createGain();
+            osc3.connect(gain3);
+            gain3.connect(ctx3.destination);
+            osc3.type = "sine";
+            osc3.frequency.setValueAtTime(1050, ctx3.currentTime);
+            gain3.gain.setValueAtTime(0.12, ctx3.currentTime);
+            osc3.start();
+            osc3.stop(ctx3.currentTime + 0.1);
+          }, 90);
         }
       } catch (e) {
-        console.log("Audio no soportado o bloqueado.");
+        console.log("Audio no soportado o bloqueado por navegador.");
       }
     }
 
@@ -950,10 +2120,18 @@
     }
 
     function actualizarBannerUltimo(esc) {
-      document.getElementById("lastScanBanner").style.display = "flex";
+      const banner = document.getElementById("lastScanBanner");
+      banner.style.display = "flex";
+      banner.style.borderColor = "#1a3822";
+      document.getElementById("lastScanHeaderTag").innerText = "Último bulto bipiado:";
       document.getElementById("lastScanCode").innerText = esc.codigo;
+      document.getElementById("lastScanCode").style.color = "var(--success)";
       document.getElementById("lastScanTime").innerText = esc.hora_legible;
-      document.getElementById("lastScanEdd").innerText = "EDD: " + esc.edd;
+      
+      let tagExtra = `EDD: ${esc.edd}`;
+      if (esc.cp) tagExtra += ` | CP: ${esc.cp}`;
+      if (esc.awb_asociada) tagExtra += ` (AWB: ${esc.awb_asociada})`;
+      document.getElementById("lastScanEdd").innerText = tagExtra;
     }
 
     function renderHistorial() {
@@ -971,20 +2149,77 @@
       list.innerHTML = "";
 
       recientes.forEach(item => {
-        const badgeClass = item.tipo.toLowerCase();
+        let badgeClass = item.modo === "INTERNACIONAL" ? "inter" : "pid";
+        let badgeLabel = item.modo === "INTERNACIONAL" ? "INT" : "PID";
+        if (item.tipo === "PID_INC_FOTO" || (item.codigo && item.codigo.startsWith("PID_INC_"))) {
+          badgeClass = "incidencia";
+          badgeLabel = "📸 ILEGIBLE";
+        }
         const syncIcon = item.sync ? "✓" : "⏳";
         const syncColor = item.sync ? "var(--success)" : "var(--warning)";
+
+        let infoSub = `EDD: ${item.edd}`;
+        if (item.cp) infoSub += ` • CP: ${item.cp}`;
+        if (item.awb_asociada) infoSub += ` • AWB: ${item.awb_asociada}`;
+        if (item.pid_detectado_ia) infoSub += ` • [IA: ${item.pid_detectado_ia}]`;
 
         list.innerHTML += `
           <div class="history-item">
             <div>
-              <span class="history-badge ${badgeClass}">${item.tipo}</span>
+              <span class="history-badge ${badgeClass}">${badgeLabel}</span>
               <span style="font-family:monospace; margin-left:6px; font-weight:bold;">${item.codigo}</span>
-              <span style="font-size:10px; color:#777; margin-left:6px;">EDD: ${item.edd}</span>
+              <div style="font-size:10px; color:#777; margin-top:2px;">${infoSub}</div>
+            </div>
+            <div style="text-align:right;">
+              <span style="font-size:10px; color:#666; margin-right:4px;">${item.hora_legible}</span>
+              <span style="color:${syncColor}; font-weight:bold; font-size:11px;">${syncIcon}</span>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    // Render del desglose por EDD en Piloto Internacional
+    function renderEddBreakdown() {
+      if (!recepcionActual) return;
+      const container = document.getElementById("eddGroupsContainer");
+      const card = document.getElementById("eddBreakdownCard");
+
+      if (recepcionActual.modo !== "INTERNACIONAL") {
+        card.style.display = "none";
+        return;
+      }
+      card.style.display = "flex";
+
+      const grupos = {};
+      recepcionActual.escaneos.forEach(s => {
+        const key = s.edd || "SIN_FECHA";
+        if (!grupos[key]) grupos[key] = { count: 0, zonas: {} };
+        grupos[key].count++;
+        const z = s.zona || "POR RESOLVER";
+        grupos[key].zonas[z] = (grupos[key].zonas[z] || 0) + 1;
+      });
+
+      const keys = Object.keys(grupos).sort();
+      document.getElementById("eddTotalGrupos").innerText = `${keys.length} ${keys.length === 1 ? 'fecha' : 'fechas'}`;
+
+      if (keys.length === 0) {
+        container.innerHTML = `<div style="color:#666; font-size:10px; text-align:center;">Sin bultos agrupados aún.</div>`;
+        return;
+      }
+
+      container.innerHTML = "";
+      keys.forEach(k => {
+        const g = grupos[k];
+        const zonaResumen = Object.keys(g.zonas).map(z => `${z.split('-')[0].trim()}: ${g.zonas[z]}`).join(", ");
+        container.innerHTML += `
+          <div class="edd-group-item">
+            <div>
+              <span style="font-weight:900; color:var(--inter);">📅 ${k}</span>
+              <span style="font-size:10px; color:#94a3b8; margin-left:6px;">(${zonaResumen})</span>
             </div>
             <div>
-              <span style="font-size:10px; color:#666; margin-right:6px;">${item.hora_legible}</span>
-              <span style="color:${syncColor}; font-weight:bold; font-size:11px;">${syncIcon}</span>
+              <span style="font-weight:900; color:#fff; font-size:12px;">${g.count} pzs</span>
             </div>
           </div>
         `;
@@ -994,11 +2229,12 @@
     function deshacerUltimoEscaneo() {
       if (!recepcionActual || recepcionActual.escaneos.length === 0) return;
       const ultimo = recepcionActual.escaneos[0];
-      if (confirm(`⚠️ ¿Deseas eliminar el último bulto escaneado (${ultimo.codigo})? Se descontará del conteo.`)) {
+      if (confirm(`⚠️ ¿Deseas eliminar el último bulto escaneado (${ultimo.codigo})? Se descontará del conteo físico.`)) {
         recepcionActual.escaneos.shift();
         guardarEstado();
         actualizarOdometro();
         renderHistorial();
+        renderEddBreakdown();
         if (recepcionActual.escaneos.length > 0) {
           actualizarBannerUltimo(recepcionActual.escaneos[0]);
         } else {
@@ -1007,6 +2243,263 @@
       }
     }
 
+    // Modal de Edición de Datos
+    function abrirModalEdicion() {
+      if (!recepcionActual) return;
+      seleccionarModoEdicion(recepcionActual.modo || "ESTANDAR");
+      document.getElementById("editAsistenteInput").value = recepcionActual.asistente_dhl || "";
+      document.getElementById("editDeclaradasInput").value = recepcionActual.piezas_declaradas || "";
+      document.getElementById("editAuditorInput").value = recepcionActual.auditor || "";
+      document.getElementById("editEddInput").value = recepcionActual.edd_predominante || "";
+      document.getElementById("editAwbInput").value = recepcionActual.awb_asociada || "";
+      document.getElementById("editTotalBipiados").innerText = recepcionActual.escaneos.length;
+      document.getElementById("modalEdicion").style.display = "flex";
+    }
+
+    function abrirModalEdicionDesdeActa() {
+      cerrarModalActa();
+      abrirModalEdicion();
+    }
+
+    function cerrarModalEdicion() {
+      document.getElementById("modalEdicion").style.display = "none";
+      const input = document.getElementById("scannerInput");
+      if (input) input.focus();
+    }
+
+    function guardarEdicionRecepcion() {
+      if (!recepcionActual) return;
+      const nuevoAsistente = document.getElementById("editAsistenteInput").value.trim();
+      const nuevasDeclaradas = parseInt(document.getElementById("editDeclaradasInput").value) || 0;
+      const nuevoAuditor = document.getElementById("editAuditorInput").value.trim();
+      const nuevoEdd = document.getElementById("editEddInput").value;
+      const nuevaAwb = document.getElementById("editAwbInput").value.trim();
+
+      if (!nuevoAsistente) {
+        alert("⚠️ El nombre del asistente no puede quedar vacío.");
+        return;
+      }
+      if (nuevasDeclaradas <= 0) {
+        alert("⚠️ Las piezas declaradas deben ser mayores a 0.");
+        return;
+      }
+
+      recepcionActual.modo = modoEdicionSeleccionado;
+      recepcionActual.asistente_dhl = nuevoAsistente;
+      recepcionActual.piezas_declaradas = nuevasDeclaradas;
+      if (nuevoAuditor) recepcionActual.auditor = nuevoAuditor;
+      if (nuevoEdd) {
+        recepcionActual.edd_predominante = nuevoEdd;
+        document.getElementById("activeEddInput").value = nuevoEdd;
+      }
+      if (nuevaAwb) recepcionActual.awb_asociada = nuevaAwb;
+
+      guardarEstado();
+      actualizarBarraAwb();
+      actualizarVistasModo();
+      actualizarOdometro();
+      document.getElementById("labelAsistente").innerText = "DHL: " + nuevoAsistente;
+      document.getElementById("odometerTarget").innerText = `/ ${nuevasDeclaradas} PZS`;
+
+      cerrarModalEdicion();
+      emitirAudio("exito");
+      flash("flash-success");
+      setScannerStatus("✅ Datos actualizados sin perder escaneos", "var(--success)");
+    }
+
+    // =========================================================================
+    // 📜 REGLA 3: ACTA NOTARIAL DE DISCREPANCIA Y FIRMA DEL CHOFER DHL
+    // =========================================================================
+    function toggleManifiestoInput() {
+      const box = document.getElementById("manifiestoInputWrapper");
+      box.style.display = box.style.display === "none" ? "block" : "none";
+      if (box.style.display === "block") {
+        document.getElementById("manifiestoDhlInput").focus();
+      }
+    }
+
+    function procesarManifiestoDhl() {
+      if (!recepcionActual) return;
+      const raw = document.getElementById("manifiestoDhlInput").value;
+      const lineas = raw.split(/[\n,;\t\s]+/);
+      const setDeclarados = new Set();
+
+      lineas.forEach(l => {
+        const item = l.trim().toUpperCase();
+        if ((item.startsWith("JJD") || item.startsWith("JD")) && item.length > 10) {
+          setDeclarados.add(item);
+        }
+      });
+
+      if (setDeclarados.size === 0) {
+        alert("⚠️ No se encontraron PIDs con formato válido (JJD... o JD...) en el texto pegado.");
+        return;
+      }
+
+      recepcionActual.pids_declarados_manifiesto = Array.from(setDeclarados);
+      guardarEstado();
+
+      alert(`✅ Manifiesto de DHL procesado: ${setDeclarados.size} PIDs identificados para conciliación.`);
+      document.getElementById("actaTextPreview").innerText = construirTextoActa();
+    }
+
+    function construirTextoActa() {
+      if (!recepcionActual) return "";
+      
+      const recibidas = recepcionActual.escaneos.length;
+      const declaradas = recepcionActual.piezas_declaradas;
+      const dif = recibidas - declaradas;
+      const fechaHoy = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const horaActual = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const modoTexto = recepcionActual.modo === "INTERNACIONAL" ? "PILOTO INTERNACIONAL POR EDD" : "MODO ESTÁNDAR (NACIONAL)";
+
+      // Identificación de discrepancias PID a PID (si se cargó manifiesto)
+      const pidsEscaneadosSet = new Set(recepcionActual.escaneos.map(s => s.codigo));
+      let bloqueDetallePids = "";
+
+      if (recepcionActual.pids_declarados_manifiesto && recepcionActual.pids_declarados_manifiesto.length > 0) {
+        const faltantes = recepcionActual.pids_declarados_manifiesto.filter(p => !pidsEscaneadosSet.has(p));
+        const sobrantes = recepcionActual.escaneos.filter(s => !recepcionActual.pids_declarados_manifiesto.includes(s.codigo)).map(s => s.codigo);
+
+        bloqueDetallePids += "\n----------------------------------------\n";
+        bloqueDetallePids += "🔍 DESGLOSE NOTARIAL PID POR PID (MANIFIESTO DHL):\n";
+
+        if (faltantes.length > 0) {
+          bloqueDetallePids += `\n❌ PIDs DECLARADOS POR DHL NO ENTREGADOS FÍSICAMENTE (FALTAN ${faltantes.length} PZS):\n`;
+          faltantes.forEach((p, idx) => {
+            bloqueDetallePids += `   ${idx + 1}. ${p} (NO INGRESÓ AL ANDÉN)\n`;
+          });
+        } else {
+          bloqueDetallePids += "\n✓ Cero PIDs faltantes del manifiesto.\n";
+        }
+
+        if (sobrantes.length > 0) {
+          bloqueDetallePids += `\n⚠️ PIDs RECIBIDOS FÍSICAMENTE NO DECLARADOS EN MANIFIESTO (EXCEDENTES ${sobrantes.length} PZS):\n`;
+          sobrantes.forEach((p, idx) => {
+            bloqueDetallePids += `   ${idx + 1}. ${p} (FÍSICO EN ANDÉN)\n`;
+          });
+        }
+      } else if (dif !== 0) {
+        bloqueDetallePids += "\n----------------------------------------\n";
+        bloqueDetallePids += "⚠️ AUDITORÍA DE PIEZAS FÍSICAS FALTANTES / EXCEDENTES:\n";
+        if (dif < 0) {
+          bloqueDetallePids += `🚨 DHL declaró traer ${declaradas} bultos pero solo entregó ${recibidas} físicamente.\n`;
+          bloqueDetallePids += `   FALTAN FÍSICAMENTE ${Math.abs(dif)} PIEZAS QUE NO BAJARON DE LA UNIDAD.\n`;
+        } else {
+          bloqueDetallePids += `⚠️ Ingresaron físicamente +${dif} piezas excedentes no prealertadas.\n`;
+        }
+      }
+
+      // Desglose de Ingesta Internacional por EDD (si aplica)
+      let bloqueEddInter = "";
+      if (recepcionActual.modo === "INTERNACIONAL") {
+        const grupos = {};
+        recepcionActual.escaneos.forEach(s => {
+          const k = s.edd || "SIN_FECHA";
+          if (!grupos[k]) grupos[k] = 0;
+          grupos[k]++;
+        });
+        bloqueEddInter += "\n----------------------------------------\n";
+        bloqueEddInter += "🌐 DESGLOSE DE INGESTA INTERNACIONAL POR EDD:\n";
+        Object.keys(grupos).sort().forEach(k => {
+          bloqueEddInter += `• Fecha EDD ${k}: ${grupos[k]} piezas agrupadas en pantalla\n`;
+        });
+        bloqueEddInter += "✓ Resuelto automáticamente por C.P. y Zona sin separación física por rampa.\n";
+      }
+
+      // Respaldo fotográfico de etiquetas ilegibles
+      const incidenciasFoto = recepcionActual.escaneos.filter(s => s.tipo === "PID_INC_FOTO" || (s.codigo && s.codigo.startsWith("PID_INC_"))).length;
+      let bloqueIncidencias = "";
+      if (incidenciasFoto > 0) {
+        bloqueIncidencias = "\n----------------------------------------\n";
+        bloqueIncidencias += `📸 ETIQUETAS ILEGIBLES CON FOTO Y LECTURA IA: ${incidenciasFoto} bultos certificados en acta.\n`;
+        bloqueIncidencias += "✓ Folios auxiliares PID_INC registrados con URL de imagen y metadatos en Bóveda.\n";
+      }
+
+      let dictamen = "";
+      if (dif < 0) {
+        dictamen = `🚨 DISCREPANCIA FINANCIERA: -${Math.abs(dif)} PIEZAS FALTANTES DE DHL (NO INGRESARON AL ANDÉN)`;
+      } else if (dif === 0) {
+        dictamen = `✅ CONCILIACIÓN EXACTA: ${declaradas} PIEZAS ENTREGADAS Y RECIBIDAS AL 100%`;
+      } else {
+        dictamen = `⚠️ EXCEDENTE DETECTADO: +${dif} PIEZAS FÍSICAS EN ANDÉN NO DECLARADAS`;
+      }
+
+      return `========================================
+📜 ACTA NOTARIAL DE ENTREGA-RECEPCIÓN FÍSICA EN RAMPA
+ARAUTO EXPRESS — ANDÉN QUERÉTARO
+MODO: ${modoTexto}
+========================================
+• Folio Recepción: ${recepcionActual.id}
+• Fecha / Hora: ${fechaHoy} ${horaActual}
+• Auditor Arauto: ${recepcionActual.auditor}
+• Asistente / Chofer DHL: ${recepcionActual.asistente_dhl}
+• AWB Asociada Maestra: ${recepcionActual.awb_asociada || "N/A (Sin Guía Maestra)"}
+----------------------------------------
+📊 RESUMEN DE CONCILIACIÓN NUMÉRICA:
+• Piezas Declaradas por DHL: ${declaradas} pzs
+• Bultos Físicos Bipiados Arauto: ${recibidas} bultos
+----------------------------------------
+⚖️ DICTAMEN OFICIAL:
+${dictamen}
+${bloqueDetallePids}${bloqueEddInter}${bloqueIncidencias}----------------------------------------
+🛡️ NOTA DE BLINDAJE LEGAL Y PATRIMONIAL:
+Este documento certifica con marcas de tiempo atómicas e inmutables los bultos que ingresaron materialmente a custodia de Arauto Express. Cualquier guía o PID que figure en los sistemas digitales de DHL pero que no se encuentre en este registro físico, NO fue entregada en el andén de Querétaro y no procede cobro ni responsabilidad por pérdida patrimonial.
+----------------------------------------
+✍️ FIRMA DE CONFORMIDAD DEL ASISTENTE / CHOFER DHL:
+Nombre Asistente: ${recepcionActual.asistente_dhl}
+Firma Chofer:     ______________________________
+Unidad / Ruta:    ______________________________
+Hora de Firma:    ${horaActual}
+
+✍️ AUDITOR RESPONSABLE ARAUTO EXPRESS:
+Nombre Auditor:   ${recepcionActual.auditor}
+Firma Auditor:    ______________________________
+========================================`;
+    }
+
+    function abrirModalActa() {
+      document.getElementById("actaTextPreview").innerText = construirTextoActa();
+      document.getElementById("modalActa").style.display = "flex";
+    }
+
+    function cerrarModalActa() {
+      document.getElementById("modalActa").style.display = "none";
+      const input = document.getElementById("scannerInput");
+      if (input) input.focus();
+    }
+
+    function copiarActaParaWhatsApp() {
+      const texto = construirTextoActa();
+      navigator.clipboard.writeText(texto).then(() => {
+        alert("✅ Acta Notarial copiada al portapapeles con éxito.\nPégala en el grupo de supervisión de WhatsApp de DHL / Chat.");
+      }).catch(() => {
+        alert("Selecciona el texto del recuadro y cópialo manualmente.");
+      });
+    }
+
+    function descargarRespaldoCSV() {
+      if (!recepcionActual || recepcionActual.escaneos.length === 0) {
+        alert("⚠️ No hay bultos registrados para exportar.");
+        return;
+      }
+
+      let csv = "ID_Recepcion,Folio_Escaneo,Codigo,Tipo,Modo,EDD_Fisico,AWB_Asociada,CP,Zona,Timestamp,Auditor,Asistente_DHL\n";
+      recepcionActual.escaneos.forEach(s => {
+        csv += `"${recepcionActual.id}","${s.id}","${s.codigo}","${s.tipo}","${s.modo || 'ESTANDAR'}","${s.edd}","${s.awb_asociada || ''}","${s.cp || ''}","${s.zona || ''}","${s.timestamp}","${recepcionActual.auditor}","${recepcionActual.asistente_dhl}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Painani_Rampa_${recepcionActual.id}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // Sincronización asíncrona por Lotes
     function sincronizarColaConSheets() {
       if (!navigator.onLine || !recepcionActual) return;
 
@@ -1024,15 +2517,20 @@
         tipo: "RECEPCION_RAMPA",
         subtipo: "LOTE_BATCH",
         id_recepcion: recepcionActual.id,
+        modo: recepcionActual.modo,
         asistente_dhl: recepcionActual.asistente_dhl,
         piezas_declaradas: recepcionActual.piezas_declaradas,
         auditor: recepcionActual.auditor,
+        awb_asociada: recepcionActual.awb_asociada || "",
         total_acumulado: recepcionActual.escaneos.length,
         escaneos: pendientes.map(p => ({
           id_escaneo: p.id,
           codigo: p.codigo,
           tipo: p.tipo,
           edd: p.edd,
+          awb_asociada: p.awb_asociada || "",
+          cp: p.cp || "",
+          zona: p.zona || "",
           timestamp: p.timestamp
         }))
       };
@@ -1059,87 +2557,26 @@
       });
     }
 
-    function construirTextoActa() {
-      if (!recepcionActual) return "";
-      
+    // Cierre Notarial con Desglose de Discrepancia
+    function finalizarYCerrarRampa() {
+      if (!recepcionActual) return;
       const recibidas = recepcionActual.escaneos.length;
       const declaradas = recepcionActual.piezas_declaradas;
       const dif = recibidas - declaradas;
-      const fechaHoy = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
-      const horaActual = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+      const resumen = `Declaradas: ${declaradas} | Bipiadas: ${recibidas} (Diferencia: ${dif})`;
 
-      let dictamen = "";
-      if (dif < 0) {
-        dictamen = `🚨 DISCREPANCIA: -${Math.abs(dif)} PIEZAS FALTANTES DE DHL (NO INGRESARON AL ANDÉN)`;
-      } else if (dif === 0) {
-        dictamen = `✅ CONCILIACIÓN EXACTA: ${declaradas} PIEZAS ENTREGADAS Y RECIBIDAS AL 100%`;
-      } else {
-        dictamen = `⚠️ EXCEDENTE DETECTADO: +${dif} PIEZAS FÍSICAS EN ANDÉN NO PREALERTADAS`;
+      // Calcular PIDs faltantes y sobrantes si hay manifiesto cargado
+      let pidsFaltantes = [];
+      let pidsSobrantes = [];
+      const pidsEscaneadosSet = new Set(recepcionActual.escaneos.map(s => s.codigo));
+
+      if (recepcionActual.pids_declarados_manifiesto && recepcionActual.pids_declarados_manifiesto.length > 0) {
+        pidsFaltantes = recepcionActual.pids_declarados_manifiesto.filter(p => !pidsEscaneadosSet.has(p));
+        pidsSobrantes = recepcionActual.escaneos.filter(s => !recepcionActual.pids_declarados_manifiesto.includes(s.codigo)).map(s => s.codigo);
       }
 
-      return `========================================
-📜 ACTA DE ENTREGA-RECEPCIÓN FÍSICA EN RAMPA
-ARAUTO EXPRESS — ANDÉN QUERÉTARO
-========================================
-• Folio Recepción: ${recepcionActual.id}
-• Fecha / Hora: ${fechaHoy} ${horaActual}
-• Auditor Arauto: ${recepcionActual.auditor}
-• Asistente / Unidad DHL: ${recepcionActual.asistente_dhl}
-----------------------------------------
-📊 RESUMEN DE CONCILIACIÓN NUMÉRICA:
-• Piezas Declaradas por DHL: ${declaradas}
-• Piezas Físicas Bipiadas Arauto: ${recibidas}
-----------------------------------------
-⚖️ DICTAMEN:
-${dictamen}
-----------------------------------------
-🛡️ NOTA DE BLINDAJE LEGAL / FINANCIERO:
-Este documento certifica con marcas de tiempo atómicas los bultos que ingresaron materialmente a custodia de Arauto Express. Cualquier guía o PID que figure en los sistemas digitales de DHL pero que no se encuentre en este registro físico, NO fue entregada en el andén de Querétaro y no procede cobro por pérdida.
-========================================`;
-    }
-
-    function abrirModalActa() {
-      document.getElementById("actaTextPreview").innerText = construirTextoActa();
-      document.getElementById("modalActa").style.display = "flex";
-    }
-
-    function cerrarModalActa() {
-      document.getElementById("modalActa").style.display = "none";
-    }
-
-    function copiarActaParaWhatsApp() {
-      const texto = construirTextoActa();
-      navigator.clipboard.writeText(texto).then(() => {
-        alert("✅ Acta copiada al portapapeles. Pégala en el grupo de WhatsApp de supervisión de DHL.");
-      }).catch(() => {
-        alert("Selecciona el texto del recuadro y cópialo manualmente.");
-      });
-    }
-
-    function descargarRespaldoCSV() {
-      if (!recepcionActual || recepcionActual.escaneos.length === 0) {
-        alert("⚠️ No hay bultos registrados para exportar.");
-        return;
-      }
-
-      let csv = "ID_Recepcion,Folio_Escaneo,Codigo,Tipo,EDD_Fisico,Timestamp,Auditor,Asistente_DHL\n";
-      recepcionActual.escaneos.forEach(s => {
-        csv += `"${recepcionActual.id}","${s.id}","${s.codigo}","${s.tipo}","${s.edd}","${s.timestamp}","${recepcionActual.auditor}","${recepcionActual.asistente_dhl}"\n`;
-      });
-
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", `Painani_Rampa_${recepcionActual.id}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-
-    function finalizarYCerrarCamion() {
-      if (confirm("⚠️ ¿Estás seguro de cerrar este camión e iniciar un nuevo ciclo? Asegúrate de haber copiado el acta o descargado el CSV.")) {
-        if (navigator.onLine && recepcionActual) {
+      if (confirm(`🏁 ¿Confirmas el CIERRE DE PROCESO EN RAMPA?\n\n${resumen}\n\nSe emitirá el dictamen notarial con firma del chofer de DHL a Google Chat Space, se registrará el cierre en Bóveda y se iniciará un nuevo ciclo.`)) {
+        if (navigator.onLine) {
           fetch(URL_WEBHOOK_RAMPA, {
             method: "POST",
             mode: "cors",
@@ -1149,16 +2586,29 @@ Este documento certifica con marcas de tiempo atómicas los bultos que ingresaro
               tipo: "RECEPCION_RAMPA",
               subtipo: "CIERRE_RECEPCION",
               id_recepcion: recepcionActual.id,
+              modo: recepcionActual.modo,
               asistente_dhl: recepcionActual.asistente_dhl,
-              total_declaradas: recepcionActual.piezas_declaradas,
-              total_recibidas: recepcionActual.escaneos.length,
-              auditor: recepcionActual.auditor
+              total_declaradas: declaradas,
+              total_recibidas: recibidas,
+              auditor: recepcionActual.auditor,
+              awb_asociada: recepcionActual.awb_asociada || "",
+              pids_faltantes: pidsFaltantes,
+              pids_sobrantes: pidsSobrantes,
+              desglose_discrepancias: construirTextoActa()
             })
-          }).catch(e => console.log(e));
+          })
+          .then(r => r.json())
+          .then(res => {
+            console.log("Cierre registrado en Bóveda y notificado a Chat:", res);
+          })
+          .catch(e => console.log("Error al notificar cierre:", e));
         }
+
+        alert("✅ Proceso de Rampa cerrado con éxito.\nActa notarial con firma y dictamen registrada en Bóveda y notificada al canal de Google Chat.");
 
         clearInterval(focusLockInterval);
         clearInterval(syncInterval);
+        localStorage.setItem("painani_ultimo_id_recepcion", recepcionActual.id);
         localStorage.removeItem("painani_recepcion_activa");
         recepcionActual = null;
         cerrarModalActa();
@@ -1170,6 +2620,888 @@ Este documento certifica con marcas de tiempo atómicas los bultos que ingresaro
         document.getElementById("asistenteDhlInput").focus();
       }
     }
+
+    // =========================================================================
+    // 📸 MÓDULO FOTO ETIQUETA ILEGIBLE CON LECTURA IA ASÍNCRONA (v84.0 PROD)
+    // =========================================================================
+    function dispararCapturaFotoIlegible() {
+      if (!recepcionActual) {
+        alert("⚠️ Inicia primero la recepción del camión ingresando asistente y piezas declaradas.");
+        return;
+      }
+      const fileInput = document.getElementById("inputFotoIlegible");
+      if (fileInput) {
+        fileInput.value = "";
+        fileInput.click();
+      }
+    }
+
+    function manejarCapturaFotoIlegible(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      setScannerStatus("⏳ Comprimiendo fotografía de etiqueta...", "var(--warning)");
+
+      comprimirImagenCanvas_(file, 1280, 0.72, function(base64Comprimida) {
+        if (!base64Comprimida) {
+          alert("⚠️ No se pudo procesar la fotografía tomada.");
+          setScannerStatus("❌ Error al procesar fotografía", "var(--danger)");
+          return;
+        }
+
+        // Generar folio auxiliar PID_INC_XXXX
+        let folioInc = "";
+        let intentos = 0;
+        do {
+          const rand = Math.floor(1000 + Math.random() * 9000);
+          folioInc = "PID_INC_" + rand;
+          intentos++;
+        } while (recepcionActual.escaneos.some(e => e.codigo === folioInc) && intentos < 100);
+
+        const eddFisico = document.getElementById("activeEddInput").value;
+        const horaStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        const nuevoEscaneo = {
+          id: "ESC-" + Date.now() + "-" + Utilities_randomSuffix(),
+          codigo: folioInc,
+          tipo: "PID_INC_FOTO",
+          modo: recepcionActual.modo,
+          edd: eddFisico,
+          awb_asociada: recepcionActual.awb_asociada || "",
+          cp: recepcionActual.ultimo_cp_resuelto ? recepcionActual.ultimo_cp_resuelto.cp : "",
+          zona: recepcionActual.ultimo_cp_resuelto ? recepcionActual.ultimo_cp_resuelto.zona : "",
+          timestamp: new Date().toISOString(),
+          hora_legible: horaStr,
+          foto_base64: base64Comprimida,
+          sync: false
+        };
+
+        // Sumar +1 al conteo notarial
+        recepcionActual.escaneos.unshift(nuevoEscaneo);
+        guardarEstado();
+
+        actualizarOdometro();
+        renderHistorial();
+        renderEddBreakdown();
+        actualizarBannerUltimo(nuevoEscaneo);
+        emitirAudio("exito");
+        flash("flash-success");
+        setScannerStatus(`📸 Folio ${folioInc} registrado (+1 PZA). Enviando a Bóveda e IA...`, "var(--warning)");
+
+        // Sincronizar de inmediato al Webhook de Bóveda y Gemini Vision
+        const payload = {
+          tipo: "RECEPCION_RAMPA",
+          subtipo: "REGISTRAR_INCIDENCIA_FOTO",
+          id_recepcion: recepcionActual.id,
+          folio_incidencia: folioInc,
+          modo: recepcionActual.modo,
+          asistente_dhl: recepcionActual.asistente_dhl,
+          piezas_declaradas: recepcionActual.piezas_declaradas,
+          auditor: recepcionActual.auditor,
+          edd_fisico: eddFisico,
+          timestamp: nuevoEscaneo.timestamp,
+          foto_base64: base64Comprimida,
+          foto_mime: "image/jpeg"
+        };
+
+        fetch(URL_WEBHOOK_RAMPA, {
+          method: "POST",
+          mode: "cors",
+          redirect: "follow",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.exito) {
+            nuevoEscaneo.sync = true;
+            if (data.ia_resultado && data.ia_resultado.pid_detectado) {
+              nuevoEscaneo.pid_detectado_ia = data.ia_resultado.pid_detectado;
+              setScannerStatus(`✅ Folio ${folioInc}: IA recuperó PID '${data.ia_resultado.pid_detectado}'`, "var(--success)");
+            } else {
+              setScannerStatus(`✅ Folio ${folioInc} respaldado en Drive y Bóveda`, "var(--success)");
+            }
+            guardarEstado();
+            renderHistorial();
+          }
+        })
+        .catch(err => {
+          console.log("Error de red en foto incidencia, se reintentará en siguiente ciclo: " + err.message);
+        });
+      });
+    }
+
+    function comprimirImagenCanvas_(file, maxDim, calidad, callback) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL("image/jpeg", calidad);
+          callback(dataUrl);
+        };
+        img.onerror = function() { callback(null); };
+        img.src = e.target.result;
+      };
+      reader.onerror = function() { callback(null); };
+      reader.readAsDataURL(file);
+    }
+
+    // =========================================================================
+    // 🌐 MÓDULO DE FASE SECUNDARIA: INTERNACIONALES EDD (PAINANI v85.0 PROD)
+    // =========================================================================
+    let faseOperativaActual = "CAMION"; // "CAMION" | "INTERNACIONAL"
+    let loteInterActual = null;
+    let focusLockIntervalInter = null;
+
+    function cambiarFaseOperativa(fase) {
+      faseOperativaActual = fase;
+      const tabCamion = document.getElementById("tabFaseCamion");
+      const tabInter = document.getElementById("tabFaseInter");
+
+      const cardApertura = document.getElementById("cardApertura");
+      const metralletaPanel = document.getElementById("metralletaPanel");
+      const cardAperturaInter = document.getElementById("cardAperturaInter");
+      const interPanel = document.getElementById("interPanel");
+
+      if (fase === "CAMION") {
+        tabCamion.className = "phase-tab active";
+        tabInter.className = "phase-tab";
+
+        cardAperturaInter.style.display = "none";
+        interPanel.style.display = "none";
+
+        if (recepcionActual) {
+          metralletaPanel.style.display = "flex";
+          cardApertura.style.display = "none";
+          const input = document.getElementById("scannerInput");
+          if (input) input.focus();
+        } else {
+          cardApertura.style.display = "flex";
+          metralletaPanel.style.display = "none";
+        }
+      } else {
+        tabCamion.className = "phase-tab";
+        tabInter.className = "phase-tab active-inter";
+
+        cardApertura.style.display = "none";
+        metralletaPanel.style.display = "none";
+
+        // Pre-llenar ID de recepción previa si existe
+        const ultimaRec = localStorage.getItem("painani_ultimo_id_recepcion");
+        if (ultimaRec && document.getElementById("interIdOrigenInput")) {
+          if (!document.getElementById("interIdOrigenInput").value) {
+            document.getElementById("interIdOrigenInput").value = ultimaRec;
+          }
+        }
+
+        if (loteInterActual) {
+          cardAperturaInter.style.display = "none";
+          interPanel.style.display = "flex";
+          activarModoMetralletaInter();
+        } else {
+          cardAperturaInter.style.display = "flex";
+          interPanel.style.display = "none";
+        }
+      }
+    }
+
+    function iniciarLoteInternacional() {
+      const idOrigen = document.getElementById("interIdOrigenInput").value.trim() || "RECEPCION_GENERAL";
+      const edd = document.getElementById("interEddInicialInput").value;
+      const auditor = document.getElementById("interAuditorInput").value.trim() || "Irvin Reyes";
+
+      if (!edd) {
+        alert("⚠️ Por favor selecciona el EDD físico predominante para este lote.");
+        return;
+      }
+
+      const idLote = "INT-" + new Date().toISOString().slice(0,10).replace(/-/g,"") + "-" + Utilities_randomSuffix();
+
+      loteInterActual = {
+        id: idLote,
+        id_recepcion_origen: idOrigen,
+        edd_predominante: edd,
+        auditor: auditor,
+        ultimo_cp_resuelto: null,
+        hora_inicio: new Date().toISOString(),
+        escaneos: []
+      };
+
+      guardarEstadoInter();
+      activarModoMetralletaInter();
+    }
+
+    function guardarEstadoInter() {
+      if (loteInterActual) {
+        localStorage.setItem("painani_inter_activa", JSON.stringify(loteInterActual));
+      }
+    }
+
+    function activarModoMetralletaInter() {
+      document.getElementById("cardAperturaInter").style.display = "none";
+      document.getElementById("interPanel").style.display = "flex";
+
+      document.getElementById("labelInterOrigen").innerText = "ACTA: " + loteInterActual.id_recepcion_origen;
+      document.getElementById("activeEddInterInput").value = loteInterActual.edd_predominante;
+
+      actualizarOdometroInter();
+      renderHistorialInter();
+      renderEddBreakdownInter();
+
+      const input = document.getElementById("scannerInputInter");
+      const wrapper = document.getElementById("scannerWrapperInter");
+      if (input) input.focus();
+
+      if (focusLockIntervalInter) clearInterval(focusLockIntervalInter);
+      focusLockIntervalInter = setInterval(() => {
+        if (faseOperativaActual !== "INTERNACIONAL") return;
+        if (document.getElementById("modalResumenInter").style.display === "flex") return;
+        if (input && document.activeElement !== input) {
+          input.focus();
+        }
+      }, 600);
+
+      if (input) {
+        input.addEventListener("focus", () => wrapper.classList.add("focused"));
+        input.addEventListener("blur", () => wrapper.classList.remove("focused"));
+        input.addEventListener("keypress", function(e) {
+          if (e.key === "Enter") {
+            procesarDisparoPistolaInter();
+          }
+        });
+      }
+    }
+
+    function setQuickEddInter(diasOffset) {
+      const d = new Date();
+      d.setDate(d.getDate() + diasOffset);
+      const strFecha = d.toISOString().split('T')[0];
+      
+      document.getElementById("activeEddInterInput").value = strFecha;
+      if (loteInterActual) {
+        loteInterActual.edd_predominante = strFecha;
+        guardarEstadoInter();
+      }
+
+      const chips = ["chipInterHoy", "chipInterManana", "chipInterMas2", "chipInterMas3"];
+      chips.forEach((cId, idx) => {
+        const cEl = document.getElementById(cId);
+        if (cEl) {
+          cEl.className = (idx === diasOffset) ? "edd-chip active-inter" : "edd-chip";
+        }
+      });
+
+      flash("flash-inter");
+      setScannerStatusInter(`📅 EDD Internacional asignado: ${strFecha}`, "var(--inter)");
+      renderEddBreakdownInter();
+    }
+
+    function actualizarEddInterActivo() {
+      const nuevoEdd = document.getElementById("activeEddInterInput").value;
+      if (nuevoEdd && loteInterActual) {
+        loteInterActual.edd_predominante = nuevoEdd;
+        guardarEstadoInter();
+        renderEddBreakdownInter();
+      }
+    }
+
+    function setScannerStatusInter(msg, color) {
+      const el = document.getElementById("scannerStatusInter");
+      if (el) {
+        el.innerText = msg;
+        el.style.color = color;
+      }
+    }
+
+    function procesarDisparoPistolaInter() {
+      const input = document.getElementById("scannerInputInter");
+      if (!input) return;
+      const valor = input.value.trim();
+      input.value = "";
+
+      if (!valor || !loteInterActual) return;
+
+      const res = parsearDisparo(valor);
+
+      if (!res.valido) {
+        emitirAudio("error");
+        flash("flash-error");
+        setScannerStatusInter(`❌ RECHAZADO: '${res.codigo}' no cumple formato DHL`, "#ff3344");
+        return;
+      }
+
+      // RECHAZO AWB
+      if (res.tipo === "AWB") {
+        emitirAudio("error");
+        flash("flash-error");
+
+        const banner = document.getElementById("lastScanBannerInter");
+        if (banner) {
+          banner.style.display = "flex";
+          banner.style.borderColor = "var(--danger)";
+          document.getElementById("lastScanHeaderTagInter").innerText = "🚨 CÓDIGO RECHAZADO (GUÍA AWB PROHIBIDA):";
+          document.getElementById("lastScanCodeInter").innerText = res.codigo;
+          document.getElementById("lastScanCodeInter").style.color = "var(--danger)";
+          document.getElementById("lastScanTimeInter").innerText = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          document.getElementById("lastScanEddInter").innerText = "0 PZS — SOLO PIDs (JJD/JD)";
+        }
+
+        setScannerStatusInter(`🚨 RECHAZO AWB: Las guías de 10 dígitos (${res.codigo}) están PROHIBIDAS. Solo escanea PIDs físicos.`, "var(--danger)");
+        return;
+      }
+
+      // CÓDIGO POSTAL RESUELTO (5 DÍGITOS)
+      if (res.tipo === "CP") {
+        const infoCp = resolverCP(res.codigo);
+        loteInterActual.ultimo_cp_resuelto = infoCp;
+        guardarEstadoInter();
+        mostrarBannerZonaInter(infoCp);
+        emitirAudio("exito");
+        flash("flash-inter");
+
+        if (loteInterActual.escaneos.length > 0 && !loteInterActual.escaneos[0].cp) {
+          loteInterActual.escaneos[0].cp = infoCp.cp;
+          loteInterActual.escaneos[0].zona = infoCp.zona;
+          loteInterActual.escaneos[0].ruta = infoCp.ruta;
+          guardarEstadoInter();
+          renderHistorialInter();
+        }
+
+        setScannerStatusInter(`📍 C.P. ${infoCp.cp} ➔ ${infoCp.zona} (${infoCp.ruta})`, "var(--inter)");
+        return;
+      }
+
+      // PID FÍSICO CERTIFICADO
+      const yaExiste = loteInterActual.escaneos.some(item => item.codigo === res.codigo);
+      if (yaExiste) {
+        emitirAudio("duplicado");
+        flash("flash-warning");
+        setScannerStatusInter(`⚠️ DUPLICADO: Ya escaneaste ${res.codigo} en este lote internacional`, "var(--warning)");
+        return;
+      }
+
+      emitirAudio("exito");
+      flash("flash-inter");
+      setScannerStatusInter("🟢 Listo para ráfaga Internacional", "var(--inter)");
+
+      const eddFisico = document.getElementById("activeEddInterInput").value;
+      let cpAsignado = res.cp || "";
+      let infoZonaAsignada = null;
+
+      if (cpAsignado) {
+        infoZonaAsignada = resolverCP(cpAsignado);
+        loteInterActual.ultimo_cp_resuelto = infoZonaAsignada;
+        mostrarBannerZonaInter(infoZonaAsignada);
+      } else if (loteInterActual.ultimo_cp_resuelto) {
+        infoZonaAsignada = loteInterActual.ultimo_cp_resuelto;
+      }
+
+      const nuevoEscaneo = {
+        id: "ESC-INT-" + Date.now() + "-" + Utilities_randomSuffix(),
+        codigo: res.codigo,
+        tipo: "PID",
+        edd: eddFisico,
+        cp: infoZonaAsignada ? infoZonaAsignada.cp : "",
+        zona: infoZonaAsignada ? infoZonaAsignada.zona : "",
+        ruta: infoZonaAsignada ? infoZonaAsignada.ruta : "",
+        timestamp: new Date().toISOString(),
+        hora_legible: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        sync: false
+      };
+
+      loteInterActual.escaneos.unshift(nuevoEscaneo);
+      guardarEstadoInter();
+
+      actualizarOdometroInter();
+      renderHistorialInter();
+      renderEddBreakdownInter();
+      actualizarBannerUltimoInter(nuevoEscaneo);
+
+      setTimeout(sincronizarColaInterConSheets, 50);
+    }
+
+    function mostrarBannerZonaInter(infoCp) {
+      const banner = document.getElementById("zonaPillBannerInter");
+      banner.style.display = "flex";
+      document.getElementById("zonaPillNombreInter").innerText = infoCp.zona;
+      document.getElementById("zonaPillRutaInter").innerText = infoCp.ruta;
+      document.getElementById("zonaPillDetalleInter").innerText = `C.P. ${infoCp.cp} | ${infoCp.colonia} — Clasificado para este EDD`;
+    }
+
+    function actualizarOdometroInter() {
+      if (!loteInterActual) return;
+      const count = loteInterActual.escaneos.length;
+      document.getElementById("odometerInterCount").innerText = count;
+      document.getElementById("diffBadgeInter").innerText = `✓ ${count} BULTOS INTERNACIONALES CLASIFICADOS`;
+    }
+
+    function actualizarBannerUltimoInter(escaneo) {
+      const banner = document.getElementById("lastScanBannerInter");
+      banner.style.display = "flex";
+      banner.style.borderColor = "#0369a1";
+      document.getElementById("lastScanHeaderTagInter").innerText = "Último internacional bipiado:";
+      document.getElementById("lastScanCodeInter").innerText = escaneo.codigo;
+      document.getElementById("lastScanCodeInter").style.color = "var(--inter)";
+      document.getElementById("lastScanTimeInter").innerText = escaneo.hora_legible;
+      document.getElementById("lastScanEddInter").innerText = `EDD: ${escaneo.edd || "HOY"} ${escaneo.zona ? ('| ' + escaneo.zona) : ''}`;
+    }
+
+    function renderHistorialInter() {
+      if (!loteInterActual) return;
+      const container = document.getElementById("historyListInter");
+      if (loteInterActual.escaneos.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:#555; font-size:11px; padding:10px;">Aún no has bipiado bultos en este lote internacional.</div>';
+        return;
+      }
+
+      let html = "";
+      loteInterActual.escaneos.slice(0, 30).forEach((s, idx) => {
+        const esFoto = s.tipo === "PID_INC_FOTO" || (s.codigo && s.codigo.startsWith("PID_INC_"));
+        const tagTipo = esFoto ? '📸 FOTO IA' : 'PID';
+        const colorTipo = esFoto ? '#ff9800' : 'var(--inter)';
+
+        html += `
+          <div class="history-item">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="history-idx">${loteInterActual.escaneos.length - idx}</span>
+              <div>
+                <div style="font-family:monospace; font-weight:bold; color:${colorTipo};">
+                  ${s.codigo}
+                </div>
+                <div style="font-size:9.5px; color:#aaa; margin-top:1px;">
+                  EDD: ${s.edd || '--'} ${s.cp ? ('| CP ' + s.cp) : ''} ${s.zona ? ('| ' + s.zona) : ''}
+                </div>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:10px; color:#777;">${s.hora_legible}</div>
+              <span class="tag-tipo" style="background:#002238; color:${colorTipo}; border:1px solid #0369a1; padding:1px 4px; border-radius:3px; font-size:9px;">
+                ${s.sync ? '✓ Bóveda' : '⚡ Local'}
+              </span>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function renderEddBreakdownInter() {
+      if (!loteInterActual) return;
+      const container = document.getElementById("eddGroupsContainerInter");
+      const grupos = {};
+
+      loteInterActual.escaneos.forEach(s => {
+        const k = s.edd || "SIN_FECHA";
+        if (!grupos[k]) grupos[k] = 0;
+        grupos[k]++;
+      });
+
+      const keys = Object.keys(grupos).sort();
+      document.getElementById("eddTotalGruposInter").innerText = `${keys.length} fechas`;
+
+      if (keys.length === 0) {
+        container.innerHTML = '<div style="color:#666; font-size:10px; text-align:center;">Sin bultos internacionales agrupados aún.</div>';
+        return;
+      }
+
+      let html = "";
+      keys.forEach(k => {
+        html += `
+          <div class="edd-group-item" style="border-left-color:var(--inter);">
+            <span style="color:#ffffff; font-weight:bold;">📅 ${k}</span>
+            <span style="color:var(--inter); font-weight:900;">${grupos[k]} pzs</span>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    function deshacerUltimoEscaneoInter() {
+      if (!loteInterActual || loteInterActual.escaneos.length === 0) return;
+      const eliminado = loteInterActual.escaneos.shift();
+      guardarEstadoInter();
+      actualizarOdometroInter();
+      renderHistorialInter();
+      renderEddBreakdownInter();
+      flash("flash-warning");
+      setScannerStatusInter(`↩️ Eliminado: ${eliminado.codigo}`, "var(--warning)");
+    }
+
+    function descargarRespaldoCSVInter() {
+      if (!loteInterActual || loteInterActual.escaneos.length === 0) {
+        alert("⚠️ No hay bultos registrados para exportar.");
+        return;
+      }
+
+      let csv = "ID_Lote_Inter,Timestamp_Escaneo,Codigo_Original,PID_Sanitizado,EDD_Fisico,CP,Zona,Ruta,Auditor,ID_Recepcion_Origen\n";
+      loteInterActual.escaneos.forEach(s => {
+        const pidClean = s.codigo.startsWith("JJD") ? ("JD" + s.codigo.substring(3)) : s.codigo;
+        csv += `"${loteInterActual.id}","${s.timestamp}","${s.codigo}","${pidClean}","${s.edd}","${s.cp || ''}","${s.zona || ''}","${s.ruta || ''}","${loteInterActual.auditor}","${loteInterActual.id_recepcion_origen}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Painani_Inter_${loteInterActual.id}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function sincronizarColaInterConSheets() {
+      if (!navigator.onLine || !loteInterActual) return;
+
+      const pendientes = loteInterActual.escaneos.filter(s => !s.sync);
+      if (pendientes.length === 0) {
+        const ind = document.getElementById("syncIndicatorInter");
+        if (ind) {
+          ind.innerText = "✓ Sincronizado";
+          ind.style.color = "var(--success)";
+        }
+        return;
+      }
+
+      const ind = document.getElementById("syncIndicatorInter");
+      if (ind) {
+        ind.innerText = `⚡ Sincronizando (${pendientes.length})...`;
+        ind.style.color = "var(--warning)";
+      }
+
+      const payload = {
+        tipo: "INTERNACIONAL_EDD_SECUNDARIO",
+        subtipo: "LOTE_BATCH",
+        id_lote_inter: loteInterActual.id,
+        id_recepcion_origen: loteInterActual.id_recepcion_origen,
+        auditor: loteInterActual.auditor,
+        total_acumulado: loteInterActual.escaneos.length,
+        escaneos: pendientes.map(p => ({
+          id_escaneo: p.id,
+          codigo: p.codigo,
+          tipo: p.tipo,
+          edd: p.edd,
+          cp: p.cp || "",
+          zona: p.zona || "",
+          ruta: p.ruta || "",
+          timestamp: p.timestamp
+        }))
+      };
+
+      fetch(URL_WEBHOOK_RAMPA, {
+        method: "POST",
+        mode: "cors",
+        redirect: "follow",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.exito) {
+          pendientes.forEach(p => p.sync = true);
+          guardarEstadoInter();
+          renderHistorialInter();
+          if (ind) {
+            ind.innerText = "✓ Sincronizado";
+            ind.style.color = "var(--success)";
+          }
+        }
+      })
+      .catch(err => {
+        console.log("Reintento inter en siguiente ciclo: " + err.message);
+      });
+    }
+
+    function construirTextoResumenInter() {
+      if (!loteInterActual) return "";
+      const total = loteInterActual.escaneos.length;
+      const fechaHoy = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const horaActual = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+      const grupos = {};
+      const zonas = {};
+      loteInterActual.escaneos.forEach(s => {
+        const k = s.edd || "SIN_FECHA";
+        if (!grupos[k]) grupos[k] = 0;
+        grupos[k]++;
+
+        const z = s.zona || "SIN_ZONA";
+        if (!zonas[z]) zonas[z] = 0;
+        zonas[z]++;
+      });
+
+      let desgloseEdd = "";
+      Object.keys(grupos).sort().forEach(k => {
+        desgloseEdd += `• Fecha EDD ${k}: ${grupos[k]} piezas
+`;
+      });
+
+      let desgloseZonas = "";
+      Object.keys(zonas).sort().forEach(z => {
+        desgloseZonas += `• ${z}: ${zonas[z]} piezas
+`;
+      });
+
+      return `========================================
+🌐 RESUMEN DE CLASIFICACIÓN INTERNACIONAL (EDD)
+ARAUTO EXPRESS — ANDÉN QUERÉTARO
+========================================
+• Folio Lote Inter: ${loteInterActual.id}
+• Acta Camión Origen: ${loteInterActual.id_recepcion_origen}
+• Fecha / Hora: ${fechaHoy} ${horaActual}
+• Tlachixqui Auditor: ${loteInterActual.auditor}
+----------------------------------------
+📊 TOTAL BULTOS CLASIFICADOS: ${total} piezas
+----------------------------------------
+📅 DESGLOSE POR FECHA PROMETIDA (EDD):
+${desgloseEdd || "• Sin datos\n"}----------------------------------------
+🗺️ DESGLOSE POR ZONA LOGÍSTICA:
+${desgloseZonas || "• Sin zonas resueltas\n"}----------------------------------------
+🛡️ ALMACENAMIENTO INDEPENDIENTE:
+Registrado exclusivamente en la pestaña 'INTERNACIONALES_EDD' de BOVEDA_BATCH_MAESTRO. Cero mezcla con RECEPCION_RAMPA ni BD de ruta.
+========================================`;
+    }
+
+    function abrirModalResumenInter() {
+      document.getElementById("resumenInterTextPreview").innerText = construirTextoResumenInter();
+      document.getElementById("modalResumenInter").style.display = "flex";
+    }
+
+    function cerrarModalResumenInter() {
+      document.getElementById("modalResumenInter").style.display = "none";
+      const input = document.getElementById("scannerInputInter");
+      if (input) input.focus();
+    }
+
+    function copiarResumenInterParaWhatsApp() {
+      const texto = construirTextoResumenInter();
+      navigator.clipboard.writeText(texto).then(() => {
+        alert("✅ Resumen copiado al portapapeles con éxito.\nPégalo en el chat de supervisión de Arauto / DHL.");
+      }).catch(() => {
+        alert("Selecciona el texto del recuadro y cópialo manualmente.");
+      });
+    }
+
+    function finalizarYCerrarLoteInter() {
+      if (!loteInterActual) return;
+      const total = loteInterActual.escaneos.length;
+
+      const grupos = {};
+      loteInterActual.escaneos.forEach(s => {
+        const k = s.edd || "SIN_FECHA";
+        if (!grupos[k]) grupos[k] = 0;
+        grupos[k]++;
+      });
+
+      let desgloseEdd = "";
+      Object.keys(grupos).sort().forEach(k => {
+        desgloseEdd += `• EDD ${k}: ${grupos[k]} pzs
+`;
+      });
+
+      if (confirm(`🏁 ¿Confirmas el CIERRE del Lote Internacional ${loteInterActual.id}?\n\nTotal clasificados: ${total} piezas.\n\nSe notificará al Google Chat de Operaciones y se guardará en Bóveda.`)) {
+        if (navigator.onLine) {
+          fetch(URL_WEBHOOK_RAMPA, {
+            method: "POST",
+            mode: "cors",
+            redirect: "follow",
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify({
+              tipo: "INTERNACIONAL_EDD_SECUNDARIO",
+              subtipo: "CIERRE_LOTE_INTER",
+              id_lote_inter: loteInterActual.id,
+              id_recepcion_origen: loteInterActual.id_recepcion_origen,
+              auditor: loteInterActual.auditor,
+              total_clasificados: total,
+              desglose_edd: desgloseEdd
+            })
+          })
+          .then(r => r.json())
+          .then(res => console.log("Cierre internacional registrado:", res))
+          .catch(e => console.log("Error al notificar cierre inter:", e));
+        }
+
+        alert("✅ Lote Internacional concluido con éxito.\nDatos certificados en 'INTERNACIONALES_EDD'.");
+
+        clearInterval(focusLockIntervalInter);
+        localStorage.removeItem("painani_inter_activa");
+        loteInterActual = null;
+        cerrarModalResumenInter();
+
+        // Regresar a la Fase 1
+        cambiarFaseOperativa("CAMION");
+      }
+    }
+
+    function cerrarRampaYPasarAInternacionales() {
+      if (!recepcionActual) return;
+      const idRec = recepcionActual.id;
+      // Primero guardar el ID para que la fase 2 lo herede
+      localStorage.setItem("painani_ultimo_id_recepcion", idRec);
+
+      // Proceder con el cierre formal del acta de rampa
+      const recibidas = recepcionActual.escaneos.length;
+      const declaradas = recepcionActual.piezas_declaradas;
+      const dif = recibidas - declaradas;
+      const resumen = `Declaradas: ${declaradas} | Bipiadas: ${recibidas} (Diferencia: ${dif})`;
+
+      let pidsFaltantes = [];
+      let pidsSobrantes = [];
+      const pidsEscaneadosSet = new Set(recepcionActual.escaneos.map(s => s.codigo));
+      if (recepcionActual.pids_declarados_manifiesto && recepcionActual.pids_declarados_manifiesto.length > 0) {
+        pidsFaltantes = recepcionActual.pids_declarados_manifiesto.filter(p => !pidsEscaneadosSet.has(p));
+        pidsSobrantes = recepcionActual.escaneos.filter(s => !recepcionActual.pids_declarados_manifiesto.includes(s.codigo)).map(s => s.codigo);
+      }
+
+      if (confirm(`🏁 ¿Cerrar Acta de Recepción de Camión y PASAR DIRECTO al Escaneo Secundario Internacional?\n\n${resumen}`)) {
+        if (navigator.onLine) {
+          fetch(URL_WEBHOOK_RAMPA, {
+            method: "POST",
+            mode: "cors",
+            redirect: "follow",
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify({
+              tipo: "RECEPCION_RAMPA",
+              subtipo: "CIERRE_RECEPCION",
+              id_recepcion: recepcionActual.id,
+              modo: recepcionActual.modo,
+              asistente_dhl: recepcionActual.asistente_dhl,
+              total_declaradas: declaradas,
+              total_recibidas: recibidas,
+              auditor: recepcionActual.auditor,
+              awb_asociada: recepcionActual.awb_asociada || "",
+              pids_faltantes: pidsFaltantes,
+              pids_sobrantes: pidsSobrantes,
+              desglose_discrepancias: construirTextoActa()
+            })
+          }).catch(e => console.log(e));
+        }
+
+        clearInterval(focusLockInterval);
+        clearInterval(syncInterval);
+        localStorage.setItem("painani_ultimo_id_recepcion", recepcionActual.id);
+        localStorage.removeItem("painani_recepcion_activa");
+        recepcionActual = null;
+        cerrarModalActa();
+
+        // Cambiar directamente a Fase Internacional
+        cambiarFaseOperativa("INTERNACIONAL");
+        const interInput = document.getElementById("interIdOrigenInput");
+        if (interInput) interInput.value = idRec;
+      }
+    }
+
+    function dispararCapturaFotoIlegibleInter() {
+      if (!loteInterActual) {
+        alert("⚠️ Inicia primero el lote internacional.");
+        return;
+      }
+      const fileInput = document.getElementById("inputFotoIlegibleInter");
+      if (fileInput) {
+        fileInput.value = "";
+        fileInput.click();
+      }
+    }
+
+    function manejarCapturaFotoIlegibleInter(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      setScannerStatusInter("⏳ Comprimiendo fotografía...", "var(--warning)");
+
+      comprimirImagenCanvas_(file, 1280, 0.72, function(base64Comprimida) {
+        if (!base64Comprimida) {
+          alert("⚠️ No se pudo procesar la fotografía.");
+          setScannerStatusInter("❌ Error al procesar fotografía", "var(--danger)");
+          return;
+        }
+
+        let folioInc = "";
+        let intentos = 0;
+        do {
+          const rand = Math.floor(1000 + Math.random() * 9000);
+          folioInc = "PID_INC_INT_" + rand;
+          intentos++;
+        } while (loteInterActual.escaneos.some(e => e.codigo === folioInc) && intentos < 100);
+
+        const eddFisico = document.getElementById("activeEddInterInput").value;
+        const horaStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        const nuevoEscaneo = {
+          id: "ESC-INT-" + Date.now() + "-" + Utilities_randomSuffix(),
+          codigo: folioInc,
+          tipo: "PID_INC_FOTO",
+          edd: eddFisico,
+          cp: loteInterActual.ultimo_cp_resuelto ? loteInterActual.ultimo_cp_resuelto.cp : "",
+          zona: loteInterActual.ultimo_cp_resuelto ? loteInterActual.ultimo_cp_resuelto.zona : "",
+          ruta: loteInterActual.ultimo_cp_resuelto ? loteInterActual.ultimo_cp_resuelto.ruta : "",
+          timestamp: new Date().toISOString(),
+          hora_legible: horaStr,
+          sync: false
+        };
+
+        loteInterActual.escaneos.unshift(nuevoEscaneo);
+        guardarEstadoInter();
+
+        actualizarOdometroInter();
+        renderHistorialInter();
+        renderEddBreakdownInter();
+        actualizarBannerUltimoInter(nuevoEscaneo);
+        emitirAudio("exito");
+        flash("flash-inter");
+        setScannerStatusInter(`📸 Folio ${folioInc} registrado (+1 Bulto Inter). Enviando...`, "var(--warning)");
+
+        const payload = {
+          tipo: "INTERNACIONAL_EDD_SECUNDARIO",
+          subtipo: "REGISTRAR_INCIDENCIA_FOTO",
+          id_lote_inter: loteInterActual.id,
+          id_recepcion_origen: loteInterActual.id_recepcion_origen,
+          folio_incidencia: folioInc,
+          auditor: loteInterActual.auditor,
+          edd_fisico: eddFisico,
+          timestamp: nuevoEscaneo.timestamp,
+          foto_base64: base64Comprimida,
+          foto_mime: "image/jpeg"
+        };
+
+        fetch(URL_WEBHOOK_RAMPA, {
+          method: "POST",
+          mode: "cors",
+          redirect: "follow",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.exito) {
+            nuevoEscaneo.sync = true;
+            setScannerStatusInter(`✅ Folio ${folioInc} respaldado en Bóveda (INTERNACIONALES_EDD)`, "var(--success)");
+            guardarEstadoInter();
+            renderHistorialInter();
+          }
+        })
+        .catch(err => {
+          console.log("Error de red en foto internacional: " + err.message);
+        });
+      });
+    }
+
   </script>
 
 </body>

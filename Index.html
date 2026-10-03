@@ -48,6 +48,75 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-emerald-500/30">
 
+  <!-- ================= OBSIDIAN LOGIN OVERLAY (MEGAPULPO v83.0) ================= -->
+  <div id="login-overlay-console" class="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-700/80 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
+      <!-- OLLIN Logo -->
+      <div class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-[#0e3d28] via-[#062116] to-[#010503] flex items-center justify-center border-2 border-[#D4AF37]/70 shadow-lg">
+        <svg viewBox="0 0 100 100" class="w-10 h-10">
+          <defs>
+            <linearGradient id="goldModalCons" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#FFF5C2"/>
+              <stop offset="50%" stop-color="#D4AF37"/>
+              <stop offset="100%" stop-color="#92400E"/>
+            </linearGradient>
+          </defs>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="url(#goldModalCons)" stroke-width="2" opacity="0.4"/>
+          <path d="M 28 32 C 38 26, 48 38, 50 48 C 52 58, 62 70, 72 64 C 78 60, 80 50, 74 44 C 64 36, 56 46, 50 48 C 44 50, 36 38, 28 32 Z" fill="url(#goldModalCons)"/>
+          <path d="M 72 32 C 62 26, 52 38, 50 48 C 48 58, 38 70, 28 64 C 22 60, 20 50, 26 44 C 36 36, 44 46, 50 48 C 56 50, 64 38, 72 32 Z" fill="url(#goldModalCons)" opacity="0.9"/>
+          <circle cx="50" cy="48" r="8" fill="#10B981" stroke="#6EE7B7" stroke-width="1.5"/>
+          <circle cx="48" cy="46" r="2" fill="#FFFFFF" opacity="0.8"/>
+        </svg>
+      </div>
+
+      <div>
+        <h2 class="text-base font-extrabold uppercase tracking-wider text-slate-100 flex items-center justify-center gap-1.5">
+          <span>🏛️</span> CENTRO DE MANDO OLLIN
+        </h2>
+        <p class="text-[11px] text-[#D4AF37] font-semibold uppercase tracking-wider">Supervisión & Monitoreo Megapulpo</p>
+      </div>
+
+      <!-- Selector de Supervisor -->
+      <div class="text-left space-y-1">
+        <label class="block text-[10px] font-bold uppercase text-slate-400 tracking-wider">👤 Selecciona tu Usuario:</label>
+        <select id="console-login-user" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-200 focus:outline-none focus:border-emerald-500">
+          <option value="">-- Elige Supervisor --</option>
+          <option value="sidharta.santiago@arauto.express" data-role="todos" data-name="Sidharta Santiago">Sidharta Santiago [Tlayacanqui / Dir]</option>
+          <option value="irvin.reyes@arauto.express" data-role="irvin" data-name="Irvin Reyes">Irvin Reyes [Tlachixqui / Rampa & Metrópoli]</option>
+          <option value="xichudaniel@gmail.com" data-role="daniel" data-name="Daniel Juárez">Daniel Juárez [Tlachixqui / Sierra Gorda]</option>
+        </select>
+      </div>
+
+      <!-- Display PIN -->
+      <div class="text-left space-y-1">
+        <label class="block text-[10px] font-bold uppercase text-slate-400 tracking-wider">🔑 PIN de Acceso (4 dígitos):</label>
+        <div class="relative">
+          <input type="password" id="console-login-pin" maxlength="4" readonly placeholder="••••" class="w-full bg-slate-950 border border-slate-700 rounded-xl py-2 px-3 text-center text-lg font-mono tracking-[0.5em] text-[#D4AF37] focus:outline-none focus:border-emerald-500">
+        </div>
+      </div>
+
+      <!-- Teclado Numérico Ergonómico -->
+      <div class="grid grid-cols-3 gap-2 pt-1">
+        <button type="button" onclick="consPressKey('1')" class="py-3 rounded-xl bg-slate-800/80 hover:bg-slate-700 active:scale-95 text-slate-100 font-bold text-base transition">1</button>
+        <button type="button" onclick="consPressKey('2')" class="py-3 rounded-xl bg-slate-800/80 hover:bg-slate-700 active:scale-95 text-slate-100 font-bold text-base transition">2</button>
+        <button type="button" onclick="consPressKey('3')" class="py-3 rounded-xl bg-slate-800/80 hover:bg-slate-700 active:scale-95 text-slate-100 font-bold text-base transition">3</button>
+        <button type="button" onclick="consPressKey('4')" class="py-3 rounded-xl bg-slate-800/80 hover:bg-slate-700 active:scale-95 text-slate-100 font-bold text-base transition">4</button>
+        <button type="button" onclick="consPressKey('5')" class="py-3 rounded-xl bg-slate-800/80 hover:bg-slate-700 active:scale-95 text-slate-100 font-bold text-base transition">5</button>
+        <button type="button" onclick="consPressKey('6')" class="py-3 rounded-xl bg-slate-800/80 hover:bg-slate-700 active:scale-95 text-slate-100 font-bold text-base transition">6</button>
+        <button type="button" onclick="consPressKey('7')" class="py-3 rounded-xl bg-slate-800/80 hover:bg-slate-700 active:scale-95 text-slate-100 font-bold text-base transition">7</button>
+        <button type="button" onclick="consPressKey('8')" class="py-3 rounded-xl bg-slate-800/80 hover:bg-slate-700 active:scale-95 text-slate-100 font-bold text-base transition">8</button>
+        <button type="button" onclick="consPressKey('9')" class="py-3 rounded-xl bg-slate-800/80 hover:bg-slate-700 active:scale-95 text-slate-100 font-bold text-base transition">9</button>
+        <button type="button" onclick="consClearKey()" class="py-3 rounded-xl bg-red-950/60 hover:bg-red-900/60 active:scale-95 text-red-400 border border-red-500/20 font-bold text-xs uppercase tracking-wider transition">Borrar</button>
+        <button type="button" onclick="consPressKey('0')" class="py-3 rounded-xl bg-slate-800/80 hover:bg-slate-700 active:scale-95 text-slate-100 font-bold text-base transition">0</button>
+        <button type="button" onclick="consSubmitLogin()" class="py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-extrabold text-xs uppercase tracking-wider transition shadow-lg shadow-emerald-950/50">Entrar</button>
+      </div>
+
+      <p class="text-[10px] text-slate-500 leading-tight pt-1">
+        🛡️ Sesión activa por 24 horas. Para cambiar de usuario o de rol, usa el botón en la barra superior.
+      </p>
+    </div>
+  </div>
+
   <!-- ================= TOP HEADER BAR ================= -->
   <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-50 px-4 sm:px-6 shadow-md">
     <div class="max-w-7xl mx-auto flex items-center justify-between h-14">
@@ -74,10 +143,10 @@
           <h1 class="text-sm font-black tracking-wider uppercase flex items-center gap-1.5 text-slate-100">
             CONSOLA MAESTRA QRO
             <span class="text-[9px] bg-emerald-950 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded font-bold uppercase font-mono tracking-normal">
-              V81.2 PROD
+              V83.0 PROD
             </span>
           </h1>
-          <p class="text-[9px] text-[#D4AF37] font-bold uppercase tracking-wider">Centro de Mando Unificado Irvin Reyes</p>
+          <p class="text-[9px] text-[#D4AF37] font-bold uppercase tracking-wider">Centro de Mando Operativo Megapulpo</p>
         </div>
       </div>
 
@@ -89,13 +158,17 @@
         </button>
         <button onclick="switchTab('sierra')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-950/80 border border-blue-500/40 text-[10px] font-bold text-blue-400 hover:bg-blue-900/80 transition-all uppercase tracking-wider shadow-sm">
           <i data-lucide="mountain-snow" class="w-3.5 h-3.5 text-blue-400"></i>
-          Sierra Gorda v3.0
+          Sierra Gorda
         </button>
+
+        <!-- SUPERVISOR ACTIVE SESSION CHIP & LOGOUT -->
         <div class="flex items-center gap-1.5 pl-2 border-l border-slate-800">
-          <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Rol:</span>
-          <span class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-[10px] font-mono font-bold text-[#D4AF37]">
-            <?= role.toUpperCase() ?>
-          </span>
+          <button onclick="abrirLoginOverlay()" class="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 hover:border-[#D4AF37] text-[11px] text-slate-200 transition shadow-sm" title="Cambiar Supervisor / Cerrar Sesión">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="nav-user-name" class="font-bold text-slate-200">Cargando...</span>
+            <span id="nav-user-role" class="text-[9px] font-mono bg-emerald-950 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20 font-bold uppercase tracking-wider">ROL</span>
+            <i data-lucide="log-out" class="w-3.5 h-3.5 text-slate-400 hover:text-red-400 ml-1"></i>
+          </button>
         </div>
       </div>
 
@@ -104,177 +177,14 @@
 
   <!-- MAIN CONTAINER -->
   <main class="flex-grow p-4 sm:p-6 max-w-7xl mx-auto w-full space-y-6">
-  <? if (role === 'daniel') { ?>
+  <? if (role !== 'extractor') { ?>
     <!-- ========================================================================= -->
-    <!-- 🏔️ VISTA ISLADA DE SIERRA GORDA (DANIEL) -->
-    <!-- ========================================================================= -->
-    <div class="space-y-6">
-      
-      <!-- SIERRA GENERAL METRICS -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-        
-        <!-- CARD CUSTODIA SIERRA -->
-        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-md">
-          <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Volumen en Custodia</span>
-            <div class="p-2 rounded-lg bg-blue-950 text-blue-400">
-              <i data-lucide="package" class="w-4 h-4"></i>
-            </div>
-          </div>
-          <div class="flex items-baseline gap-2">
-            <span class="text-3xl font-extrabold text-slate-100 font-mono" id="sierra-kpi-custodia">0</span>
-            <span class="text-[11px] text-slate-400 font-semibold uppercase">Guías/PIDs</span>
-          </div>
-          <p class="text-[10px] text-slate-500 font-medium mt-1">Zonas de ruteo asignadas en la Sierra Gorda</p>
-        </div>
-
-        <!-- CARD SLA SIERRA -->
-        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-md">
-          <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Efectividad del Día (SLA)</span>
-            <div class="p-2 rounded-lg bg-emerald-950 text-emerald-400">
-              <i data-lucide="percent" class="w-4 h-4"></i>
-            </div>
-          </div>
-          <div class="flex items-baseline gap-2">
-            <span class="text-3xl font-extrabold text-slate-100 font-mono" id="sierra-kpi-sla">83%</span>
-            <span class="text-[10px] text-emerald-400 font-semibold" id="sierra-kpi-sla-status">Calculando...</span>
-          </div>
-          <p class="text-[10px] text-slate-500 font-medium mt-1">Relación de entregas exitosas (OK) del día</p>
-        </div>
-
-        <!-- CARD PREASIGNADO VS VALIDADOS -->
-        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-md">
-          <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Carga Física Validada</span>
-            <div class="p-2 rounded-lg bg-indigo-950 text-indigo-400">
-              <i data-lucide="check-square" class="w-4 h-4"></i>
-            </div>
-          </div>
-          <div class="flex items-baseline gap-2">
-            <span class="text-2xl font-extrabold text-slate-100 font-mono" id="sierra-kpi-validados">0 / 0</span>
-            <span class="text-[10px] text-indigo-400 font-semibold">Cargadas</span>
-          </div>
-          <div class="w-full bg-slate-800 rounded-full h-1.5 mt-2 overflow-hidden">
-            <div id="sierra-validados-progress" class="bg-indigo-500 h-1.5 transition-all duration-500" style="width: 0%"></div>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- OPERADORES EN RUTA GORDA -->
-      <div class="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-4">
-        <h3 class="text-xs font-bold text-blue-300 tracking-wider uppercase flex items-center gap-2">
-          <i data-lucide="users" class="w-4 h-4 text-blue-400"></i>
-          Pochtecas de Cobertura Sierra
-        </h3>
-        
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="sierra-choferes-container">
-          <!-- Tarjetas de Daniel, Oscher, Jesus -->
-          <!-- Daniel card -->
-          <div onclick="abrirAuditoriaPochteca('xichudaniel@gmail.com', 'Daniel Juárez')" class="cursor-pointer bg-slate-900 border border-slate-800 hover:border-blue-500 p-4 rounded-xl transition-all flex flex-col justify-between h-28">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-slate-200">Daniel Juárez 🏔️</span>
-              <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-            </div>
-            <div class="grid grid-cols-2 gap-2 text-[10px] text-center font-mono">
-              <div class="bg-emerald-950/60 rounded px-2 py-1 border border-emerald-500/10">
-                <span class="text-emerald-400 font-bold block" id="score-sierra-daniel-ok">0</span>
-                <span class="text-slate-500 text-[8px]">OK</span>
-              </div>
-              <div class="bg-red-950/60 rounded px-2 py-1 border border-red-500/10">
-                <span class="text-red-400 font-bold block" id="score-sierra-daniel-inc">0</span>
-                <span class="text-slate-500 text-[8px]">EXC</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Oscher card -->
-          <div onclick="abrirAuditoriaPochteca('oscher1016@gmail.com', 'Oscher')" class="cursor-pointer bg-slate-900 border border-slate-800 hover:border-blue-500 p-4 rounded-xl transition-all flex flex-col justify-between h-28">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-slate-200">Oscher 🏔️</span>
-              <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-            </div>
-            <div class="grid grid-cols-2 gap-2 text-[10px] text-center font-mono">
-              <div class="bg-emerald-950/60 rounded px-2 py-1 border border-emerald-500/10">
-                <span class="text-emerald-400 font-bold block" id="score-sierra-oscher-ok">0</span>
-                <span class="text-slate-500 text-[8px]">OK</span>
-              </div>
-              <div class="bg-red-950/60 rounded px-2 py-1 border border-red-500/10">
-                <span class="text-red-400 font-bold block" id="score-sierra-oscher-inc">0</span>
-                <span class="text-slate-500 text-[8px]">EXC</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Jesus card -->
-          <div onclick="abrirAuditoriaPochteca('jesusivargonzalez@gmail.com', 'Jesús Ivar')" class="cursor-pointer bg-slate-900 border border-slate-800 hover:border-blue-500 p-4 rounded-xl transition-all flex flex-col justify-between h-28">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-slate-200">Jesús Ivar 🏔️</span>
-              <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-            </div>
-            <div class="grid grid-cols-2 gap-2 text-[10px] text-center font-mono">
-              <div class="bg-emerald-950/60 rounded px-2 py-1 border border-emerald-500/10">
-                <span class="text-emerald-400 font-bold block" id="score-sierra-jesus-ok">0</span>
-                <span class="text-slate-500 text-[8px]">OK</span>
-              </div>
-              <div class="bg-red-950/60 rounded px-2 py-1 border border-red-500/10">
-                <span class="text-red-400 font-bold block" id="score-sierra-jesus-inc">0</span>
-                <span class="text-slate-500 text-[8px]">EXC</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- POCHTECA LIVE AUDIT MODAL/PANEL (SIERRA) -->
-      <div id="pochteca-audit-panel" class="hidden bg-slate-900 rounded-2xl border border-slate-800 p-5 space-y-4 shadow-lg transition-all">
-        <!-- Rendered dynamically -->
-      </div>
-
-      <!-- INCIDENCIAS DE SIERRA GORDA -->
-      <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-lg">
-        <div class="px-5 py-4 border-b border-slate-800 bg-slate-900/50 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <h3 class="text-xs font-bold text-slate-200 tracking-wider uppercase flex items-center gap-2">
-            <i data-lucide="alert-triangle" class="w-4 h-4 text-blue-400"></i>
-            Mesa de Cuarentena (Incidencias Sierra Gorda)
-          </h3>
-          <button onclick="cargarIncidenciasSierra()" class="text-[10px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 font-bold text-slate-300 transition-colors uppercase">
-            <i data-lucide="rotate-cw" class="w-3 h-3"></i>
-            Actualizar Cuarentena
-          </button>
-        </div>
-        <div class="p-0 overflow-x-auto custom-scrollbar max-h-[300px]">
-          <table class="w-full text-left border-collapse text-xs">
-            <thead class="sticky top-0 bg-slate-950 text-slate-400 font-bold uppercase border-b border-slate-800 z-10">
-              <tr>
-                <th class="px-4 py-3">Guía</th>
-                <th class="px-4 py-3">PID</th>
-                <th class="px-4 py-3 text-center">C.P.</th>
-                <th class="px-4 py-3">Destinatario</th>
-                <th class="px-4 py-3 text-center">Estatus</th>
-                <th class="px-4 py-3">Falla de Calle</th>
-                <th class="px-4 py-3">Operador</th>
-                <th class="px-4 py-3 text-center">Fecha Ingreso</th>
-              </tr>
-            </thead>
-            <tbody id="incidencias-table-body" class="divide-y divide-slate-800 text-slate-300">
-              <!-- Se inyecta dinámicamente -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-    </div>
-
-  <? } else if (role !== 'extractor') { ?>
-    <!-- ========================================================================= -->
-    <!-- 🟢 VISTA ADMINISTRATIVA COMPLETA (IRVIN) -->
+    <!-- 🟢 VISTA ADMINISTRATIVA COMPLETA MEGAPULPO (v83.0 PROD) -->
     <!-- ========================================================================= -->
     <div class="space-y-6">
       
-      <!-- INTERACTIVE 5-TAB HEADERS (CONSOLA MAESTRA IRVIN UNIFICADA v81.0) -->
-      <div class="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-3">
+      <!-- INTERACTIVE 5-TAB HEADERS (CONSOLA MAESTRA MEGAPULPO UNIFICADA v83.0) -->
+      <div id="tabs-header-container" class="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-3">
         <button id="tab-rampa-btn" onclick="switchTab('rampa')" class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 bg-[#1e3f20] text-[#D4AF37] border border-[#D4AF37]/30 shadow-lg">
           <i data-lucide="wrench" class="w-4 h-4 text-[#D4AF37]"></i>
           🏗️ Rampa & Lotes
@@ -306,7 +216,7 @@
             <div class="space-y-2 text-center md:text-left">
               <h2 class="text-lg font-extrabold text-[#D4AF37] tracking-wider uppercase flex items-center justify-center md:justify-start gap-2">
                 <i data-lucide="shield-alert" class="w-5 h-5 text-emerald-400"></i>
-                Procesamiento Unificado v81.2 PROD
+                Procesamiento Unificado v82.0 PROD
               </h2>
               <p class="text-xs text-slate-300 max-w-xl font-medium leading-relaxed">
                 Ejecuta de forma secuencial y en memoria asíncrona la descarga del Excel de DHL, la extracción limpia de números telefónicos de Gmail y el enraizamiento en bases de rampa.
@@ -711,7 +621,7 @@
       </div>
 
       <!-- ========================================================================= -->
-      <!-- 🏔️ TAB 3 CONTENT: CONSOLA DE MONITOREO SIERRA GORDA -->
+            <!-- 🏔️ TAB 3 CONTENT: CONSOLA DE MONITOREO Y REASIGNACIÓN SIERRA GORDA v82.0 PROD -->
       <!-- ========================================================================= -->
       <div id="tab-sierra-content" class="hidden space-y-6">
         
@@ -721,175 +631,316 @@
             <h3 class="text-base font-extrabold text-slate-100 flex items-center gap-2 uppercase tracking-wide">
               <i data-lucide="mountain-snow" class="text-blue-400 w-5 h-5"></i>
               Mesa de Control Sierra Gorda (Grupo Daniel Juárez)
-              <span class="text-[10px] bg-blue-950 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded font-mono font-bold">V3.0 PROD</span>
+              <span class="text-[10px] bg-blue-950 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded font-mono font-bold">V82.0 PROD</span>
             </h3>
-            <p class="text-xs text-slate-400">Monitoreo en memoria RAM asíncrono de la base RUTA para la zona de alta montaña.</p>
+            <p class="text-xs text-slate-400">Monitoreo y reasignación en caliente conectado en tiempo real a la hoja <strong class="text-blue-300">Ruta</strong> de <strong class="text-emerald-400">BD CENTRAL 2023</strong>.</p>
           </div>
           <div class="flex items-center gap-3">
-            <span class="px-3 py-1 rounded-full bg-blue-950 border border-blue-500/20 text-[10px] font-bold text-blue-400 uppercase tracking-widest">
-              Radar de Custodia Activo
+            <span class="px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/30 text-[10px] font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              BD Central 2023
             </span>
-            <button onclick="cargarDatosSierra()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-xs uppercase text-slate-200 transition-all active:scale-95 border border-slate-700">
+            <button onclick="cargarDatosSierra()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-xs uppercase text-white transition-all active:scale-95 border border-blue-400/40 shadow-lg shadow-blue-950/50">
               <i data-lucide="rotate-cw" class="w-3.5 h-3.5" id="sync-icon-sierra"></i> Sincronizar RUTA
             </button>
           </div>
         </div>
 
-        <!-- KPI CARDS SIERRA -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Efectividad SLA</span>
-              <i data-lucide="award" class="text-blue-400 w-5 h-5"></i>
+        <!-- 4 TARJETAS KPI SUPERIORES -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+          <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-lg relative overflow-hidden">
+            <div class="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
+              <span>Total Sierra</span>
+              <i data-lucide="package" class="w-4 h-4 text-blue-400"></i>
             </div>
-            <div class="text-3xl font-extrabold text-blue-400 font-mono" id="sierra-tab-kpi-sla">100.0%</div>
-            <p class="text-[10px] text-slate-500 mt-1">Efectividad real de campo: OKs vs Visitas de entrega</p>
+            <div class="text-2xl md:text-3xl font-extrabold text-white font-mono" id="sierra-tab-kpi-total">0</div>
+            <p class="text-[10px] text-slate-400 mt-0.5">Manifiesto activo en ruta</p>
           </div>
 
-          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Cierre Diario (Faltan de OK)</span>
-              <i data-lucide="alert-circle" class="text-emerald-400 w-5 h-5"></i>
+          <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-lg relative overflow-hidden">
+            <div class="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
+              <span>Entregadas (OK)</span>
+              <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
             </div>
-            <div class="text-3xl font-extrabold text-emerald-400 font-mono" id="sierra-tab-kpi-cierre">0 / 0</div>
-            <p class="text-[10px] text-slate-500 mt-1">Visitas en campo cerradas vs Visitas totales (Excluye Preasignaciones)</p>
+            <div class="text-2xl md:text-3xl font-extrabold text-emerald-400 font-mono" id="sierra-tab-kpi-ok">0</div>
+            <p class="text-[10px] text-slate-400 mt-0.5">Firmadas con éxito en campo</p>
           </div>
 
-          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Custodia Internacional 🌐</span>
-              <i data-lucide="globe" class="text-yellow-400 w-5 h-5"></i>
+          <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-lg relative overflow-hidden">
+            <div class="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
+              <span>Pendientes / Ruta</span>
+              <i data-lucide="clock" class="w-4 h-4 text-amber-400"></i>
             </div>
-            <div class="text-2xl font-extrabold text-yellow-400 font-mono" id="sierra-tab-kpi-inter">0 Pend. / 0 Incid.</div>
-            <p class="text-[10px] text-slate-500 mt-1">Envíos de prioridad DHL sin firma (Aísla preasignados)</p>
-          </div>
-        </div>
-
-        <!-- THREE-COLUMN GRID: STATS TABLES SIERRA -->
-        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <!-- Pochteca Summary Board -->
-          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
-            <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
-              <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                <i data-lucide="users" class="text-blue-400 w-4 h-4"></i>
-                Asignación por Pochteca
-              </h4>
-              <span class="text-[9px] bg-blue-950 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded font-black font-mono">RAM</span>
-            </div>
-            <div class="overflow-x-auto custom-scrollbar max-h-[180px]">
-              <table class="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr class="bg-slate-950 text-slate-400 uppercase tracking-wider font-bold text-[9px] border-b border-slate-800">
-                    <th class="px-2 py-1.5">Pochteca</th>
-                    <th class="px-2 py-1.5 text-center">Asignadas</th>
-                    <th class="px-2 py-1.5 text-center">Pendientes</th>
-                    <th class="px-2 py-1.5 text-center">OKs</th>
-                    <th class="px-2 py-1.5 text-center">Incid.</th>
-                    <th class="px-2 py-1.5 text-center">SLA</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-800/40 text-slate-300 text-[11px]" id="sierra-tab-cuerpo-pochtecas">
-                  <!-- Se inyecta dinámicamente -->
-                </tbody>
-              </table>
-            </div>
+            <div class="text-2xl md:text-3xl font-extrabold text-amber-400 font-mono" id="sierra-tab-kpi-pendientes">0</div>
+            <p class="text-[10px] text-slate-400 mt-0.5">Por entregar en la jornada</p>
           </div>
 
-          <!-- Daily Volume Summary with Spanish dates -->
-          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
-            <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
-              <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                <i data-lucide="calendar" class="text-emerald-400 w-4 h-4"></i>
-                Desglose Diario de RUTA
-              </h4>
-              <span class="text-[9px] bg-emerald-950 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-black font-mono">FECHAS ES</span>
+          <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-lg relative overflow-hidden">
+            <div class="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
+              <span>Internacionales</span>
+              <i data-lucide="globe" class="w-4 h-4 text-blue-400"></i>
             </div>
-            <div class="overflow-x-auto custom-scrollbar max-h-[180px]">
-              <table class="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr class="bg-slate-950 text-slate-400 uppercase tracking-wider font-bold text-[9px] border-b border-slate-800">
-                    <th class="px-2 py-1.5">Fecha</th>
-                    <th class="px-2 py-1.5 text-center">Total</th>
-                    <th class="px-2 py-1.5 text-center">Pend.</th>
-                    <th class="px-2 py-1.5 text-center">Visitas</th>
-                    <th class="px-2 py-1.5 text-center">OKs</th>
-                    <th class="px-2 py-1.5 text-center">SLA</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-800/40 text-slate-300 text-[11px]" id="sierra-tab-cuerpo-diario">
-                  <!-- Se inyecta dinámicamente -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- International Priority Radar -->
-          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
-            <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
-              <h4 class="text-xs font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-1.5">
-                <i data-lucide="plane-landing" class="text-yellow-400 w-4 h-4"></i>
-                Radar Custodia Internacional
-              </h4>
-              <span class="text-[9px] bg-yellow-950 text-yellow-400 border border-yellow-500/20 px-2 py-0.5 rounded font-black font-mono">PRIORITY</span>
-            </div>
-            <div class="overflow-x-auto custom-scrollbar max-h-[180px]">
-              <table class="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr class="bg-slate-950 text-slate-400 uppercase tracking-wider font-bold text-[9px] border-b border-slate-800">
-                    <th class="px-2 py-1.5">Guía / Cliente</th>
-                    <th class="px-2 py-1.5">Fecha Asignada</th>
-                    <th class="px-2 py-1.5 text-center">Estatus</th>
-                    <th class="px-2 py-1.5">Operador</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-800/40 text-slate-300 text-[11px]" id="sierra-tab-cuerpo-internacionales">
-                  <!-- Se inyecta dinámicamente -->
-                </tbody>
-              </table>
-            </div>
+            <div class="text-2xl md:text-3xl font-extrabold text-blue-400 font-mono" id="sierra-tab-kpi-inter">0</div>
+            <p class="text-[10px] text-slate-400 mt-0.5">Custodia prioritaria DHL [INTER]</p>
           </div>
         </div>
 
-        <!-- MAIN TABLE SIERRA -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-          <div class="px-5 py-4 border-b border-slate-800 bg-slate-900/50 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <h3 class="text-xs font-bold text-slate-200 tracking-wider uppercase flex items-center gap-2">
-              <i data-lucide="navigation" class="w-4 h-4 text-blue-400"></i>
-              Mesa de Ruta de Alta Montaña (Bóveda RUTA)
-            </h3>
+        <!-- ================= 🚨 BARRA CENTINELA DE ALERTAS EN VIVO (MEGAPULPO) ================= -->
+        <div id="sierra-centinela-bar" class="space-y-3">
+          <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <label class="text-xs font-bold text-slate-400">Filtrar Operador:</label>
-              <select id="sierra-tab-filtro-chofer" onchange="filtrarTablaSierraTab()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-blue-400 font-bold focus:outline-none focus:border-blue-500">
-                <option value="todos">-- Todo el Grupo Sierra --</option>
-                <option value="xichudaniel@gmail.com">Daniel Juárez</option>
-                <option value="jesusivargonzalez@gmail.com">Jesús Ivar</option>
-                <option value="oscher1016@gmail.com">Oscher</option>
-              </select>
-              <span class="text-[10px] text-slate-500 font-mono font-bold" id="sierra-tab-conteo-filas">0 guías</span>
+              <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span class="text-xs font-bold text-slate-300">🛡️ Centinela Megapulpo: Monitoreo activo de inicio de turno (08:30 hrs) y tiempos prolongados (>45m Sierra).</span>
+            </div>
+            <span class="text-[10px] text-slate-500 font-mono font-bold" id="sierra-centinela-timestamp">---</span>
+          </div>
+        </div>
+
+        <!-- ================= 📡 GRID DE TELEMETRÍA DE POCHTECAS SIERRA GORDA ================= -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+            <div>
+              <h4 class="text-sm font-extrabold uppercase tracking-wider text-slate-100 flex items-center gap-2">
+                <i data-lucide="radio" class="w-4 h-4 text-emerald-400 animate-pulse"></i>
+                Telemetría de Pochtecas en Calle (Sierra Gorda)
+              </h4>
+              <p class="text-xs text-slate-400">Estado de sesión Ollinqui PWA, ritmo de paradas (SPH) y semáforo de inactividad.</p>
+            </div>
+            <div class="flex items-center gap-3 text-[10px] font-bold uppercase tracking-wider">
+              <span class="flex items-center gap-1 text-emerald-400"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> Nominal (&lt;20m)</span>
+              <span class="flex items-center gap-1 text-amber-400"><span class="w-2 h-2 rounded-full bg-amber-400"></span> Preventivo (20-44m)</span>
+              <span class="flex items-center gap-1 text-red-400"><span class="w-2 h-2 rounded-full bg-red-400"></span> Crítico (&ge;45m)</span>
             </div>
           </div>
-          <div class="overflow-x-auto max-h-[350px] custom-scrollbar">
+
+          <div id="sierra-telemetria-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <div class="col-span-full py-8 text-center text-xs text-slate-500 font-bold uppercase tracking-wider">
+              Cargando telemetría de operadores...
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= 📦 ASIGNACIÓN RÁPIDA DE GUÍAS HUÉRFANAS ================= -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
+            <div>
+              <h4 class="text-sm font-extrabold uppercase tracking-wider text-amber-300 flex items-center gap-2">
+                <i data-lucide="package-search" class="w-4 h-4 text-amber-400"></i>
+                Guías Huérfanas de Sierra Gorda
+                <span id="sierra-tab-kpi-huerfanas-badge" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-black bg-amber-950 text-amber-400 border border-amber-500/30">0</span>
+              </h4>
+              <p class="text-xs text-slate-400">Guías registradas en demarcaciones de la Sierra sin operador asignado en BD Central.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <select id="sierra-huerfanas-destino" class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+                <option value="">-- Asignar Selección a... --</option>
+              </select>
+              <button onclick="ejecutarAsignacionHuerfanas()" class="px-4 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-xs font-bold text-white shadow transition active:scale-95 flex items-center gap-1.5 uppercase tracking-wider">
+                <i data-lucide="zap" class="w-3.5 h-3.5"></i> Asignar en Caliente
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto max-h-[220px] custom-scrollbar">
             <table class="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr class="bg-slate-950 text-slate-400 border-b border-slate-800 uppercase tracking-wider font-bold text-[10px] sticky top-0 z-10">
-                  <th class="px-4 py-3">Guía (HWB)</th>
-                  <th class="px-4 py-3">Bulto (PID)</th>
-                  <th class="px-4 py-3">C.P.</th>
-                  <th class="px-4 py-3">Cliente</th>
-                  <th class="px-4 py-3">Dirección de Entrega</th>
-                  <th class="px-4 py-3 text-center">Estatus</th>
-                  <th class="px-4 py-3">Comentarios / Evidencia</th>
-                  <th class="px-4 py-3">Chofer</th>
+              <thead class="sticky top-0 bg-slate-950 text-slate-400 font-bold uppercase border-b border-slate-800 text-[10px] tracking-wider z-10">
+                <tr>
+                  <th class="px-3 py-2 text-center w-10">
+                    <input type="checkbox" id="chk-huerfanas-todas" onchange="toggleSeleccionarTodasHuerfanas(this.checked)" class="rounded bg-slate-950 border-slate-700 text-amber-500 focus:ring-0">
+                  </th>
+                  <th class="px-3 py-2">Guía (HWB)</th>
+                  <th class="px-3 py-2">PID</th>
+                  <th class="px-3 py-2">Destinatario</th>
+                  <th class="px-3 py-2">Municipio / CP</th>
+                  <th class="px-3 py-2 text-center">Piezas</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-slate-800/40 text-slate-300" id="sierra-tab-cuerpo-tabla">
+              <tbody id="sierra-huerfanas-table-body" class="divide-y divide-slate-800/40 text-slate-300">
                 <tr>
-                  <td colspan="8" class="text-center py-10 text-slate-500 font-bold uppercase tracking-wider">
-                    Haz clic en "Sincronizar RUTA" para cargar los datos de la Sierra Gorda...
+                  <td colspan="6" class="text-center py-6 text-slate-500 text-xs font-bold">
+                    No hay guías huérfanas pendientes en Sierra Gorda.
                   </td>
                 </tr>
               </tbody>
             </table>
+          </div>
+        </div>
+
+        <!-- MÓDULOS DE REASIGNACIÓN EN CALIENTE -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <!-- TRANSFERENCIA CHOFER A CHOFER -->
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-md flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="text-xs font-bold uppercase text-slate-200 tracking-wider flex items-center gap-1.5">
+                  <i data-lucide="arrow-left-right" class="w-4 h-4 text-blue-400"></i>
+                  Transferencia en Lote (Chofer a Chofer)
+                </h4>
+                <span class="text-[9px] bg-blue-950 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded font-bold uppercase">Ruta Completa</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mb-3">Transfiere al instante todas las guías activas de un chofer a otro en la hoja <strong class="text-slate-200">Ruta</strong> de BD Central.</p>
+              
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">1. Chofer Origen</label>
+                  <select id="sierra-tab-chofer-origen" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+                    <option value="">-- Selecciona Origen --</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">2. Chofer Destino (Grupo Daniel)</label>
+                  <select id="sierra-tab-chofer-destino" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+                    <option value="">-- Selecciona Destino --</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <button onclick="solicitarConfirmacionChoferTab()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2 uppercase tracking-wider">
+              <i data-lucide="send" class="w-3.5 h-3.5"></i> Transferir Ruta Completa
+            </button>
+          </div>
+
+          <!-- REASIGNACIÓN POR DEMARCACIÓN -->
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-md flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="text-xs font-bold uppercase text-slate-200 tracking-wider flex items-center gap-1.5">
+                  <i data-lucide="map-pin" class="w-4 h-4 text-emerald-400"></i>
+                  Reasignación por Demarcación (MATRIZ_CP)
+                </h4>
+                <span class="text-[9px] bg-emerald-950 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-bold uppercase">Override Activo</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mb-3">Reasigna por Municipio o CP específico e inyecta la actualización en BD Central.</p>
+              
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-4">
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Tipo</label>
+                  <select id="sierra-tab-demarcacion-tipo" onchange="cambiarTipoDemarcacionTab()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                    <option value="municipio">Municipio</option>
+                    <option value="cp">Código Postal</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1" id="sierra-tab-lbl-target">Municipio</label>
+                  <select id="sierra-tab-demarcacion-valor" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                    <option value="">Cargando catálogo...</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Destino (Grupo Daniel)</label>
+                  <select id="sierra-tab-demarcacion-destino" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                    <option value="">-- Selecciona Destino --</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <button onclick="solicitarConfirmacionGeoTab()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2 uppercase tracking-wider">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Activar Override & Reasignar Ubicación
+            </button>
+          </div>
+        </div>
+
+        <!-- FILTROS Y TABLA PRINCIPAL DE SIERRA GORDA -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+          <!-- BARRA DE FILTROS -->
+          <div class="p-4 border-b border-slate-800 bg-slate-900/60 flex flex-col md:flex-row items-center justify-between gap-3">
+            <div class="w-full md:w-80 relative">
+              <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-500"></i>
+              <input type="text" id="sierra-tab-filtro-texto" oninput="renderizarTablaSierraTab()" placeholder="Buscar por Guía HWB, Destinatario, Municipio o CP..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500">
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+              <select id="sierra-tab-filtro-chofer" onchange="renderizarTablaSierraTab()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-blue-500">
+                <option value="todos">Todos los Choferes</option>
+              </select>
+
+              <select id="sierra-tab-filtro-estatus" onchange="renderizarTablaSierraTab()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-blue-500">
+                <option value="todos">Todos los Estatus</option>
+                <option value="OK">Entregadas (OK)</option>
+                <option value="PENDIENTE">Pendientes / En Ruta</option>
+                <option value="INCIDENCIA">Incidencias</option>
+              </select>
+
+              <button id="sierra-tab-btn-inter" onclick="toggleFiltroInterTab()" class="px-3 py-2 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-bold text-slate-300 rounded-xl transition flex items-center gap-1.5">
+                <i data-lucide="globe" class="w-3.5 h-3.5 text-blue-400"></i> Solo Internacionales
+              </button>
+
+              <span class="text-[11px] text-slate-500 font-mono font-bold pl-2" id="sierra-tab-conteo-filas">0 guías</span>
+            </div>
+          </div>
+
+          <!-- TABLA REACTIVA -->
+          <div class="overflow-x-auto max-h-[450px] custom-scrollbar">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead class="sticky top-0 bg-slate-950 text-slate-400 font-bold uppercase border-b border-slate-800 z-10 text-[10px] tracking-wider">
+                <tr>
+                  <th class="px-4 py-3">Guía (HWB)</th>
+                  <th class="px-4 py-3">Destinatario</th>
+                  <th class="px-4 py-3">Municipio / C.P.</th>
+                  <th class="px-4 py-3">Pochteca Asignado</th>
+                  <th class="px-4 py-3 text-center">EDD</th>
+                  <th class="px-4 py-3 text-center">Estatus</th>
+                  <th class="px-4 py-3 text-center">Piezas</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/40 text-slate-300" id="sierra-tab-cuerpo-tabla">
+                <tr>
+                  <td colspan="7" class="text-center py-10 text-slate-500 font-bold uppercase tracking-wider">
+                    Haz clic en "Sincronizar RUTA" para cargar las guías activas de la Sierra Gorda...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- MODAL CONFIRMACIÓN CHOFER A CHOFER (POKA-YOKE) -->
+        <div id="modal-confirm-chofer-tab" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center gap-3">
+              <div class="p-2.5 rounded-xl bg-blue-950 border border-blue-500/30 text-blue-400">
+                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-extrabold text-white">Confirmar Transferencia de Ruta</h3>
+                <p class="text-xs text-slate-400">Impactará la columna ID Correo en BD Central</p>
+              </div>
+            </div>
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs space-y-2">
+              <p class="text-slate-300">¿Estás seguro de transferir las guías pendientes de:</p>
+              <div class="font-bold text-amber-400 pl-2" id="modal-tab-lbl-origen">-</div>
+              <p class="text-slate-300">hacia el nuevo Pochteca:</p>
+              <div class="font-bold text-emerald-400 pl-2" id="modal-tab-lbl-destino">-</div>
+            </div>
+            <div class="flex items-center justify-end gap-3 pt-2">
+              <button onclick="cerrarModalChoferTab()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition">Cancelar</button>
+              <button onclick="ejecutarTransferenciaChoferTab()" class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow-lg transition">Sí, Transferir Ruta</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODAL CONFIRMACIÓN GEOGRÁFICA (POKA-YOKE) -->
+        <div id="modal-confirm-geo-tab" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center gap-3">
+              <div class="p-2.5 rounded-xl bg-emerald-950 border border-emerald-500/30 text-emerald-400">
+                <i data-lucide="map-pin" class="w-6 h-6"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-extrabold text-white">Confirmar Reasignación por Demarcación</h3>
+                <p class="text-xs text-slate-400">Reasignará guías en BD Central</p>
+              </div>
+            </div>
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs space-y-2">
+              <p class="text-slate-300">Demarcación a reasignar:</p>
+              <div class="font-bold text-blue-400 pl-2" id="modal-tab-lbl-demarcacion">-</div>
+              <p class="text-slate-300">Nuevo Pochteca Asignado:</p>
+              <div class="font-bold text-emerald-400 pl-2" id="modal-tab-lbl-geo-destino">-</div>
+            </div>
+            <div class="flex items-center justify-end gap-3 pt-2">
+              <button onclick="cerrarModalGeoTab()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition">Cancelar</button>
+              <button onclick="ejecutarReasignacionUbicacionTab()" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow-lg transition">Confirmar Reasignación</button>
+            </div>
           </div>
         </div>
 
@@ -1252,15 +1303,90 @@
 
     const CURRENT_ROLE = "<?= role ?>";
 
-    // Correos de Daniel y sus operadores de Sierra
-    const OPERADORES_DANIEL = [
-      "xichudaniel@gmail.com",
-      "jesusivargonzalez@gmail.com",
-      "oscher1016@gmail.com"
-    ];
+    // Directorio de Supervisores Consola Megapulpo
+    const CONSOLE_SUPERVISORS = {
+      "sidharta.santiago@arauto.express": { pin: "5948", role: "todos", nombre: "Sidharta Santiago" },
+      "irvin.reyes@arauto.express": { pin: "1708", role: "irvin", nombre: "Irvin Reyes" },
+      "xichudaniel@gmail.com": { pin: "5625", role: "daniel", nombre: "Daniel Juárez" }
+    };
+    const CONSOLE_MASTER_PIN = "2026";
+
+    // Teclado PIN Obsidian
+    function consPressKey(digit) {
+      const pinInput = document.getElementById('console-login-pin');
+      if (pinInput && pinInput.value.length < 4) {
+        pinInput.value += digit;
+      }
+    }
+
+    function consClearKey() {
+      const pinInput = document.getElementById('console-login-pin');
+      if (pinInput) pinInput.value = '';
+    }
+
+    function consSubmitLogin() {
+      const sel = document.getElementById('console-login-user');
+      const pinEl = document.getElementById('console-login-pin');
+      const email = sel ? sel.value : '';
+      const pin = pinEl ? pinEl.value : '';
+
+      if (!email) {
+        alert("Por favor selecciona tu usuario de la lista.");
+        return;
+      }
+      if (!pin || pin.length !== 4) {
+        alert("Ingresa tu PIN de 4 dígitos.");
+        return;
+      }
+
+      const sup = CONSOLE_SUPERVISORS[email];
+      if (!sup || (sup.pin !== pin && pin !== CONSOLE_MASTER_PIN)) {
+        alert("PIN incorrecto. Reintenta o ingresa el PIN Maestro.");
+        if (pinEl) pinEl.value = '';
+        return;
+      }
+
+      // Guardar sesión por 24 horas
+      localStorage.setItem('ollin_console_user', email);
+      localStorage.setItem('ollin_console_role', sup.role);
+      localStorage.setItem('ollin_console_name', sup.nombre);
+      localStorage.setItem('ollin_console_ts', Date.now().toString());
+
+      cerrarLoginOverlay();
+      aplicarSesionConsola(email, sup.role, sup.nombre);
+    }
+
+    function abrirLoginOverlay() {
+      const overlay = document.getElementById('login-overlay-console');
+      if (overlay) overlay.style.display = 'flex';
+      const pinEl = document.getElementById('console-login-pin');
+      if (pinEl) pinEl.value = '';
+    }
+
+    function cerrarLoginOverlay() {
+      const overlay = document.getElementById('login-overlay-console');
+      if (overlay) overlay.style.display = 'none';
+    }
+
+    function aplicarSesionConsola(email, role, nombre) {
+      const lblName = document.getElementById('nav-user-name');
+      const lblRole = document.getElementById('nav-user-role');
+      if (lblName) lblName.innerText = nombre || email;
+      if (lblRole) lblRole.innerText = (role || 'SUPERVISOR').toUpperCase();
+
+      if (role === 'daniel') {
+        switchTab('sierra');
+        cargarDatosSierra();
+      } else {
+        cargarChoferes();
+        cargarPickupsActivos();
+        cargarEntregasYMonitoreo();
+        cargarBuzonGmail();
+        cargarDatosSierra();
+      }
+    }
 
     // BANCO DE DATOS COGNITIVO / FALLBACK EN CALIENTE
-    // Contiene los registros reales mapeados de tus fuentes en el Amoxcalli para asegurar usabilidad instantánea
     const DB_RESPALDO_INCIDENCIAS = [
       { guia: "7612540913", pid: "JJD014600012640962864", cp: "37900", bultos: 1, destinatario: "N/A", checkpoint: "FD", comentarios: "Domicilio incorrecto", operador: "edgar.rodriguez.arauto@gmail.com", fecha_ingreso: "14/05/2026" },
       { guia: "3782667755", pid: "JJD014600012607515869", cp: "37917", bultos: 1, destinatario: "PABLO YANEZ", checkpoint: "FD", comentarios: "No se localiza el domicilio", operador: "edgar.rodriguez.arauto@gmail.com", fecha_ingreso: "14/05/2026" },
@@ -1274,20 +1400,32 @@
     let catalogoChoferes = [];
     let imageBase64 = null;
     let imageMimeType = null;
-    let cacheEntregasLocales = []; // Almacena temporalmente los datos traídos de Google Sheets
-    let cachePickupsLocales = []; // Almacena temporalmente las recolecciones activas de rampa
-    let activeAuditedPochteca = null; // Almacena al Pochteca actualmente seleccionado
+    let cacheEntregasLocales = [];
+    let cachePickupsLocales = [];
+    let activeAuditedPochteca = null;
 
-    // 1. INICIALIZADOR DE PÁGINA
+    // 1. INICIALIZADOR DE PÁGINA (POKA-YOKE 24H)
     window.onload = function() {
-      if (CURRENT_ROLE === 'daniel') {
-        cargarIncidenciasSierra();
-        cargarEntregasYMonitoreo();
+      const storedUser = localStorage.getItem('ollin_console_user');
+      const storedRole = localStorage.getItem('ollin_console_role');
+      const storedName = localStorage.getItem('ollin_console_name');
+      const storedTs = parseInt(localStorage.getItem('ollin_console_ts') || '0');
+      const now = Date.now();
+
+      if (storedUser && storedRole && (now - storedTs < 86400000)) {
+        cerrarLoginOverlay();
+        aplicarSesionConsola(storedUser, storedRole, storedName);
+      } else if (CURRENT_ROLE === 'daniel') {
+        cerrarLoginOverlay();
+        aplicarSesionConsola('xichudaniel@gmail.com', 'daniel', 'Daniel Juárez');
+      } else if (CURRENT_ROLE === 'irvin') {
+        cerrarLoginOverlay();
+        aplicarSesionConsola('irvin.reyes@arauto.express', 'irvin', 'Irvin Reyes');
+      } else if (CURRENT_ROLE === 'todos' || CURRENT_ROLE === 'sidharta') {
+        cerrarLoginOverlay();
+        aplicarSesionConsola('sidharta.santiago@arauto.express', 'todos', 'Sidharta Santiago');
       } else {
-        cargarChoferes();
-        cargarPickupsActivos();
-        cargarEntregasYMonitoreo();
-        cargarBuzonGmail();
+        abrirLoginOverlay();
       }
     };
 
@@ -1314,7 +1452,6 @@
         }
       });
 
-      // Lazy Loading Inteligente en Memoria RAM
       if (tab === 'sierra') {
         if (cacheSierraData.length === 0) cargarDatosSierra();
       } else if (tab === 'teoyolotl') {
@@ -1325,29 +1462,55 @@
         cargarEntregasYMonitoreo();
       }
 
-      lucide.createIcons();
+      if (window.lucide) lucide.createIcons();
     }
 
     // ==========================================
-    // 🏔️ MÓDULO SIERRA GORDA UNIFICADO (TAB 3)
+    // 🏔️ MÓDULO SIERRA GORDA UNIFICADO (TAB 3) - v83.0 PROD
     // ==========================================
+    let estadoSierraTab = {
+      kpis: { total: 0, ok: 0, pendientes: 0, internacionales: 0, huerfanas: 0 },
+      guias: [],
+      guiasHuerfanas: [],
+      pochtecas: [],
+      alertas: [],
+      municipios: [],
+      codigosPostales: [],
+      filtroSoloInter: false
+    };
+
+    let transferenciaPendienteTab = null;
+    let reasignacionGeoPendienteTab = null;
+
     function cargarDatosSierra() {
       const syncIcon = document.getElementById('sync-icon-sierra');
       if (syncIcon) syncIcon.classList.add('animate-spin');
-      addLog("🏔️ Sincronizando Bóveda RUTA Central para la Sierra Gorda...", 'warn');
+      addLog("🏔️ Sincronizando BD Central 2023 para Sierra Gorda...", 'warn');
+
+      const userEmail = localStorage.getItem('ollin_console_user') || (CURRENT_ROLE === 'daniel' ? 'xichudaniel@gmail.com' : 'irvin.reyes@arauto.express');
+      const userRole = localStorage.getItem('ollin_console_role') || (CURRENT_ROLE === 'daniel' ? 'daniel' : 'irvin');
 
       if (typeof google !== 'undefined' && google.script && google.script.run) {
         google.script.run
           .withSuccessHandler(function(res) {
             if (syncIcon) syncIcon.classList.remove('animate-spin');
             if (res.exito) {
-              cacheSierraData = res.datos || [];
-              renderizarKPIsSierraTab(res.kpis, res.sla);
-              renderizarPochtecasSierraTab(res.pochtecasSummary || []);
-              renderizarDiarioSierraTab(res.dailySummary || []);
-              renderizarInternacionalesSierraTab(res.enviosInternacionales || []);
-              renderizarTablaSierraTab(res.datos || []);
-              addLog("✅ Sierra Gorda sincronizada: " + (res.datos ? res.datos.length : 0) + " registros cargados en RAM.", 'success');
+              cacheSierraData = res.guias || [];
+              estadoSierraTab.kpis = res.kpis || {};
+              estadoSierraTab.guias = res.guias || [];
+              estadoSierraTab.guiasHuerfanas = res.guiasHuerfanas || [];
+              estadoSierraTab.pochtecas = res.pochtecas || [];
+              estadoSierraTab.alertas = res.alertas || [];
+              estadoSierraTab.municipios = res.municipios || [];
+              estadoSierraTab.codigosPostales = res.codigosPostales || [];
+
+              actualizarKPISierraTab();
+              renderizarAlertasCentinelaSierra(res.alertas || []);
+              renderizarTelemetriaPochtecasSierra(res.pochtecas || []);
+              renderizarGuiasHuerfanasSierra(res.guiasHuerfanas || []);
+              poblarSelectoresSierraTab();
+              renderizarTablaSierraTab();
+              addLog("✅ Sierra Gorda sincronizada: " + estadoSierraTab.guias.length + " guías cargadas de BD Central.", 'success');
             } else {
               addLog("❌ Error al consultar Sierra Gorda: " + res.error, 'error');
             }
@@ -1356,127 +1519,526 @@
             if (syncIcon) syncIcon.classList.remove('animate-spin');
             addLog("❌ Error de red en Sierra Gorda: " + err.message, 'error');
           })
-          .obtenerDatosRutaSierra();
-      } else {
-        setTimeout(() => {
-          if (syncIcon) syncIcon.classList.remove('animate-spin');
-          addLog("🏁 Simulación Sierra Gorda cargada.", 'success');
-        }, 1000);
+          .obtenerConsolaSierra(userEmail, userRole);
       }
     }
 
-    function renderizarKPIsSierraTab(kpis, sla) {
-      if (!kpis) return;
-      const elSla = document.getElementById('sierra-tab-kpi-sla');
-      const elCierre = document.getElementById('sierra-tab-kpi-cierre');
+    function actualizarKPISierraTab() {
+      const elTot = document.getElementById('sierra-tab-kpi-total');
+      const elOk = document.getElementById('sierra-tab-kpi-ok');
+      const elPend = document.getElementById('sierra-tab-kpi-pendientes');
       const elInter = document.getElementById('sierra-tab-kpi-inter');
-      if (elSla) elSla.innerText = sla || "100.0%";
-      if (elCierre) elCierre.innerText = (kpis.incidencias || 0) + " / " + (kpis.visitasReales || 0);
-      if (elInter) elInter.innerText = (kpis.interPendientes || 0) + " Pend. / " + (kpis.interIncidencias || 0) + " Incid.";
+
+      if (elTot) elTot.innerText = estadoSierraTab.kpis.total || 0;
+      if (elOk) elOk.innerText = estadoSierraTab.kpis.ok || 0;
+      if (elPend) elPend.innerText = estadoSierraTab.kpis.pendientes || 0;
+      if (elInter) elInter.innerText = estadoSierraTab.kpis.internacionales || 0;
     }
 
-    function renderizarPochtecasSierraTab(lista) {
-      const tbody = document.getElementById('sierra-tab-cuerpo-pochtecas');
-      if (!tbody) return;
-      tbody.innerHTML = "";
-      lista.forEach(item => {
-        tbody.innerHTML += `
-          <tr class="hover:bg-slate-800/40 border-b border-slate-800/40">
-            <td class="px-2 py-2 font-bold text-slate-200">${item.nombre}</td>
-            <td class="px-2 py-2 text-center font-mono text-slate-400">${item.total}</td>
-            <td class="px-2 py-2 text-center font-mono text-amber-500 font-bold">${item.pendientes}</td>
-            <td class="px-2 py-2 text-center font-mono text-emerald-400 font-bold">${item.oks}</td>
-            <td class="px-2 py-2 text-center font-mono text-red-400 font-bold">${item.incidencias}</td>
-            <td class="px-2 py-2 text-center font-mono font-bold ${parseFloat(item.sla) >= 95 ? 'text-blue-400' : 'text-red-400'}">${item.sla}</td>
-          </tr>`;
-      });
-    }
+    // 🚨 CENTINELA: Renderizar Alertas en Vivo
+    function renderizarAlertasCentinelaSierra(alertas) {
+      const container = document.getElementById('sierra-centinela-bar');
+      const tsEl = document.getElementById('sierra-centinela-timestamp');
+      if (tsEl) tsEl.innerText = new Date().toLocaleTimeString('es-MX');
+      if (!container) return;
 
-    function renderizarDiarioSierraTab(lista) {
-      const tbody = document.getElementById('sierra-tab-cuerpo-diario');
-      if (!tbody) return;
-      tbody.innerHTML = "";
-      if (lista.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-slate-600">Sin historial diario</td></tr>`;
+      if (!alertas || alertas.length === 0) {
+        container.innerHTML = `
+          <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span class="text-xs font-bold text-slate-300">🛡️ Centinela Megapulpo: Sin alertas críticas activas. Operación Sierra Gorda en ritmo nominal.</span>
+            </div>
+            <span class="text-[10px] text-slate-500 font-mono font-bold">${new Date().toLocaleTimeString('es-MX')}</span>
+          </div>`;
         return;
       }
-      lista.forEach(item => {
-        tbody.innerHTML += `
-          <tr class="hover:bg-slate-800/40 border-b border-slate-800/40 text-[11px]">
-            <td class="px-2 py-1.5 font-bold text-slate-200">${item.fechaFormateada || item.fecha}</td>
-            <td class="px-2 py-1.5 text-center font-mono text-slate-400">${item.total}</td>
-            <td class="px-2 py-1.5 text-center font-mono text-amber-500">${item.pendientes}</td>
-            <td class="px-2 py-1.5 text-center font-mono text-slate-300">${item.visitas}</td>
-            <td class="px-2 py-1.5 text-center font-mono text-emerald-400 font-bold">${item.oks}</td>
-            <td class="px-2 py-1.5 text-center font-mono font-bold ${parseFloat(item.sla) >= 95 ? 'text-blue-400' : 'text-red-400'}">${item.sla}</td>
-          </tr>`;
+
+      let html = '';
+      alertas.forEach((al, idx) => {
+        const esCritico = al.nivel === 'CRITICO';
+        const borderColor = esCritico ? 'border-red-500/60 bg-red-950/20' : 'border-amber-500/60 bg-amber-950/20';
+        const iconColor = esCritico ? 'text-red-400' : 'text-amber-400';
+        const tag = al.tipo === 'INICIO_TARDIO' ? '🚨 INICIO TARDÍO' : '⏱️ INACTIVIDAD PROLONGADA';
+        const cleanTel = (al.telefono || '').replace(/[^0-9]/g, '');
+        const waMsg = encodeURIComponent(`Hola ${al.pochteca}, te contactamos de Mesa de Control Arauto Express. Notamos la siguiente alerta: ${al.mensaje}. ¿Todo bien en tu ruta?`);
+
+        html += `
+          <div class="border ${borderColor} rounded-2xl p-4 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="flex items-start gap-3">
+              <div class="p-2 rounded-xl bg-slate-900 ${iconColor} mt-0.5">
+                <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-slate-900 text-slate-200 border border-slate-700 font-mono">${tag}</span>
+                  <span class="text-xs font-extrabold text-white">${al.pochteca}</span>
+                  <span class="text-[11px] text-slate-400">(${al.zona || 'Sierra Gorda'})</span>
+                </div>
+                <p class="text-xs text-slate-300 mt-1 font-medium">${al.mensaje}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0 self-end md:self-center">
+              ${cleanTel ? `
+                <a href="https://wa.me/${cleanTel}?text=${waMsg}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow transition active:scale-95">
+                  <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
+                  <span>WhatsApp</span>
+                </a>` : ''}
+              <button onclick="despacharAlertaCalpixquiBtn(${idx})" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-amber-300 border border-slate-700 shadow transition active:scale-95">
+                <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                <span>Calpixqui Bot</span>
+              </button>
+            </div>
+          </div>`;
       });
+
+      container.innerHTML = html;
+      if (window.lucide) lucide.createIcons();
     }
 
-    function renderizarInternacionalesSierraTab(lista) {
-      const tbody = document.getElementById('sierra-tab-cuerpo-internacionales');
-      if (!tbody) return;
-      tbody.innerHTML = "";
-      if (lista.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-slate-600">Sin envíos internacionales</td></tr>`;
+    // 📡 TELEMETRÍA: Renderizar Grid de Pochtecas
+    function renderizarTelemetriaPochtecasSierra(pochtecas) {
+      const container = document.getElementById('sierra-telemetria-container');
+      if (!container) return;
+
+      if (!pochtecas || pochtecas.length === 0) {
+        container.innerHTML = `<div class="col-span-full py-6 text-center text-xs text-slate-500 font-bold">No hay operadores registrados en este grupo.</div>`;
         return;
       }
-      lista.forEach(item => {
-        let tag = "bg-slate-800 text-slate-400";
-        if (item.estatus === "OK") tag = "bg-emerald-950 text-emerald-400 border border-emerald-500/20";
-        else if (item.estatus === "PENDIENTE") tag = "bg-amber-950 text-yellow-400 border border-yellow-500/30 font-bold";
-        else tag = "bg-red-950 text-red-400 border border-red-500/20";
 
-        tbody.innerHTML += `
-          <tr class="hover:bg-slate-800/40 border-b border-slate-800/40 text-[11px]">
-            <td class="px-2 py-1.5 font-mono text-yellow-400 font-bold">${item.guia}<br><span class="text-slate-400 text-[10px] font-normal truncate block max-w-[120px]">${item.cliente}</span></td>
-            <td class="px-2 py-1.5 text-slate-300">${item.fechaAsignacionFormateada || item.fechaAsignacion}</td>
-            <td class="px-2 py-1.5 text-center"><span class="px-2 py-0.5 rounded text-[9px] ${tag}">${item.checkpoint}</span></td>
-            <td class="px-2 py-1.5 text-slate-300 font-semibold">${item.chofer}</td>
-          </tr>`;
+      let html = '';
+      pochtecas.forEach(p => {
+        const esOnline = p.estadoSesion === 'ONLINE';
+        const dotColor = esOnline ? 'bg-emerald-400 animate-pulse' : (p.estadoSesion === 'STANDBY' ? 'bg-amber-400' : 'bg-slate-600');
+        const badgeSemaforo = p.semaforo === 'ROJO' ? 'bg-red-950 text-red-300 border-red-500/40' :
+                              (p.semaforo === 'AMARILLO' ? 'bg-amber-950 text-amber-300 border-amber-500/40' : 'bg-emerald-950 text-emerald-300 border-emerald-500/40');
+        const cleanTel = (p.telefono || '').replace(/[^0-9]/g, '');
+        const waMsg = encodeURIComponent(`Hola ${p.nombre}, saludos de Mesa de Control Arauto Express. ¿Cómo va tu avance en ${p.zona}?`);
+
+        html += `
+          <div class="bg-slate-950/70 border border-slate-800 hover:border-blue-500/50 rounded-2xl p-4 flex flex-col justify-between space-y-3 transition shadow-md">
+            <div>
+              <div class="flex items-start justify-between gap-1 mb-1">
+                <div>
+                  <h5 class="text-xs font-black text-slate-100 uppercase tracking-wide">${p.nombre}</h5>
+                  <span class="text-[10px] text-blue-400 font-semibold block">${p.zona}</span>
+                </div>
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                  <span class="w-2 h-2 rounded-full ${dotColor}"></span>
+                  <span class="text-[9px] font-mono font-bold text-slate-400">${p.estadoSesion}</span>
+                </div>
+              </div>
+
+              <div class="text-[10px] text-slate-400 flex items-center justify-between border-b border-slate-800/80 pb-2 mb-2">
+                <span>Inicio: <strong class="text-slate-200 font-mono">${p.horaInicio || '---'}</strong></span>
+                <span>Último Ping: <strong class="text-slate-200 font-mono">${p.ultimoPing || '---'}</strong></span>
+              </div>
+
+              <!-- Metricas de carga y paradas -->
+              <div class="grid grid-cols-3 gap-1.5 text-center text-[10px] font-mono mb-2">
+                <div class="bg-slate-900 rounded p-1.5 border border-slate-800">
+                  <span class="text-white font-extrabold block text-xs">${p.total}</span>
+                  <span class="text-slate-500 text-[8px] uppercase">Total</span>
+                </div>
+                <div class="bg-emerald-950/50 rounded p-1.5 border border-emerald-500/20">
+                  <span class="text-emerald-400 font-extrabold block text-xs">${p.ok}</span>
+                  <span class="text-slate-500 text-[8px] uppercase">OK</span>
+                </div>
+                <div class="bg-amber-950/50 rounded p-1.5 border border-amber-500/20">
+                  <span class="text-amber-400 font-extrabold block text-xs">${p.pendientes}</span>
+                  <span class="text-slate-500 text-[8px] uppercase">Pend</span>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between text-[10px] font-bold">
+                <span class="text-slate-400">Ritmo SPH: <strong class="text-[#D4AF37] font-mono">${p.sph || '0.0'}</strong> p/h</span>
+                <span class="px-2 py-0.5 rounded-full border text-[9px] font-mono ${badgeSemaforo}">
+                  ${p.minutosInactivo}m inactivo
+                </span>
+              </div>
+            </div>
+
+            <!-- Boton WhatsApp 1-Tap -->
+            ${cleanTel ? `
+              <a href="https://wa.me/${cleanTel}?text=${waMsg}" target="_blank" class="w-full py-1.5 px-3 rounded-xl bg-slate-900 hover:bg-emerald-950 hover:text-emerald-300 border border-slate-800 hover:border-emerald-500/40 text-[10px] font-bold text-slate-300 flex items-center justify-center gap-1.5 transition">
+                <i data-lucide="message-square" class="w-3.5 h-3.5 text-emerald-400"></i> Contactar Pochteca
+              </a>` : ''}
+          </div>`;
       });
+
+      container.innerHTML = html;
+      if (window.lucide) lucide.createIcons();
     }
 
-    function renderizarTablaSierraTab(datos) {
+    // 📦 HUÉRFANAS: Renderizar Drawer y Tabla de Guías Huérfanas
+    function renderizarGuiasHuerfanasSierra(huerfanas) {
+      const badge = document.getElementById('sierra-tab-kpi-huerfanas-badge');
+      if (badge) badge.innerText = (huerfanas || []).length;
+
+      const tbody = document.getElementById('sierra-huerfanas-table-body');
+      const selDest = document.getElementById('sierra-huerfanas-destino');
+
+      if (selDest && estadoSierraTab.pochtecas) {
+        selDest.innerHTML = '<option value="">-- Asignar Selección a... --</option>';
+        estadoSierraTab.pochtecas.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.email;
+          opt.innerText = `${p.nombre} (${p.zona})`;
+          selDest.appendChild(opt);
+        });
+      }
+
+      if (!tbody) return;
+      if (!huerfanas || huerfanas.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-500 text-xs font-bold uppercase tracking-wider">No hay guías huérfanas pendientes en Sierra Gorda.</td></tr>`;
+        return;
+      }
+
+      let html = '';
+      huerfanas.forEach(h => {
+        const badgeInter = h.esInternacional ? '<span class="ml-1 text-[9px] text-blue-400 font-bold">[INTER]</span>' : '';
+        html += `
+          <tr class="hover:bg-slate-800/40 transition">
+            <td class="px-3 py-2 text-center">
+              <input type="checkbox" value="${h.guia}" class="chk-huerfana-item rounded bg-slate-950 border-slate-700 text-amber-500 focus:ring-0">
+            </td>
+            <td class="px-3 py-2 font-mono font-bold text-white">${h.guia} ${badgeInter}</td>
+            <td class="px-3 py-2 font-mono text-[10px] text-slate-400">${h.pid || '-'}</td>
+            <td class="px-3 py-2 truncate max-w-[160px] text-slate-300 font-medium">${h.destinatario || '-'}</td>
+            <td class="px-3 py-2 font-semibold text-slate-300">${h.municipio} <span class="text-blue-400 font-mono text-[10px]">(${h.cp})</span></td>
+            <td class="px-3 py-2 text-center font-mono font-bold text-slate-400">${h.piezas || 1}</td>
+          </tr>`;
+      });
+      tbody.innerHTML = html;
+    }
+
+    function toggleSeleccionarTodasHuerfanas(checked) {
+      const items = document.querySelectorAll('.chk-huerfana-item');
+      items.forEach(chk => { chk.checked = checked; });
+    }
+
+    function ejecutarAsignacionHuerfanas() {
+      const selDest = document.getElementById('sierra-huerfanas-destino');
+      const destEmail = selDest ? selDest.value : '';
+      if (!destEmail) {
+        alert("Selecciona el Pochteca Destino para asignar las guías.");
+        return;
+      }
+
+      const checkboxes = document.querySelectorAll('.chk-huerfana-item:checked');
+      if (checkboxes.length === 0) {
+        alert("Selecciona al menos una guía huérfana de la lista.");
+        return;
+      }
+
+      const guiasSeleccionadas = Array.from(checkboxes).map(c => c.value);
+      if (!confirm(`¿Confirmas asignar ${guiasSeleccionadas.length} guías a ${destEmail}?`)) return;
+
+      addLog(`⚡ Asignando ${guiasSeleccionadas.length} guías a ${destEmail}...`, 'warn');
+      const userEmail = localStorage.getItem('ollin_console_user') || 'xichudaniel@gmail.com';
+      const userRole = localStorage.getItem('ollin_console_role') || 'daniel';
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.exito) {
+              addLog(`✅ ${res.mensaje}`, 'success');
+              alert(res.mensaje);
+              cargarDatosSierra();
+            } else {
+              addLog(`❌ Error: ${res.error}`, 'error');
+              alert("Error: " + res.error);
+            }
+          })
+          .withFailureHandler(function(err) {
+            addLog(`❌ Error: ${err.message}`, 'error');
+            alert("Error de red: " + err.message);
+          })
+          .asignarGuiasEnCaliente(guiasSeleccionadas, destEmail, userEmail, userRole);
+      }
+    }
+
+    function despacharAlertaCalpixquiBtn(idx) {
+      const alerta = estadoSierraTab.alertas && estadoSierraTab.alertas[idx];
+      if (!alerta) return;
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            addLog(`📲 Alerta despachada a Calpixqui: ${alerta.pochteca}`, 'success');
+            alert("Alerta enviada a Google Chat y registrada para Calpixqui.");
+          })
+          .despacharAlertaCalpixqui(alerta);
+      }
+    }
+
+    function poblarSelectoresSierraTab() {
+      const selOrig = document.getElementById('sierra-tab-chofer-origen');
+      if (selOrig) {
+        selOrig.innerHTML = '<option value="">-- Selecciona Origen --</option><option value="sin_asignar">⚠️ Sin Asignar (Ruta Huérfana)</option>';
+        estadoSierraTab.pochtecas.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.email;
+          opt.innerText = `${p.nombre} (${p.pendientes} pendientes)`;
+          selOrig.appendChild(opt);
+        });
+      }
+
+      const selDest = document.getElementById('sierra-tab-chofer-destino');
+      if (selDest) {
+        selDest.innerHTML = '<option value="">-- Selecciona Destino --</option>';
+        estadoSierraTab.pochtecas.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.email;
+          opt.innerText = p.nombre;
+          selDest.appendChild(opt);
+        });
+      }
+
+      const selGeoDest = document.getElementById('sierra-tab-demarcacion-destino');
+      if (selGeoDest) {
+        selGeoDest.innerHTML = '<option value="">-- Selecciona Destino --</option>';
+        estadoSierraTab.pochtecas.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.email;
+          opt.innerText = p.nombre;
+          selGeoDest.appendChild(opt);
+        });
+      }
+
+      const selFiltro = document.getElementById('sierra-tab-filtro-chofer');
+      if (selFiltro) {
+        selFiltro.innerHTML = '<option value="todos">Todos los Choferes</option><option value="sin_asignar">Sin Asignar</option>';
+        estadoSierraTab.pochtecas.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.email;
+          opt.innerText = p.nombre;
+          selFiltro.appendChild(opt);
+        });
+      }
+
+      cambiarTipoDemarcacionTab();
+    }
+
+    function cambiarTipoDemarcacionTab() {
+      const tipo = document.getElementById('sierra-tab-demarcacion-tipo')?.value || "municipio";
+      const selVal = document.getElementById('sierra-tab-demarcacion-valor');
+      const lblTarget = document.getElementById('sierra-tab-lbl-target');
+      if (!selVal || !lblTarget) return;
+
+      selVal.innerHTML = "";
+      if (tipo === "municipio") {
+        lblTarget.innerText = "Municipio";
+        estadoSierraTab.municipios.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.nombre;
+          opt.innerText = `${m.nombre} (${m.countGuias} guías activas)`;
+          selVal.appendChild(opt);
+        });
+      } else {
+        lblTarget.innerText = "Código Postal";
+        estadoSierraTab.codigosPostales.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.cp;
+          opt.innerText = `${c.cp} - ${c.municipio}`;
+          selVal.appendChild(opt);
+        });
+      }
+    }
+
+    function toggleFiltroInterTab() {
+      estadoSierraTab.filtroSoloInter = !estadoSierraTab.filtroSoloInter;
+      const btn = document.getElementById('sierra-tab-btn-inter');
+      if (btn) {
+        if (estadoSierraTab.filtroSoloInter) {
+          btn.classList.add('bg-blue-600', 'text-white', 'border-blue-400');
+          btn.classList.remove('bg-slate-950', 'text-slate-300');
+        } else {
+          btn.classList.remove('bg-blue-600', 'text-white', 'border-blue-400');
+          btn.classList.add('bg-slate-950', 'text-slate-300');
+        }
+      }
+      renderizarTablaSierraTab();
+    }
+
+    function renderizarTablaSierraTab() {
+      const txt = (document.getElementById('sierra-tab-filtro-texto')?.value || "").toLowerCase().trim();
+      const fChofer = document.getElementById('sierra-tab-filtro-chofer')?.value || "todos";
+      const fEstatus = document.getElementById('sierra-tab-filtro-estatus')?.value || "todos";
+      const soloInter = estadoSierraTab.filtroSoloInter;
+
       const tbody = document.getElementById('sierra-tab-cuerpo-tabla');
       const contador = document.getElementById('sierra-tab-conteo-filas');
       if (!tbody) return;
-      if (contador) contador.innerText = datos.length + " guías";
 
-      if (!datos || datos.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-10 text-slate-600">No hay registros para los filtros seleccionados</td></tr>`;
+      tbody.innerHTML = "";
+
+      const filtradas = estadoSierraTab.guias.filter(g => {
+        if (soloInter && !g.esInternacional) return false;
+        if (fEstatus !== "todos" && g.estatus !== fEstatus) return false;
+        if (fChofer !== "todos") {
+          if (fChofer === "sin_asignar") {
+            if (g.chofer !== "" && g.chofer !== "sin_asignar" && g.chofer !== "sin_asignar@arauto.express") return false;
+          } else {
+            if (g.chofer !== fChofer) return false;
+          }
+        }
+        if (txt) {
+          const enGuia = (g.guia || "").toLowerCase().includes(txt);
+          const enPid = (g.pid || "").toLowerCase().includes(txt);
+          const enDest = (g.destinatario || "").toLowerCase().includes(txt);
+          const enMun = (g.municipio || "").toLowerCase().includes(txt);
+          const enCp = (g.cp || "").toLowerCase().includes(txt);
+          const enChof = (g.choferNombre || "").toLowerCase().includes(txt);
+          if (!enGuia && !enPid && !enDest && !enMun && !enCp && !enChof) return false;
+        }
+        return true;
+      });
+
+      if (contador) contador.innerText = `${filtradas.length} de ${estadoSierraTab.guias.length} guías`;
+
+      if (filtradas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-10 text-slate-500 font-bold uppercase tracking-wider">No se encontraron guías con los filtros seleccionados.</td></tr>';
         return;
       }
 
-      tbody.innerHTML = "";
-      datos.slice(0, 200).forEach(d => {
-        let statusBadge = "bg-slate-800 text-slate-400";
-        if (d.checkpoint === "OK") statusBadge = "bg-emerald-950 text-emerald-400 border border-emerald-500/20 font-bold";
-        else if (d.checkpoint === "PENDIENTE") statusBadge = "bg-slate-800 text-amber-500 font-bold";
-        else statusBadge = "bg-red-950 text-red-400 border border-red-500/20 font-bold";
+      filtradas.slice(0, 300).forEach(item => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-800/30 transition-all border-b border-slate-800/40 text-slate-300";
 
-        tbody.innerHTML += `
-          <tr class="hover:bg-slate-800/30 transition-colors">
-            <td class="px-4 py-2.5 font-mono font-bold text-slate-200">${d.guia} ${d.internacional ? '🌐' : ''}</td>
-            <td class="px-4 py-2.5 font-mono text-slate-400 text-[11px]">${d.pid || '-'}</td>
-            <td class="px-4 py-2.5 text-center font-mono text-yellow-400 font-bold">${d.cp || '-'}</td>
-            <td class="px-4 py-2.5 text-slate-300 font-medium truncate max-w-[140px]">${d.cliente || '-'}</td>
-            <td class="px-4 py-2.5 text-slate-400 text-[11px] truncate max-w-[180px]">${d.direccion || '-'}</td>
-            <td class="px-4 py-2.5 text-center"><span class="px-2 py-0.5 rounded text-[10px] ${statusBadge}">${d.checkpoint}</span></td>
-            <td class="px-4 py-2.5 text-slate-400 text-[11px] truncate max-w-[150px]">${d.comentarios || '-'}</td>
-            <td class="px-4 py-2.5 font-mono text-slate-300 text-[11px]">${(d.operador || '').split('@')[0]}</td>
-          </tr>`;
+        const badgeInter = item.esInternacional ?
+          '<span class="ml-1.5 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-blue-900/90 text-blue-200 border border-blue-400/50 shadow inline-flex items-center gap-1 badge-inter-pulse">🌎 INTERNACIONAL</span>' : '';
+
+        let badgeEstatusClass = "bg-slate-800 text-slate-400 border-slate-700";
+        if (item.estatus === "OK") badgeEstatusClass = "bg-emerald-950/80 text-emerald-300 border-emerald-500/40";
+        else if (item.estatus === "POR_ENTREGAR") badgeEstatusClass = "bg-blue-950/80 text-blue-300 border-blue-500/40";
+        else if (item.estatus === "PENDIENTE") badgeEstatusClass = "bg-amber-950/80 text-amber-300 border-amber-500/40";
+        else if (item.estatus === "INCIDENCIA") badgeEstatusClass = "bg-red-950/80 text-red-300 border-red-500/40";
+
+        tr.innerHTML = `
+          <td class="px-4 py-3 font-mono font-extrabold text-white flex items-center flex-wrap gap-1">
+            ${item.guia} ${badgeInter}
+          </td>
+          <td class="px-4 py-3 font-medium max-w-[180px] truncate" title="${item.destinatario || ''}">
+            ${item.destinatario || '-'}
+          </td>
+          <td class="px-4 py-3">
+            <span class="font-bold text-slate-200">${item.municipio}</span>
+            <span class="text-[10px] text-blue-400 font-mono block">CP: ${item.cp}</span>
+          </td>
+          <td class="px-4 py-3">
+            <div class="font-bold text-slate-200 flex items-center gap-1">
+              <i data-lucide="user" class="w-3.5 h-3.5 text-slate-500"></i>
+              ${item.choferNombre}
+            </div>
+            <span class="text-[9px] text-slate-500 font-mono">${(item.chofer || '').split('@')[0]}</span>
+          </td>
+          <td class="px-4 py-3 text-center text-slate-400 text-[11px] whitespace-nowrap">
+            ${item.edd || 'Sin EDD'}
+          </td>
+          <td class="px-4 py-3 text-center whitespace-nowrap">
+            <span class="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border ${badgeEstatusClass}">
+              ${item.estatus}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-center font-mono font-bold text-slate-300">
+            ${item.piezas || 1}
+          </td>`;
+        tbody.appendChild(tr);
       });
-      lucide.createIcons();
+
+      if (window.lucide) lucide.createIcons();
     }
 
-    function filtrarTablaSierraTab() {
-      const chofer = document.getElementById('sierra-tab-filtro-chofer').value;
-      if (chofer === 'todos') {
-        renderizarTablaSierraTab(cacheSierraData);
-      } else {
-        const filtrados = cacheSierraData.filter(x => (x.operador || '').toLowerCase() === chofer.toLowerCase());
-        renderizarTablaSierraTab(filtrados);
+    function solicitarConfirmacionChoferTab() {
+      const orig = document.getElementById('sierra-tab-chofer-origen').value;
+      const dest = document.getElementById('sierra-tab-chofer-destino').value;
+
+      if (!orig) { alert("Selecciona un Pochteca Origen."); return; }
+      if (!dest) { alert("Selecciona un Pochteca Destino."); return; }
+      if (orig === dest) { alert("El chofer origen y destino no pueden ser iguales."); return; }
+
+      const nombreOrig = orig === "sin_asignar" ? "Sin Asignar (Ruta Huérfana)" : (estadoSierraTab.pochtecas.find(p => p.email === orig)?.nombre || orig);
+      const nombreDest = estadoSierraTab.pochtecas.find(p => p.email === dest)?.nombre || dest;
+
+      transferenciaPendienteTab = { origen: orig, destino: dest };
+
+      document.getElementById('modal-tab-lbl-origen').innerText = `${nombreOrig} (${orig})`;
+      document.getElementById('modal-tab-lbl-destino').innerText = `${nombreDest} (${dest})`;
+      document.getElementById('modal-confirm-chofer-tab').classList.remove('hidden');
+    }
+
+    function cerrarModalChoferTab() {
+      document.getElementById('modal-confirm-chofer-tab').classList.add('hidden');
+      transferenciaPendienteTab = null;
+    }
+
+    function ejecutarTransferenciaChoferTab() {
+      if (!transferenciaPendienteTab) return;
+      const { origen, destino } = transferenciaPendienteTab;
+      cerrarModalChoferTab();
+
+      addLog(`⏳ Transfiriendo ruta en BD Central de ${origen} a ${destino}...`, 'warn');
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.exito) {
+              addLog(`✅ ${res.mensaje}`, 'success');
+              cargarDatosSierra();
+            } else {
+              addLog(`❌ Error: ${res.error}`, 'error');
+            }
+          })
+          .withFailureHandler(function(err) {
+            addLog(`❌ Error de red: ${err.message}`, 'error');
+          })
+          .reasignarChoferAChofer(origen, destino, 'irvin.reyes@arauto.express', 'irvin');
+      }
+    }
+
+    function solicitarConfirmacionGeoTab() {
+      const tipo = document.getElementById('sierra-tab-demarcacion-tipo').value;
+      const valor = document.getElementById('sierra-tab-demarcacion-valor').value;
+      const dest = document.getElementById('sierra-tab-demarcacion-destino').value;
+
+      if (!valor) { alert("Selecciona un Municipio o CP válido."); return; }
+      if (!dest) { alert("Selecciona un Pochteca Destino."); return; }
+
+      const nombreDest = estadoSierraTab.pochtecas.find(p => p.email === dest)?.nombre || dest;
+      reasignacionGeoPendienteTab = { tipo, valor, destino: dest };
+
+      document.getElementById('modal-tab-lbl-demarcacion').innerText = `${tipo.toUpperCase()}: ${valor}`;
+      document.getElementById('modal-tab-lbl-geo-destino').innerText = `${nombreDest} (${dest})`;
+      document.getElementById('modal-confirm-geo-tab').classList.remove('hidden');
+    }
+
+    function cerrarModalGeoTab() {
+      document.getElementById('modal-confirm-geo-tab').classList.add('hidden');
+      reasignacionGeoPendienteTab = null;
+    }
+
+    function ejecutarReasignacionUbicacionTab() {
+      if (!reasignacionGeoPendienteTab) return;
+      const { tipo, valor, destino } = reasignacionGeoPendienteTab;
+      cerrarModalGeoTab();
+
+      addLog(`⏳ Reasignando ${tipo} ${valor} a ${destino} en BD Central...`, 'warn');
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.exito) {
+              addLog(`✅ ${res.mensaje}`, 'success');
+              cargarDatosSierra();
+            } else {
+              addLog(`❌ Error: ${res.error}`, 'error');
+            }
+          })
+          .withFailureHandler(function(err) {
+            addLog(`❌ Error de red: ${err.message}`, 'error');
+          })
+          .reasignarPorUbicacion(tipo, valor, destino, '', 'irvin.reyes@arauto.express', 'irvin');
       }
     }
 

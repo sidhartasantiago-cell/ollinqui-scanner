@@ -1,489 +1,897 @@
-<!--
-  🏛 ... CONSOLA DE CONTROL DE SIERRA GORDA v3.0 (PROD - PARCHE HIGIENE)
-  🎨 Interfaz Premium para Daniel Juárez (Tema: Azul Cobalto & Plata)
-  🚀 Desarrollado con Tailwind CSS y Lucide Icons
--->
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>OLLIN - Consola Sierra Gorda</title>
+  <title>OLLIN — Consola Sierra Gorda (Daniel Juárez)</title>
 
-  <!-- 🖼️ OLLIN Canonical App Icons & Mobile Shortcut -->
+  <!-- 🖼️ OLLIN Canonical App Icons & Mobile PWA -->
   <link rel="icon" type="image/png" sizes="192x192" href="https://raw.githubusercontent.com/sidhartasantiago-cell/ollinqui-scanner/master/ollin-icon-192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="https://raw.githubusercontent.com/sidhartasantiago-cell/ollinqui-scanner/master/ollin-icon-512.png">
   <link rel="apple-touch-icon" sizes="192x192" href="https://raw.githubusercontent.com/sidhartasantiago-cell/ollinqui-scanner/master/ollin-icon-192.png">
-  <link rel="apple-touch-icon" sizes="512x512" href="https://raw.githubusercontent.com/sidhartasantiago-cell/ollinqui-scanner/master/ollin-icon-512.png">
-  <link rel="apple-touch-icon-precomposed" href="https://raw.githubusercontent.com/sidhartasantiago-cell/ollinqui-scanner/master/ollin-icon-192.png">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="OLLIN Sierra">
 
+  <!-- Tailwind CSS & Lucide Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
     body {
       font-family: 'Plus Jakarta Sans', sans-serif;
-      background-color: #0f172a; /* Slate 900 */
+      background-color: #0b1120; /* Slate 950 */
     }
     .custom-scrollbar::-webkit-scrollbar {
       width: 6px;
       height: 6px;
     }
     .custom-scrollbar::-webkit-scrollbar-track {
-      background: #1e293b;
+      background: #0f172a;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #3b82f6;
+      background: #2563eb;
       border-radius: 3px;
     }
-    .animate-spin-slow {
-      animation: spin 8s linear infinite;
+    .badge-inter-pulse {
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
+      animation: pulse-glow 2s infinite;
     }
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 8px rgba(59, 130, 246, 0.4); }
+      50% { box-shadow: 0 0 16px rgba(59, 130, 246, 0.85); }
     }
   </style>
 </head>
-<body class="text-slate-100 min-h-screen flex flex-col justify-between p-4 md:p-6 custom-scrollbar">
+<body class="text-slate-100 min-h-screen flex flex-col justify-between p-3 md:p-6 custom-scrollbar">
 
-  <!-- HEADER -->
-  <header class="flex flex-col md:flex-row items-center justify-between gap-4 mb-6 border-b border-slate-800 pb-4">
+  <!-- NOTIFICACIÓN TOAST FLOTANTE -->
+  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+  <!-- HEADER DE GOBERNANZA -->
+  <header class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6 border-b border-slate-800/80 pb-4">
     <div class="space-y-1">
-      <h1 class="text-2xl font-extrabold text-[#e2e8f0] flex items-center gap-2 tracking-tight">
-        <i data-lucide="shield-alert" class="text-blue-500 animate-pulse"></i>
-        CONSOLA OPERATIVA SIERRA GORDA <span class="text-blue-500 font-mono text-sm px-2 py-0.5 rounded bg-blue-950/50 border border-blue-500/20">v3.0</span>
-      </h1>
-      <p class="text-xs text-slate-400">
-        Monitoreo en caliente asíncrono de la base de datos central de DHL para el Grupo Daniel Juárez.
-      </p>
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 shadow-lg">
+          <i data-lucide="mountain-snow" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="text-xl md:text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
+            CONSOLA SIERRA GORDA
+            <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-blue-950 border border-blue-500/30 text-blue-400">v82.0 PROD</span>
+          </h1>
+          <p class="text-xs text-slate-400 flex items-center gap-2">
+            <span>Supervisor: <strong class="text-blue-300 font-semibold" id="lbl-supervisor">Daniel Juárez (xichudaniel@gmail.com)</strong></span>
+            <span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
+            <span class="text-emerald-400 font-medium flex items-center gap-1">
+              <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Grupo Daniel
+            </span>
+          </p>
+        </div>
+      </div>
     </div>
-    
-    <div class="flex items-center gap-3">
-      <a href="?view=qro" target="_top" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-xs uppercase text-emerald-400 transition-all active:scale-95 border border-slate-700">
-        <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-emerald-400"></i> Tlachialoni QRO
+
+    <!-- ACCIONES DE CABECERA -->
+    <div class="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+      <a href="?role=irvin" target="_top" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-bold text-emerald-400 border border-slate-700 transition active:scale-95 shadow">
+        <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-emerald-400"></i> Consola Maestra QRO
       </a>
-      <span class="px-3 py-1 rounded-full bg-blue-950 border border-blue-500/20 text-[10px] font-bold text-blue-400 uppercase tracking-widest">
-        Filtros de Custodia Activos
-      </span>
-      <button onclick="cargarDatos()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-xs uppercase text-slate-200 transition-all active:scale-95 border border-slate-700">
-        <i data-lucide="rotate-cw" class="w-3.5 h-3.5" id="sync-icon"></i> Sincronizar RUTA
+      <button onclick="cargarConsola()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white border border-blue-400/40 transition active:scale-95 shadow-lg">
+        <i data-lucide="rotate-cw" class="w-3.5 h-3.5" id="btn-sync-icon"></i> Sincronizar Ruta
       </button>
     </div>
   </header>
 
-  <!-- KPI CARDS (Rediseñado: 3 Columnas) -->
-  <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-    <!-- SLA Sierra Gorda -->
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg relative overflow-hidden">
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Efectividad SLA</span>
-        <i data-lucide="award" class="text-blue-500"></i>
+  <!-- 3. MÓDULO DE MONITOREO "ZERO STRESS" (4 TARJETAS KPI SUPERIORES) -->
+  <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
+    <!-- KPI 1: Total Guías Sierra -->
+    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-lg relative overflow-hidden">
+      <div class="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
+        <span>Total Sierra</span>
+        <i data-lucide="package" class="w-4 h-4 text-blue-400"></i>
       </div>
-      <div class="text-3xl font-extrabold text-blue-400 font-mono" id="kpi-sla">100.0%</div>
-      <p class="text-[10px] text-slate-500 mt-1">Efectividad real de campo: OKs vs Visitas de entrega</p>
+      <div class="text-2xl md:text-3xl font-extrabold text-white font-mono" id="kpi-total">0</div>
+      <p class="text-[10px] text-slate-400 mt-0.5">Manifiesto activo en ruta</p>
     </div>
 
-    <!-- Cierre Diario (Faltan de OK) -->
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg relative overflow-hidden">
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Cierre Diario (Faltan de OK)</span>
-        <i data-lucide="alert-circle" class="text-emerald-500"></i>
+    <!-- KPI 2: Entregadas (OK) -->
+    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-lg relative overflow-hidden">
+      <div class="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
+        <span>Entregadas (OK)</span>
+        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
       </div>
-      <div class="text-3xl font-extrabold text-emerald-400 font-mono" id="kpi-cierre-diario">0 / 0</div>
-      <p class="text-[10px] text-slate-500 mt-1">Visitas en campo cerradas vs Visitas totales (Excluye Preasignaciones)</p>
+      <div class="text-2xl md:text-3xl font-extrabold text-emerald-400 font-mono" id="kpi-ok">0</div>
+      <p class="text-[10px] text-slate-400 mt-0.5">Firmadas con éxito en campo</p>
     </div>
 
-    <!-- Custodia Internacional Alert Card -->
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg relative overflow-hidden">
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Custodia Internacional 🌐</span>
-        <i data-lucide="globe" class="text-yellow-500"></i>
+    <!-- KPI 3: Pendientes / En Ruta -->
+    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-lg relative overflow-hidden">
+      <div class="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
+        <span>Pendientes / Ruta</span>
+        <i data-lucide="clock" class="w-4 h-4 text-amber-400"></i>
       </div>
-      <div class="text-2xl font-extrabold text-yellow-400 font-mono" id="kpi-inter-alert">0 Pend. / 0 Incid.</div>
-      <p class="text-[10px] text-slate-500 mt-1">Envíos de prioridad DHL sin firma (Aisla preasignados)</p>
-    </div>
-  </section>
-
-  <!-- THREE-COLUMN GRID: STATS TABLES (Añadido Monitoreo Internacional) -->
-  <section class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-    <!-- Pochteca Summary Board -->
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
-      <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
-        <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-          <i data-lucide="users" class="text-blue-500 w-4 h-4"></i>
-          Asignación y Estatus por Pochteca
-        </h4>
-        <span class="text-[9px] bg-blue-950 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded font-black">MEMORIA RAM</span>
-      </div>
-      <div class="overflow-x-auto custom-scrollbar max-h-[160px]">
-        <table class="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr class="bg-slate-950 text-slate-400 uppercase tracking-wider font-bold text-[9px] border-b border-slate-800">
-              <th class="px-2 py-1.5">Pochteca</th>
-              <th class="px-2 py-1.5 text-center">Asignadas</th>
-              <th class="px-2 py-1.5 text-center">Pendientes</th>
-              <th class="px-2 py-1.5 text-center">OKs</th>
-              <th class="px-2 py-1.5 text-center">Incid.</th>
-              <th class="px-2 py-1.5 text-center">SLA</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-800/40 text-slate-300" id="cuerpo-pochtecas">
-            <tr>
-              <td colspan="6" class="text-center py-4 text-slate-500 italic">Sincronizando operadores...</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <div class="text-2xl md:text-3xl font-extrabold text-amber-400 font-mono" id="kpi-pendientes">0</div>
+      <p class="text-[10px] text-slate-400 mt-0.5">Por entregar en la jornada</p>
     </div>
 
-    <!-- Daily Breakdown Board -->
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
-      <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
-        <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-          <i data-lucide="calendar-days" class="text-emerald-500 w-4 h-4"></i>
-          Control de Avance Diario por Fecha de Asignación
-        </h4>
-        <span class="text-[9px] bg-emerald-950 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-black">CALENDARIO</span>
+    <!-- KPI 4: Internacionales Prioritarios (Borde Brillante) -->
+    <div class="bg-slate-900/90 border-2 border-blue-500/60 rounded-2xl p-4 shadow-xl relative overflow-hidden badge-inter-pulse">
+      <div class="flex items-center justify-between text-blue-300 text-xs font-bold uppercase tracking-wider mb-1">
+        <span class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-blue-400 animate-ping"></span>
+          Internacionales
+        </span>
+        <i data-lucide="globe" class="w-4 h-4 text-blue-400"></i>
       </div>
-      <div class="overflow-x-auto custom-scrollbar max-h-[160px]">
-        <table class="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr class="bg-slate-950 text-slate-400 uppercase tracking-wider font-bold text-[9px] border-b border-slate-800">
-              <th class="px-2 py-1.5">Día y Fecha</th>
-              <th class="px-2 py-1.5 text-center">Asig.</th>
-              <th class="px-2 py-1.5 text-center">Preasig.</th>
-              <th class="px-2 py-1.5 text-center">OKs</th>
-              <th class="px-2 py-1.5 text-center">Faltas</th>
-              <th class="px-2 py-1.5 text-center">SLA</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-800/40 text-slate-300" id="cuerpo-diario">
-            <tr>
-              <td colspan="6" class="text-center py-4 text-slate-500 italic">Procesando historial diario...</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="text-2xl md:text-3xl font-extrabold text-blue-300 font-mono flex items-center gap-2" id="kpi-inter">
+        0
       </div>
-    </div>
-
-    <!-- Monitoreo de Custodia Internacional (¡NUEVO TABLERO!) -->
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
-      <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
-        <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-          <i data-lucide="globe" class="text-yellow-500 w-4 h-4 animate-spin-slow"></i>
-          Monitoreo de Custodia Internacional 🌐
-        </h4>
-        <span class="text-[9px] bg-yellow-950 text-yellow-400 border border-yellow-500/20 px-2 py-0.5 rounded font-black">PRIORIDAD</span>
-      </div>
-      <div class="overflow-x-auto custom-scrollbar max-h-[160px]">
-        <table class="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr class="bg-slate-950 text-slate-400 uppercase tracking-wider font-bold text-[9px] border-b border-slate-800">
-              <th class="px-2 py-1.5">Guía / Bulto</th>
-              <th class="px-2 py-1.5">Fecha Asig.</th>
-              <th class="px-2 py-1.5 text-center">Checkpoint</th>
-              <th class="px-2 py-1.5">Chofer</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-800/40 text-slate-300" id="cuerpo-internacionales">
-            <tr>
-              <td colspan="4" class="text-center py-4 text-slate-500 italic">Analizando envíos internacionales...</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <p class="text-[10px] text-blue-400 font-semibold mt-0.5">Custodia prioritaria DHL [INTER]</p>
     </div>
   </section>
 
-  <!-- SEARCH & FILTER BAR -->
-  <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
-    <div class="relative w-full md:w-80">
-      <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-        <i data-lucide="search" class="w-4 h-4 text-slate-500"></i>
-      </span>
-      <input type="text" id="buscador-caliente" onkeyup="filtrarTabla()" placeholder="Buscar por Guía, PID, CP o Cliente..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+  <!-- PANELES DE REASIGNACIÓN EN CALIENTE (POKA-YOKE) -->
+  <section class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+    <!-- MÓDULO 4: REASIGNACIÓN EN LOTE (CHOFER A CHOFER) -->
+    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2.5">
+          <h3 class="text-sm font-extrabold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+            <i data-lucide="arrow-right-left" class="w-4 h-4 text-blue-400"></i>
+            Transferencia en Lote (Chofer a Chofer)
+          </h3>
+          <span class="text-[10px] font-bold px-2 py-0.5 bg-blue-950/80 text-blue-400 rounded-full border border-blue-500/20">Ruta Completa</span>
+        </div>
+        <p class="text-xs text-slate-400 mb-3.5">
+          Transfiere al instante todas las guías activas de un chofer a otro. Aplica actualización atómica a la <strong class="text-slate-300">Columna E (Chofer)</strong> en GUIAS_ASIGNADAS.
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">1. Chofer Origen</label>
+            <select id="sel-origen-chofer" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-200 focus:outline-none focus:border-blue-500">
+              <option value="">Cargando operadores...</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">2. Chofer Destino (Grupo Daniel)</label>
+            <select id="sel-destino-chofer" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-blue-300 focus:outline-none focus:border-blue-500">
+              <option value="">Cargando operadores...</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <button onclick="prepararTransferenciaChofer()" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 transition active:scale-[0.98]">
+        <i data-lucide="send" class="w-4 h-4"></i>
+        Transferir Ruta Completa
+      </button>
     </div>
 
-    <div class="flex items-center gap-3 w-full md:w-auto">
-      <label class="text-xs font-bold text-slate-400">Filtrar Operador:</label>
-      <select id="filtro-chofer" onchange="filtrarTabla()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-blue-400 font-bold focus:outline-none focus:border-blue-500">
-        <option value="todos">-- Todo el Grupo Sierra --</option>
-        <option value="xichudaniel@gmail.com">Daniel Juárez</option>
-        <option value="jesusivargonzalez@gmail.com">Jesús Ivar</option>
-        <option value="oscher1016@gmail.com">Oscher</option>
-      </select>
+    <!-- MÓDULO 5: REASIGNACIÓN INTELIGENTE POR CP / MUNICIPIO (MATRIZ_CP MULTICAPA) -->
+    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2.5">
+          <h3 class="text-sm font-extrabold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+            <i data-lucide="map-pin" class="w-4 h-4 text-emerald-400"></i>
+            Reasignación por Demarcación (MATRIZ_CP)
+          </h3>
+          <span class="text-[10px] font-bold px-2 py-0.5 bg-emerald-950/80 text-emerald-400 rounded-full border border-emerald-500/20">Override Activo</span>
+        </div>
+        <p class="text-xs text-slate-400 mb-3.5">
+          Reasigna por Municipio o CP específico. Inyecta <strong class="text-emerald-300">Override_Activo</strong> en MATRIZ_CP y actualiza las guías activas en GUIAS_ASIGNADAS.
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-4">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tipo</label>
+            <select id="sel-tipo-geo" onchange="actualizarSelectoresGeo()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-200 focus:outline-none focus:border-emerald-500">
+              <option value="municipio">Municipio</option>
+              <option value="cp">Código Postal</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1" id="lbl-geo-target">Municipio</label>
+            <select id="sel-valor-geo" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-xs font-semibold text-emerald-300 focus:outline-none focus:border-emerald-500">
+              <option value="">Cargando...</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Destino (Grupo Daniel)</label>
+            <select id="sel-destino-geo" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-xs font-semibold text-blue-300 focus:outline-none focus:border-emerald-500">
+              <option value="">Cargando...</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <button onclick="prepararTransferenciaGeo()" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 transition active:scale-[0.98]">
+        <i data-lucide="layers" class="w-4 h-4"></i>
+        Activar Override & Reasignar Ubicación
+      </button>
     </div>
   </section>
 
-  <!-- MONITOR TABLE -->
-  <main class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl mb-6">
-    <div class="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
-      <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-        <i data-lucide="navigation" class="w-4 h-4 text-blue-500"></i>
-        Mesa de Ruta de Alta Montaña (RUTA Central)
-      </h3>
-      <span class="text-[10px] text-slate-500 font-semibold" id="conteo-filas">Registros cargados: 0</span>
+  <!-- TABLA DE MONITOREO DE GUÍAS CON FILTROS Y DISTINTIVO INTERNACIONAL -->
+  <main class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl mb-6">
+    <!-- BARRA DE BÚSQUEDA Y FILTROS -->
+    <div class="p-3 md:p-4 border-b border-slate-800 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between bg-slate-950/40">
+      <div class="relative flex-1">
+        <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-500">
+          <i data-lucide="search" class="w-4 h-4"></i>
+        </span>
+        <input type="text" id="filtro-texto" onkeyup="renderizarTabla()" placeholder="Buscar por Guía HWB, Destinatario, Municipio o CP..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500">
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <select id="filtro-operador-tabla" onchange="renderizarTabla()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-300 focus:outline-none focus:border-blue-500">
+          <option value="todos">Todos los Choferes</option>
+        </select>
+
+        <select id="filtro-estatus-tabla" onchange="renderizarTabla()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-300 focus:outline-none focus:border-blue-500">
+          <option value="todos">Todos los Estatus</option>
+          <option value="PENDIENTE">Pendientes</option>
+          <option value="POR_ENTREGAR">Por Entregar / En Ruta</option>
+          <option value="OK">Entregadas (OK)</option>
+          <option value="INCIDENCIA">Incidencias</option>
+        </select>
+
+        <button id="btn-filtro-inter" onclick="toggleFiltroInter()" class="px-3 py-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-800 text-xs font-bold text-slate-300 flex items-center gap-1.5 transition">
+          <i data-lucide="globe" class="w-3.5 h-3.5 text-blue-400"></i>
+          <span>Solo Internacionales</span>
+        </button>
+      </div>
     </div>
 
-    <div class="overflow-x-auto max-h-[400px] custom-scrollbar">
-      <table class="w-full text-left border-collapse text-xs" id="tabla-sierra">
-        <thead>
-          <tr class="bg-slate-950 text-slate-400 border-b border-slate-800 uppercase tracking-wider font-bold text-[10px]">
+    <!-- TABLA RESPONSIVA -->
+    <div class="overflow-x-auto max-h-[500px] custom-scrollbar">
+      <table class="w-full text-left border-collapse text-xs">
+        <thead class="sticky top-0 bg-slate-950 text-slate-400 uppercase tracking-wider font-bold text-[10px] border-b border-slate-800 z-10">
+          <tr>
             <th class="px-4 py-3">Guía (HWB)</th>
-            <th class="px-4 py-3">Bulto (PID)</th>
-            <th class="px-4 py-3">C.P.</th>
-            <th class="px-4 py-3">Cliente</th>
-            <th class="px-4 py-3">Dirección de Entrega</th>
+            <th class="px-4 py-3">Destinatario</th>
+            <th class="px-4 py-3">Municipio / C.P.</th>
+            <th class="px-4 py-3">Pochteca Asignado</th>
+            <th class="px-4 py-3">EDD</th>
             <th class="px-4 py-3 text-center">Estatus</th>
-            <th class="px-4 py-3">Comentarios / Evidencia</th>
-            <th class="px-4 py-3">Chofer</th>
+            <th class="px-4 py-3 text-center">Piezas</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-800/40 text-slate-300" id="cuerpo-tabla">
+        <tbody class="divide-y divide-slate-800/50 text-slate-300" id="cuerpo-guias">
           <tr>
-            <td colspan="8" class="text-center py-10 text-slate-500 font-bold uppercase tracking-wider animate-pulse">
-              Cargando datos desde la Bóveda Central...
+            <td colspan="7" class="text-center py-12 text-slate-500 font-semibold uppercase tracking-wider animate-pulse">
+              Conectando con bases vivas de Sierra Gorda...
             </td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <!-- PIE DE TABLA -->
+    <div class="px-4 py-2.5 border-t border-slate-800/80 bg-slate-950/60 flex items-center justify-between text-[11px] text-slate-400">
+      <span id="lbl-conteo-tabla">Cargando guías...</span>
+      <span class="text-slate-500 text-[10px]">Restricción: BD_APP_RUTA_2025 & BOVEDA_BATCH_MAESTRO</span>
+    </div>
   </main>
 
-  <!-- FOOTER -->
-  <footer class="border-t border-slate-800 pt-4 flex flex-col md:flex-row items-center justify-between text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
+  <!-- FOOTER INFORMATIVO -->
+  <footer class="border-t border-slate-800/80 pt-4 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 gap-2">
     <div>
-      © 2026 Arauto Express — Ecosistema OLLIN v77.0 PROD (Sierra Monitor)
+      © 2026 Arauto Express — Ecosistema OLLIN | Módulo de Rampa y Alta Montaña
     </div>
-    <div class="flex items-center gap-1.5">
-      <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-      Sincronización en caliente vía RUTA Central
+    <div class="flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+      <span>Base Activa: GUIAS_ASIGNADAS (25 Columnas Blindadas)</span>
     </div>
   </footer>
 
-  <!-- CLIENT-SIDE LOGIC -->
+  <!-- ===================================================================== -->
+  <!-- MODALES DE CONFIRMACIÓN POKA-YOKE (ANTI-ERRORES)                      -->
+  <!-- ===================================================================== -->
+  <!-- Modal 1: Confirmar Transferencia Chofer a Chofer -->
+  <div id="modal-confirm-chofer" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border-2 border-blue-500/50 rounded-2xl max-w-md w-full p-5 shadow-2xl">
+      <div class="flex items-center gap-3 mb-3 text-blue-400">
+        <div class="p-2 bg-blue-950 rounded-xl border border-blue-500/30">
+          <i data-lucide="shield-alert" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h3 class="font-extrabold text-base text-white">Confirmación Poka-Yoke</h3>
+          <p class="text-[11px] text-slate-400">Reasignación en Lote de Chofer a Chofer</p>
+        </div>
+      </div>
+
+      <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 my-3 text-xs space-y-2">
+        <div class="flex justify-between">
+          <span class="text-slate-400">Guías estimadas a transferir:</span>
+          <strong class="text-amber-400 font-mono text-sm" id="modal-chofer-count">0</strong>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-400">Pochteca Origen:</span>
+          <strong class="text-slate-200" id="modal-chofer-origen">--</strong>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-400">Pochteca Destino:</span>
+          <strong class="text-blue-400" id="modal-chofer-destino">--</strong>
+        </div>
+      </div>
+
+      <p class="text-[11px] text-slate-400 mb-4">
+        Esta acción modificará directamente la base de datos de calle y notificará el traspaso al espacio de supervisión. ¿Deseas continuar?
+      </p>
+
+      <div class="flex gap-2 justify-end">
+        <button onclick="cerrarModal('modal-confirm-chofer')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase">
+          Cancelar
+        </button>
+        <button id="btn-ejecutar-chofer" onclick="ejecutarTransferenciaChofer()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase shadow-lg flex items-center gap-1.5">
+          <i data-lucide="check" class="w-4 h-4"></i> Confirmar y Transferir
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Confirmar Transferencia por Ubicación / Override -->
+  <div id="modal-confirm-geo" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border-2 border-emerald-500/50 rounded-2xl max-w-md w-full p-5 shadow-2xl">
+      <div class="flex items-center gap-3 mb-3 text-emerald-400">
+        <div class="p-2 bg-emerald-950 rounded-xl border border-emerald-500/30">
+          <i data-lucide="layers" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h3 class="font-extrabold text-base text-white">Confirmación Poka-Yoke</h3>
+          <p class="text-[11px] text-slate-400">Reasignación Inteligente por Ubicación</p>
+        </div>
+      </div>
+
+      <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 my-3 text-xs space-y-2">
+        <div class="flex justify-between">
+          <span class="text-slate-400">Demarcación:</span>
+          <strong class="text-emerald-300 font-bold" id="modal-geo-target">--</strong>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-400">Guías activas a mover:</span>
+          <strong class="text-amber-400 font-mono text-sm" id="modal-geo-count">0</strong>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-400">Nuevo Operador (Override):</span>
+          <strong class="text-blue-400" id="modal-geo-destino">--</strong>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-400">Vigencia del Override:</span>
+          <strong class="text-slate-300" id="modal-geo-fecha">Hasta mañana</strong>
+        </div>
+      </div>
+
+      <p class="text-[11px] text-slate-400 mb-4">
+        Se actualizará <strong class="text-emerald-300">MATRIZ_CP</strong> en Bóveda Maestro y se reasignarán todas las guías activas correspondientes.
+      </p>
+
+      <div class="flex gap-2 justify-end">
+        <button onclick="cerrarModal('modal-confirm-geo')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase">
+          Cancelar
+        </button>
+        <button id="btn-ejecutar-geo" onclick="ejecutarTransferenciaGeo()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase shadow-lg flex items-center gap-1.5">
+          <i data-lucide="check" class="w-4 h-4"></i> Aplicar Override
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- LÓGICA DE CLIENTE JAVASCRIPT                                         -->
+  <!-- ===================================================================== -->
   <script>
-    // Inicializar Iconos Lucide
-    lucide.createIcons();
+    // Variables de estado local
+    var estadoLocal = {
+      usuario: "xichudaniel@gmail.com",
+      rol: "daniel",
+      guias: [],
+      pochtecas: [],
+      municipios: [],
+      codigosPostales: [],
+      filtroSoloInter: false,
+      transferenciaPendienteChofer: null,
+      transferenciaPendienteGeo: null
+    };
 
-    var cacheDatosLocal = [];
+    // Inicializar Iconos
+    document.addEventListener("DOMContentLoaded", function() {
+      lucide.createIcons();
+      cargarConsola();
+    });
 
-    // Llamar al servidor de Google de forma asíncrona
-    function cargarDatos() {
-      var syncIcon = document.getElementById('sync-icon');
-      if (syncIcon) syncIcon.classList.add('animate-spin');
+    /**
+     * Cargar todos los datos desde el backend de Google Apps Script
+     */
+    function cargarConsola() {
+      var icon = document.getElementById("btn-sync-icon");
+      if (icon) icon.classList.add("animate-spin");
 
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
+      if (typeof google !== "undefined" && google.script && google.script.run) {
         google.script.run
           .withSuccessHandler(function(res) {
-            if (syncIcon) syncIcon.classList.remove('animate-spin');
-            if (res.exito) {
-              cacheDatosLocal = res.datos;
-              poblarKPIs(res.kpis, res.sla);
-              renderizarPochtecas(res.pochtecasSummary);
-              renderizarDiario(res.dailySummary);
-              renderizarInternacionales(res.enviosInternacionales);
-              renderizarTabla(res.datos);
+            if (icon) icon.classList.remove("animate-spin");
+            if (res && res.exito) {
+              procesarDatosServidor(res);
+              mostrarToast("Datos sincronizados en tiempo real", "success");
             } else {
-              alert("❌ Error de comunicación con la base de datos: " + res.error);
+              mostrarToast("Error del servidor: " + (res ? res.error : "Sin respuesta"), "error");
             }
           })
           .withFailureHandler(function(err) {
-            if (syncIcon) syncIcon.classList.remove('animate-spin');
-            alert("❌ Excepción crítica de red: " + err.message);
+            if (icon) icon.classList.remove("animate-spin");
+            mostrarToast("Falla de conexión: " + err.message, "error");
           })
-          .obtenerDatosRutaSierra();
+          .obtenerConsolaSierra(estadoLocal.usuario, estadoLocal.rol);
       } else {
-        // Fallback Simulador Local (Muestras de pruebas de rampa)
+        // Fallback simulador en desarrollo
+        console.warn("Entorno local sin google.script.run. Cargando simulación...");
         setTimeout(function() {
-          if (syncIcon) syncIcon.classList.remove('animate-spin');
-          var mockData = [
-            { guia: "4804831533", pid: "JJD014600012742883814", cp: "37930", piezas: 1, cliente: "ISIDRO CRUZ GONZALEZ", direccion: "ZARAGOZA ESQ 5 DE MAYO, XICHU", gps: "21.0192, -100.343", checkpoint: "PENDIENTE", comentarios: "", operador: "xichudaniel@gmail.com", internacional: true },
-            { guia: "8302817773", pid: "JD0081108268302817773", cp: "37680", piezas: 1, cliente: "PARTICULAR", direccion: "NUEVO MEXICO S/N, LEON", gps: "21.020, -100.41", checkpoint: "OK", comentarios: "Entregado a esposa", operador: "oscher1016@gmail.com", internacional: false },
-            { guia: "6750448843", pid: "JD014600012751563131", cp: "37920", piezas: 1, cliente: "BRX 0197783687", direccion: "EL TEPETATE, VICTORIA", gps: "21.053, -100.385", checkpoint: "NH", comentarios: "No está en hogar", operador: "jesusivargonzalez@gmail.com", internacional: false }
-          ];
-          var mockKPIs = {
-            totales: 3,
-            entregados: 1,
-            incidencias: 1,
-            pendientes: 1,
-            interPendientes: 1,
-            interIncidencias: 0,
-            visitasReales: 2
-          };
-          var mockPochtecas = [
-            { nombre: "Daniel Juárez", email: "xichudaniel@gmail.com", total: 1, pendientes: 1, oks: 0, incidencias: 0, sla: "100.0%" },
-            { nombre: "Jesús Ivar", email: "jesusivargonzalez@gmail.com", total: 1, pendientes: 0, oks: 0, incidencias: 1, sla: "0.0%" },
-            { nombre: "Oscher", email: "oscher1016@gmail.com", total: 1, pendientes: 0, oks: 1, incidencias: 0, sla: "100.0%" }
-          ];
-          var mockDiario = [
-            { fecha: "02/09/2026", fechaFormateada: "Miércoles 2 de Septiembre", total: 3, pendientes: 1, visitas: 2, oks: 1, incidencias: 1, sla: "50.0%" }
-          ];
-          var mockInternacionales = [
-            { guia: "4804831533", pid: "JJD014600012742883814", cliente: "ISIDRO CRUZ GONZALEZ", fechaAsignacion: "02/09/2026", fechaAsignacionFormateada: "Miércoles 2 de Septiembre", estatus: "PENDIENTE", checkpoint: "PENDIENTE", chofer: "Daniel" }
-          ];
-          cacheDatosLocal = mockData;
-          poblarKPIs(mockKPIs, "50.0%");
-          renderizarPochtecas(mockPochtecas);
-          renderizarDiario(mockDiario);
-          renderizarInternacionales(mockInternacionales);
-          renderizarTabla(mockData);
-        }, 1200);
+          if (icon) icon.classList.remove("animate-spin");
+          var mockSim = generarMockData();
+          procesarDatosServidor(mockSim);
+          mostrarToast("Simulación local cargada", "info");
+        }, 600);
       }
     }
 
-    function poblarKPIs(kpis, sla) {
-      document.getElementById('kpi-sla').innerText = sla;
-      document.getElementById('kpi-cierre-diario').innerText = kpis.incidencias + " / " + kpis.visitasReales;
-      document.getElementById('kpi-inter-alert').innerText = kpis.interPendientes + " Pend. / " + kpis.interIncidencias + " Incid.";
+    /**
+     * Procesa la carga de datos del servidor y puebla los selectores y KPIs
+     */
+    function procesarDatosServidor(data) {
+      estadoLocal.guias = data.guias || [];
+      estadoLocal.pochtecas = data.pochtecas || [];
+      estadoLocal.municipios = data.municipios || [];
+      estadoLocal.codigosPostales = data.codigosPostales || [];
+
+      // 1. KPIs
+      var k = data.kpis || { total: 0, ok: 0, pendientes: 0, internacionales: 0 };
+      document.getElementById("kpi-total").innerText = k.total;
+      document.getElementById("kpi-ok").innerText = k.ok;
+      document.getElementById("kpi-pendientes").innerText = k.pendientes;
+      document.getElementById("kpi-inter").innerText = k.internacionales;
+
+      // 2. Selectores de Chofer a Chofer
+      poblarSelectoresChofer();
+
+      // 3. Selectores Geográficos
+      poblarSelectoresGeo();
+
+      // 4. Selector de Filtro en Tabla
+      poblarFiltroOperadorTabla();
+
+      // 5. Renderizar Tabla de Guías
+      renderizarTabla();
     }
 
-    function renderizarPochtecas(lista) {
-      var tbody = document.getElementById('cuerpo-pochtecas');
-      tbody.innerHTML = "";
-      lista.forEach(function(item) {
-        var tr = document.createElement('tr');
-        tr.className = "hover:bg-slate-800/10 border-b border-slate-800/40";
-        tr.innerHTML = `
-          <td class="px-2 py-2 font-bold text-slate-200">${item.nombre}</td>
-          <td class="px-2 py-2 text-center font-mono text-slate-400">${item.total}</td>
-          <td class="px-2 py-2 text-center font-mono text-amber-500 font-bold">${item.pendientes}</td>
-          <td class="px-2 py-2 text-center font-mono text-emerald-400 font-bold">${item.oks}</td>
-          <td class="px-2 py-2 text-center font-mono text-red-400 font-bold">${item.incidencias}</td>
-          <td class="px-2 py-2 text-center font-mono font-bold ${parseFloat(item.sla) >= 95 ? 'text-blue-400' : 'text-red-400'}">${item.sla}</td>
-        `;
-        tbody.appendChild(tr);
+    /**
+     * Puebla selectores de reasignación Chofer a Chofer
+     */
+    function poblarSelectoresChofer() {
+      var selOrigen = document.getElementById("sel-origen-chofer");
+      var selDestino = document.getElementById("sel-destino-chofer");
+
+      selOrigen.innerHTML = '<option value="sin_asignar">⚠️ Sin Asignar (Ruta Huérfana)</option>';
+      selDestino.innerHTML = '<option value="">-- Selecciona Destino --</option>';
+
+      estadoLocal.pochtecas.forEach(function(p) {
+        // Origen
+        var optO = document.createElement("option");
+        optO.value = p.email;
+        optO.innerText = p.nombre + " (" + p.total + " guías)";
+        selOrigen.appendChild(optO);
+
+        // Destino
+        var optD = document.createElement("option");
+        optD.value = p.email;
+        optD.innerText = p.nombre + " (" + p.email.split("@")[0] + ")";
+        selDestino.appendChild(optD);
       });
     }
 
-    function renderizarDiario(lista) {
-      var tbody = document.getElementById('cuerpo-diario');
-      tbody.innerHTML = "";
-      if (lista.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-slate-600">Sin historial diario activo</td></tr>`;
-        return;
-      }
-      lista.forEach(function(item) {
-        var tr = document.createElement('tr');
-        tr.className = "hover:bg-slate-800/10 border-b border-slate-800/40 text-[11px]";
-        tr.innerHTML = `
-          <td class="px-2 py-1.5 font-bold text-slate-400">${item.fechaFormateada}</td>
-          <td class="px-2 py-1.5 text-center font-mono text-slate-500">${item.total}</td>
-          <td class="px-2 py-1.5 text-center font-mono text-amber-600">${item.pendientes}</td>
-          <td class="px-2 py-1.5 text-center font-mono text-emerald-500 font-bold">${item.oks}</td>
-          <td class="px-2 py-1.5 text-center font-mono text-red-500 font-bold">${item.incidencias}</td>
-          <td class="px-2 py-1.5 text-center font-mono text-blue-400 font-bold">${item.sla}</td>
-        `;
-        tbody.appendChild(tr);
+    /**
+     * Puebla selectores de reasignación geográfica
+     */
+    function poblarSelectoresGeo() {
+      actualizarSelectoresGeo();
+
+      var selDestinoGeo = document.getElementById("sel-destino-geo");
+      selDestinoGeo.innerHTML = '<option value="">-- Selecciona Destino --</option>';
+      estadoLocal.pochtecas.forEach(function(p) {
+        var opt = document.createElement("option");
+        opt.value = p.email;
+        opt.innerText = p.nombre;
+        selDestinoGeo.appendChild(opt);
       });
     }
 
-    function renderizarInternacionales(lista) {
-      var tbody = document.getElementById('cuerpo-internacionales');
-      tbody.innerHTML = "";
-      if (!lista || lista.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-slate-600">No hay custodia internacional activa</td></tr>`;
-        return;
+    function actualizarSelectoresGeo() {
+      var tipo = document.getElementById("sel-tipo-geo").value;
+      var selValor = document.getElementById("sel-valor-geo");
+      var lblTarget = document.getElementById("lbl-geo-target");
+
+      selValor.innerHTML = "";
+      if (tipo === "municipio") {
+        lblTarget.innerText = "Municipio";
+        estadoLocal.municipios.forEach(function(m) {
+          var opt = document.createElement("option");
+          opt.value = m.nombre;
+          opt.innerText = m.nombre + " (" + m.countGuias + " guías activas)";
+          selValor.appendChild(opt);
+        });
+      } else {
+        lblTarget.innerText = "Código Postal";
+        estadoLocal.codigosPostales.forEach(function(c) {
+          var opt = document.createElement("option");
+          opt.value = c.cp;
+          opt.innerText = c.cp + " - " + c.municipio;
+          selValor.appendChild(opt);
+        });
       }
-      lista.forEach(function(item) {
-        var badgeColor = "bg-slate-950 border border-slate-800 text-slate-400";
-        if (item.estatus === "OK") {
-          badgeColor = "bg-emerald-950 border border-emerald-500/20 text-emerald-400 font-bold";
-        } else if (item.estatus === "PENDIENTE") {
-          badgeColor = "bg-amber-950 border border-amber-500/20 text-amber-400 font-bold";
-        } else if (item.estatus === "INCIDENCIA") {
-          badgeColor = "bg-red-950 border border-red-500/20 text-red-400 font-bold";
+    }
+
+    /**
+     * Puebla el filtro de operadores sobre la tabla de monitoreo
+     */
+    function poblarFiltroOperadorTabla() {
+      var sel = document.getElementById("filtro-operador-tabla");
+      sel.innerHTML = '<option value="todos">Todos los Choferes</option><option value="sin_asignar">Sin Asignar</option>';
+      estadoLocal.pochtecas.forEach(function(p) {
+        var opt = document.createElement("option");
+        opt.value = p.email;
+        opt.innerText = p.nombre;
+        sel.appendChild(opt);
+      });
+    }
+
+    /**
+     * Toggle para el filtro exclusivo de Envíos Internacionales
+     */
+    function toggleFiltroInter() {
+      estadoLocal.filtroSoloInter = !estadoLocal.filtroSoloInter;
+      var btn = document.getElementById("btn-filtro-inter");
+      if (estadoLocal.filtroSoloInter) {
+        btn.classList.add("bg-blue-600", "text-white", "border-blue-400");
+        btn.classList.remove("bg-slate-950", "text-slate-300");
+      } else {
+        btn.classList.remove("bg-blue-600", "text-white", "border-blue-400");
+        btn.classList.add("bg-slate-950", "text-slate-300");
+      }
+      renderizarTabla();
+    }
+
+    /**
+     * Renderiza la tabla de monitoreo aplicando los filtros activos
+     */
+    function renderizarTabla() {
+      var txt = document.getElementById("filtro-texto").value.toLowerCase().trim();
+      var fChofer = document.getElementById("filtro-operador-tabla").value;
+      var fEstatus = document.getElementById("filtro-estatus-tabla").value;
+      var soloInter = estadoLocal.filtroSoloInter;
+
+      var tbody = document.getElementById("cuerpo-guias");
+      tbody.innerHTML = "";
+
+      var filtradas = estadoLocal.guias.filter(function(g) {
+        if (soloInter && !g.esInternacional) return false;
+
+        if (fEstatus !== "todos" && g.estatus !== fEstatus) return false;
+
+        if (fChofer !== "todos") {
+          if (fChofer === "sin_asignar") {
+            if (g.chofer !== "sin_asignar@arauto.express" && g.chofer !== "" && g.chofer !== "sin_asignar") return false;
+          } else {
+            if (g.chofer !== fChofer) return false;
+          }
         }
 
-        var tr = document.createElement('tr');
-        tr.className = "hover:bg-slate-800/10 border-b border-slate-800/40 text-[11px]";
-        tr.innerHTML = `
-          <td class="px-2 py-1.5">
-            <div class="font-bold text-slate-200 font-mono text-[10px]">${item.guia}</div>
-            <div class="text-[9px] text-slate-500 font-mono truncate max-w-[100px]" title="${item.pid}">${item.pid}</div>
-          </td>
-          <td class="px-2 py-1.5 text-slate-400 text-[10px] font-medium">${item.fechaAsignacionFormateada}</td>
-          <td class="px-2 py-1.5 text-center">
-            <span class="px-2 py-0.5 rounded-full text-[8px] ${badgeColor}">${item.checkpoint}</span>
-          </td>
-          <td class="px-2 py-1.5 font-bold text-slate-400 text-[10px]">${item.chofer}</td>
-        `;
-        tbody.appendChild(tr);
+        if (txt) {
+          var enGuia = g.guia.toLowerCase().indexOf(txt) !== -1;
+          var enDest = g.destinatario.toLowerCase().indexOf(txt) !== -1;
+          var enMun = g.municipio.toLowerCase().indexOf(txt) !== -1;
+          var enCp = g.cp.toLowerCase().indexOf(txt) !== -1;
+          var enChof = g.choferNombre.toLowerCase().indexOf(txt) !== -1;
+          if (!enGuia && !enDest && !enMun && !enCp && !enChof) return false;
+        }
+
+        return true;
       });
-    }
 
-    function renderizarTabla(lista) {
-      var tbody = document.getElementById('cuerpo-tabla');
-      tbody.innerHTML = "";
-      
-      document.getElementById('conteo-filas').innerText = "Registros cargados: " + lista.length;
+      document.getElementById("lbl-conteo-tabla").innerText = "Mostrando " + filtradas.length + " de " + estadoLocal.guias.length + " guías activas";
 
-      if (lista.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-10 text-slate-500 font-bold uppercase">No se encontraron guías activas para tu grupo.</td></tr>`;
+      if (filtradas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-10 text-slate-500 font-bold uppercase tracking-wider">No se encontraron guías con los filtros seleccionados.</td></tr>';
         return;
       }
 
-      lista.forEach(function(item) {
-        var isPendiente = (item.checkpoint === "PENDIENTE" || item.checkpoint === "" || item.checkpoint === "PREASIGNADO" || item.checkpoint === "NULL");
-        var isOk = (item.checkpoint === "OK");
+      filtradas.forEach(function(item) {
+        var tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-800/30 transition-all border-b border-slate-800/40 text-slate-300";
 
-        var badgeColor = "bg-slate-950 border border-slate-800 text-slate-400";
-        if (isOk) badgeColor = "bg-emerald-950 border border-emerald-500/20 text-emerald-400 font-bold";
-        else if (isPendiente) badgeColor = "bg-amber-950 border border-amber-500/20 text-amber-400 font-bold";
-        else badgeColor = "bg-red-950 border border-red-500/20 text-red-400 font-bold";
+        // Distintivo Visual Internacional
+        var badgeInter = item.esInternacional ?
+          '<span class="ml-1.5 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-blue-900/90 text-blue-200 border border-blue-400/50 shadow inline-flex items-center gap-1 badge-inter-pulse">🌎 INTERNACIONAL</span>' :
+          '';
 
-        var tr = document.createElement('tr');
-        tr.className = "hover:bg-slate-800/20 transition-all border-b border-slate-800/40";
-        
-        var flagInter = item.internacional ? `<span class="ml-1.5 px-1 py-0.5 rounded text-[8px] bg-blue-950 border border-blue-500/30 text-blue-400 font-black tracking-widest flex items-center gap-0.5"><i data-lucide="globe" class="w-2.5 h-2.5 text-blue-400"></i> INTER</span>` : "";
+        // Badge de Estatus
+        var badgeEstatusClass = "bg-slate-800 text-slate-400 border-slate-700";
+        if (item.estatus === "OK") badgeEstatusClass = "bg-emerald-950/80 text-emerald-300 border-emerald-500/40";
+        else if (item.estatus === "POR_ENTREGAR") badgeEstatusClass = "bg-blue-950/80 text-blue-300 border-blue-500/40";
+        else if (item.estatus === "PENDIENTE") badgeEstatusClass = "bg-amber-950/80 text-amber-300 border-amber-500/40";
+        else if (item.estatus === "INCIDENCIA") badgeEstatusClass = "bg-red-950/80 text-red-300 border-red-500/40";
 
         tr.innerHTML = `
-          <td class="px-4 py-3.5 font-bold font-mono text-slate-400 flex items-center">${item.guia}${flagInter}</td>
-          <td class="px-4 py-3.5 font-semibold font-mono text-slate-400 text-[11px]">${item.pid}</td>
-          <td class="px-4 py-3.5 font-bold text-blue-400">${item.cp}</td>
-          <td class="px-4 py-3.5 font-medium max-w-[150px] truncate" title="${item.cliente}">${item.cliente}</td>
-          <td class="px-4 py-3.5 text-slate-400 max-w-[200px] truncate" title="${item.direccion}">${item.direccion}</td>
-          <td class="px-4 py-3.5 text-center">
-            <span class="px-2.5 py-1 rounded-full text-[9px] ${badgeColor}">${isPendiente ? 'PENDIENTE' : item.checkpoint}</span>
+          <td class="px-4 py-3.5 font-mono font-extrabold text-white flex items-center flex-wrap gap-1">
+            ${item.guia} ${badgeInter}
           </td>
-          <td class="px-4 py-3.5 text-slate-400 max-w-[180px] truncate" title="${item.comentarios}">
-            ${item.comentarios || '<span class="text-slate-600 font-bold">-- Sin Novedad --</span>'}
+          <td class="px-4 py-3.5 font-medium max-w-[200px] truncate" title="${item.destinatario}">
+            ${item.destinatario}
           </td>
-          <td class="px-4 py-3.5 font-bold text-slate-400 text-[10px]">${item.operador.split('@')[0]}</td>
+          <td class="px-4 py-3.5">
+            <span class="font-bold text-slate-200">${item.municipio}</span>
+            <span class="text-[10px] text-blue-400 font-mono block">CP: ${item.cp}</span>
+          </td>
+          <td class="px-4 py-3.5">
+            <div class="font-bold text-slate-200 flex items-center gap-1.5">
+              <i data-lucide="user" class="w-3.5 h-3.5 text-slate-500"></i>
+              ${item.choferNombre}
+            </div>
+            <span class="text-[9px] text-slate-500 font-mono">${item.chofer.split("@")[0]}</span>
+          </td>
+          <td class="px-4 py-3.5 text-slate-400 text-[11px] whitespace-nowrap">
+            ${item.edd || 'Sin EDD'}
+          </td>
+          <td class="px-4 py-3.5 text-center whitespace-nowrap">
+            <span class="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border ${badgeEstatusClass}">
+              ${item.estatus}
+            </span>
+          </td>
+          <td class="px-4 py-3.5 text-center font-mono font-bold text-slate-300">
+            ${item.piezas}
+          </td>
         `;
         tbody.appendChild(tr);
       });
+
       lucide.createIcons();
     }
 
-    function filtrarTabla() {
-      var query = document.getElementById('buscador-caliente').value.toLowerCase().trim();
-      var choferFiltro = document.getElementById('filtro-chofer').value;
+    // =========================================================================
+    // ACCIONES POKA-YOKE DE REASIGNACIÓN
+    // =========================================================================
+    function prepararTransferenciaChofer() {
+      var origen = document.getElementById("sel-origen-chofer").value;
+      var destino = document.getElementById("sel-destino-chofer").value;
 
-      var filtrados = cacheDatosLocal.filter(function(item) {
-        var matchQuery = item.guia.toLowerCase().indexOf(query) !== -1 ||
-                         item.pid.toLowerCase().indexOf(query) !== -1 ||
-                         item.cp.toLowerCase().indexOf(query) !== -1 ||
-                         item.cliente.toLowerCase().indexOf(query) !== -1 ||
-                         item.direccion.toLowerCase().indexOf(query) !== -1;
+      if (!destino) {
+        mostrarToast("Debes seleccionar un Pochteca Destino del Grupo Daniel", "error");
+        return;
+      }
+      if (origen === destino) {
+        mostrarToast("El Pochteca Origen y Destino no pueden ser el mismo", "error");
+        return;
+      }
 
-        var matchChofer = (choferFiltro === "todos") || (item.operador === choferFiltro);
+      // Conteo de guías involucradas
+      var count = estadoLocal.guias.filter(function(g) {
+        if (origen === "sin_asignar") {
+          return g.chofer === "sin_asignar@arauto.express" || g.chofer === "" || g.chofer === "sin_asignar";
+        }
+        return g.chofer === origen;
+      }).length;
 
-        return matchQuery && matchChofer;
-      });
+      var selO = document.getElementById("sel-origen-chofer");
+      var selD = document.getElementById("sel-destino-chofer");
 
-      renderizarTabla(filtrados);
+      document.getElementById("modal-chofer-count").innerText = count + " guías";
+      document.getElementById("modal-chofer-origen").innerText = selO.options[selO.selectedIndex].text;
+      document.getElementById("modal-chofer-destino").innerText = selD.options[selD.selectedIndex].text;
+
+      estadoLocal.transferenciaPendienteChofer = { origen: origen, destino: destino, count: count };
+      abrirModal("modal-confirm-chofer");
     }
 
-    // Carga inicial
-    window.onload = function() {
-      cargarDatos();
-    };
+    function ejecutarTransferenciaChofer() {
+      var pend = estadoLocal.transferenciaPendienteChofer;
+      if (!pend) return;
+
+      var btn = document.getElementById("btn-ejecutar-chofer");
+      btn.disabled = true;
+      btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Transfiriendo...';
+      lucide.createIcons();
+
+      if (typeof google !== "undefined" && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Confirmar y Transferir';
+            cerrarModal("modal-confirm-chofer");
+            if (res && res.exito) {
+              mostrarToast(res.mensaje, "success");
+              cargarConsola();
+            } else {
+              mostrarToast("Error en reasignación: " + (res ? res.error : "Desconocido"), "error");
+            }
+          })
+          .withFailureHandler(function(err) {
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Confirmar y Transferir';
+            cerrarModal("modal-confirm-chofer");
+            mostrarToast("Error: " + err.message, "error");
+          })
+          .reasignarChoferAChofer(pend.origen, pend.destino, estadoLocal.usuario, estadoLocal.rol);
+      } else {
+        setTimeout(function() {
+          btn.disabled = false;
+          btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Confirmar y Transferir';
+          cerrarModal("modal-confirm-chofer");
+          // Simular en memoria local
+          estadoLocal.guias.forEach(function(g) {
+            if (pend.origen === "sin_asignar" && (g.chofer === "sin_asignar@arauto.express" || g.chofer === "")) {
+              g.chofer = pend.destino;
+            } else if (g.chofer === pend.origen) {
+              g.chofer = pend.destino;
+            }
+          });
+          renderizarTabla();
+          mostrarToast("Simulación: " + pend.count + " guías transferidas a " + pend.destino, "success");
+        }, 1000);
+      }
+    }
+
+    function prepararTransferenciaGeo() {
+      var tipo = document.getElementById("sel-tipo-geo").value;
+      var valor = document.getElementById("sel-valor-geo").value;
+      var destino = document.getElementById("sel-destino-geo").value;
+
+      if (!valor) {
+        mostrarToast("Debes seleccionar una demarcación geográfica", "error");
+        return;
+      }
+      if (!destino) {
+        mostrarToast("Debes seleccionar un Pochteca Destino del Grupo Daniel", "error");
+        return;
+      }
+
+      // Conteo de guías afectadas
+      var count = 0;
+      if (tipo === "municipio") {
+        count = estadoLocal.guias.filter(function(g) { return g.municipio.toLowerCase() === valor.toLowerCase(); }).length;
+      } else {
+        count = estadoLocal.guias.filter(function(g) { return g.cp === valor; }).length;
+      }
+
+      document.getElementById("modal-geo-target").innerText = (tipo === "municipio" ? "Municipio: " : "CP: ") + valor;
+      document.getElementById("modal-geo-count").innerText = count + " guías activas";
+      var selD = document.getElementById("sel-destino-geo");
+      document.getElementById("modal-geo-destino").innerText = selD.options[selD.selectedIndex].text;
+
+      var d = new Date();
+      d.setDate(d.getDate() + 1);
+      var fStr = d.toISOString().split("T")[0];
+      document.getElementById("modal-geo-fecha").innerText = "Expira el " + fStr + " (23:59)";
+
+      estadoLocal.transferenciaPendienteGeo = {
+        tipo: tipo,
+        valor: valor,
+        destino: destino,
+        fechaExp: fStr,
+        count: count
+      };
+      abrirModal("modal-confirm-geo");
+    }
+
+    function ejecutarTransferenciaGeo() {
+      var pend = estadoLocal.transferenciaPendienteGeo;
+      if (!pend) return;
+
+      var btn = document.getElementById("btn-ejecutar-geo");
+      btn.disabled = true;
+      btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Aplicando Override...';
+      lucide.createIcons();
+
+      if (typeof google !== "undefined" && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Aplicar Override';
+            cerrarModal("modal-confirm-geo");
+            if (res && res.exito) {
+              mostrarToast(res.mensaje, "success");
+              cargarConsola();
+            } else {
+              mostrarToast("Error en reasignación: " + (res ? res.error : "Desconocido"), "error");
+            }
+          })
+          .withFailureHandler(function(err) {
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Aplicar Override';
+            cerrarModal("modal-confirm-geo");
+            mostrarToast("Error: " + err.message, "error");
+          })
+          .reasignarPorUbicacion(pend.tipo, pend.valor, pend.destino, pend.fechaExp, estadoLocal.usuario, estadoLocal.rol);
+      } else {
+        setTimeout(function() {
+          btn.disabled = false;
+          btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Aplicar Override';
+          cerrarModal("modal-confirm-geo");
+          mostrarToast("Simulación: Override activado para " + pend.valor + " -> " + pend.destino, "success");
+        }, 1000);
+      }
+    }
+
+    // =========================================================================
+    // UTILIDADES UI & MODALES
+    // =========================================================================
+    function abrirModal(id) {
+      var m = document.getElementById(id);
+      if (m) {
+        m.classList.remove("hidden");
+        m.classList.add("flex");
+      }
+    }
+
+    function cerrarModal(id) {
+      var m = document.getElementById(id);
+      if (m) {
+        m.classList.add("hidden");
+        m.classList.remove("flex");
+      }
+    }
+
+    function mostrarToast(mensaje, tipo) {
+      var container = document.getElementById("toast-container");
+      var t = document.createElement("div");
+      var bgClass = tipo === "success" ? "bg-emerald-600" : (tipo === "error" ? "bg-red-600" : "bg-blue-600");
+      t.className = "pointer-events-auto flex items-center gap-2 p-3.5 rounded-xl shadow-2xl text-xs font-bold text-white transition-all transform translate-y-2 " + bgClass;
+      var iconName = tipo === "success" ? "check-circle" : (tipo === "error" ? "alert-triangle" : "info");
+      t.innerHTML = `<i data-lucide="${iconName}" class="w-4 h-4 shrink-0"></i><span>${mensaje}</span>`;
+      container.appendChild(t);
+      lucide.createIcons();
+
+      setTimeout(function() {
+        t.style.opacity = "0";
+        setTimeout(function() { if (t.parentNode) t.parentNode.removeChild(t); }, 300);
+      }, 3500);
+    }
+
+    // Datos simulados para pruebas locales directas fuera de GAS
+    function generarMockData() {
+      return {
+        exito: true,
+        kpis: { total: 339, ok: 5, pendientes: 334, internacionales: 14 },
+        pochtecas: [
+          { email: "diegovv21mar@gmail.com", nombre: "Diego Rivera", total: 0, ok: 0, pendientes: 0 },
+          { email: "fmsanluispaq@gmail.com", nombre: "Gregorio González", total: 0, ok: 0, pendientes: 0 },
+          { email: "fmpaqueteriatvsm@gmail.com", nombre: "Lyonnet", total: 0, ok: 0, pendientes: 0 },
+          { email: "yesigonzg1827@gmail.com", nombre: "Rosi", total: 0, ok: 0, pendientes: 0 },
+          { email: "victor18amadorm@gmail.com", nombre: "Víctor Amador", total: 0, ok: 0, pendientes: 0 },
+          { email: "xichudaniel@gmail.com", nombre: "Daniel Juárez", total: 29, ok: 1, pendientes: 28 },
+          { email: "oscher1016@gmail.com", nombre: "Oscher", total: 245, ok: 2, pendientes: 243 }
+        ],
+        municipios: [
+          { nombre: "San Luis de la Paz", countGuias: 180, totalCPs: 18 },
+          { nombre: "Victoria", countGuias: 45, totalCPs: 7 },
+          { nombre: "Xichú", countGuias: 28, totalCPs: 9 },
+          { nombre: "Doctor Mora", countGuias: 34, totalCPs: 10 },
+          { nombre: "Atarjea", countGuias: 12, totalCPs: 7 }
+        ],
+        codigosPostales: [
+          { cp: "37900", municipio: "San Luis de la Paz" },
+          { cp: "37920", municipio: "Victoria" },
+          { cp: "37930", municipio: "Xichú" },
+          { cp: "37980", municipio: "Doctor Mora" }
+        ],
+        guias: [
+          { guia: "9948052343", destinatario: "MS7148-06675989-260915H", cp: "37915", municipio: "San Luis de la Paz", chofer: "xichudaniel@gmail.com", choferNombre: "Daniel Juárez", edd: "26 de Septiembre", estatus: "OK", esInternacional: false, piezas: 1 },
+          { guia: "4804831533", destinatario: "[INTER] ISIDRO CRUZ GONZALEZ", cp: "37930", municipio: "Xichú", chofer: "oscher1016@gmail.com", choferNombre: "Oscher", edd: "24 de Septiembre", estatus: "POR_ENTREGAR", esInternacional: true, piezas: 1 },
+          { guia: "1133871690", destinatario: "LUIS GERARDO BAEZA SANCHEZ", cp: "37917", municipio: "San Luis de la Paz", chofer: "oscher1016@gmail.com", choferNombre: "Oscher", edd: "26 de Septiembre", estatus: "PENDIENTE", esInternacional: false, piezas: 1 }
+        ]
+      };
+    }
   </script>
 </body>
 </html>

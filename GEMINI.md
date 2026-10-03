@@ -85,4 +85,40 @@ Queda estrictamente ordenado a Antigravity que al finalizar cualquier hito, corr
    `g:\Mi unidad\Fuentes_NotebookLM_Amoxcalli_AE\AMOXCALLI_BITACORA_MAESTRA_SISTEMAS_Y_OPERACIONES.md`
 4. **Cero Dependencia de Memoria Volátil:** Este mandato aplica para cualquier chat nuevo, subagente o sesión futura de Antigravity en este workspace.
 
+---
+
+# 🏛️ REGLA MAESTRA: MANDATO EXCLUSIVO DE TENANT CORPORATIVO Y SEPARACIÓN DE UNIVERSOS (OLLIN v2026.10)
+**ID de Regla:** `OLLIN_MANDATO_TENANT_WORKSPACE`  
+**Ámbito:** Todo el Workspace local, Clasp, Google Apps Script, GCP, Netlify y APIs de Google.  
+**Aplica para:** Agente Prudencia (Google Antigravity), OpenCode y Subagentes Autónomos.  
+**Activación:** Always On (Siempre Activa)
+
+## Mandato Inviolable de Delimitación de Contextos y Tres Universos
+Queda ESTRICTAMENTE PROHIBIDO crear, desplegar, modificar o alojar cualquier proyecto de código, archivo de Google Drive, script de Google Apps Script, webhook, base de datos o servicio del Ecosistema OLLIN bajo cuentas personales de Gmail (`@gmail.com`). Toda la infraestructura de Arauto Express debe residir exclusivamente en `@arauto.express`.
+
+### 1. 🌌 UNIVERSO 1: PERSONAL (PRIVADO)
+- **Cuenta:** `sidharta.santiago@gmail.com`
+- **Ámbito:** Asuntos personales y proyectos privados fuera de la empresa.
+- **Regla:** NUNCA alojar aquí activos de Arauto Express ni herramientas del consultorio clínico.
+
+### 2. 🏛️ UNIVERSO 2: CORPORATIVO / OPERACIONES LOGÍSTICAS (ARAUTO EXPRESS)
+- **Cuenta:** `sidharta.santiago@arauto.express`
+- **Ámbito:** Ecosistema OLLIN, logística de última milla DHL, Tlachialoni, Painani, Ollinqui, Reclutamiento de Pochtecas y control de rampa/calle.
+- **Regla:** Todos los scripts y bases de datos operativas deben nacer bajo la titularidad de esta cuenta corporativa en Google Workspace.
+
+### 3. 🧠 UNIVERSO 3: CLÍNICO / CONSULTORIO PROFESIONAL (MTRA. LILIANA LÓPEZ)
+- **Cuenta:** `psic.liliana.lopez@arauto.express`
+- **Ámbito:** Ecosistema Digital Lili v2.0, expediente clínico electrónico, notas SOAP, psicometría, agenda y canalización de crisis.
+- **Regla:** Todo el software clínico, Google Sheets y AppSheet debe nacer y pertenecer ÚNICAMENTE a la cuenta de Lili para proteger el secreto profesional y el estricto cumplimiento normativo.
+
+---
+
+## 🛡️ PROTOCOLO PRE-VUELO DE IDENTIDAD (PRE-FLIGHT IDENTITY CHECK)
+Antes de ejecutar `clasp create`, `clasp push`, `gcloud deploy`, `git commit` o la creación de un Google Doc / Sheet mediante API:
+1. **Comprobación de Usuario Activo:** Verificar la sesión en Clasp (`~/.clasprc.json`) y Google Cloud. Si la cuenta contiene `@gmail.com`, Antigravity DEBE detenerse de inmediato y requerir la cuenta institucional `@arauto.express`.
+2. **Titularidad WebApp:** En despliegues WebApp (`doGet` / `doPost` / Clasp), validar que el propietario sea `sidharta.santiago@arauto.express` bajo la organización corporativa para evitar el error 403 / "Google hasn't verified this app".
+
+
+
+
 

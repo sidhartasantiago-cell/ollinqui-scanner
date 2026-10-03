@@ -1,0 +1,20 @@
+# Entorno virtual y temporales de Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Variables locales sensibles
+.env
+credentials.json
+token.json
+
+# Carpetas de trabajo temporal y logs
+cache_temp/
+logs/*.log
+procesados/*.json
+fallidos/*
+inbox_multimodal/*
+
+# NSSM y binarios locales
+bin/

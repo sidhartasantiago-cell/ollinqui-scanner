@@ -7,8 +7,9 @@
  */
 
 // IDs de Infraestructura del Ecosistema OLLIN
-const ID_BD_APP_RUTA_2025 = "1Rj7Ce6jWIFTXTamfcgO2h-uhFKBuNhSB8m_tBY_g__w"; // Base de AppSheet / Pochtecas
-const ID_BOVEDA_BATCH_MAESTRO = "1wIz5YlSbpOLtDY9UNShZ9LHdcez_Vyxlu1wYxBZKTkw"; // Amoxcalli Almacén (Matriz CP, RAW)
+var ID_BD_APP_RUTA_2025 = ID_BD_APP_RUTA_2025 || "1Rj7Ce6jWIFTXTamfcgO2h-uhFKBuNhSB8m_tBY_g__w"; // Base de AppSheet / Pochtecas
+// const ID_BOVEDA_BATCH_MAESTRO = "1wIz5YlSbpOLtDY9UNShZ9LHdcez_Vyxlu1wYxBZKTkw"; // Ya declarado en CONTROL_FACTURACION_QRO_2026
+const ID_VALIDACION_QRO_2025 = "1tkfIyZIO2UxzSHFNRPFssRKOpkOscn7qNbkYA7SXr0M"; // Matriz Canónica 25 Columnas
 // const ID_BD_CENTRAL_2023 = "1osolxYzL12I05J2CUy5PBAGpPD2Z3XeU37RzUlFPPO8"; // Declarado en Code.gs
 
 const EMAIL_ADMIN_IRVIN = "irvin.reyes@arauto.express";
@@ -76,18 +77,43 @@ function procesarBatchQRO(messageId) {
   // Carga Matriz CP en memoria RAM para evitar SpreadsheetApp.openById repetidos en bucles
   // ==========================================
   const mapCP_Chofer = {};
+  const mapCP_TipoServicio = {};
   try {
     const hojaMatriz = boveda.getSheetByName("MATRIZ_CP");
     if (hojaMatriz) {
       const datosMatriz = hojaMatriz.getDataRange().getValues();
-      for (let m = 1; m < datosMatriz.length; m++) {
-        const cpKey = String(datosMatriz[m][0]).trim();
-        const choferVal = String(datosMatriz[m][1]).trim();
-        if (cpKey) {
-          mapCP_Chofer[cpKey] = choferVal || "sin_asignar@arauto.express";
+      const cabMatriz = datosMatriz[0].map(h => String(h).toLowerCase().trim());
+
+      let colCP = cabMatriz.findIndex(h => h === "c.p." || h === "cp" || h.includes("postal"));
+      if (colCP === -1) colCP = 0;
+
+      let colChofer = cabMatriz.findIndex(h => h.includes("chofer") || h.includes("operador") || h.includes("pochteca") || h.includes("correo"));
+      if (colChofer === -1) colChofer = 1;
+
+      let colServicio = -1;
+      for (let c = 0; c < cabMatriz.length; c++) {
+        const h = cabMatriz[c];
+        if (h.indexOf("servicio") !== -1 || h.indexOf("tipo") !== -1 || h.indexOf("cobertura") !== -1 || h.indexOf("zona") !== -1) {
+          colServicio = c;
+          break;
         }
       }
-      log("🗺️ Cache Matriz CP cargada con éxito. " + Object.keys(mapCP_Chofer).length + " zonas de rampa en memoria RAM.");
+      if (colServicio === -1 && datosMatriz[0].length >= 3) {
+        colServicio = 2;
+      }
+
+      for (let m = 1; m < datosMatriz.length; m++) {
+        const cpKey = String(datosMatriz[m][colCP] || "").trim();
+        const choferVal = String(datosMatriz[m][colChofer] || "").trim();
+        const servicioVal = colServicio !== -1 ? String(datosMatriz[m][colServicio] || "").trim() : "";
+        if (cpKey) {
+          mapCP_Chofer[cpKey] = choferVal || "sin_asignar@arauto.express";
+          if (servicioVal) {
+            mapCP_TipoServicio[cpKey] = servicioVal;
+          }
+        }
+      }
+      log("🗺️ Cache Matriz CP cargada con éxito: " + Object.keys(mapCP_Chofer).length + " zonas de chofer y " + Object.keys(mapCP_TipoServicio).length + " tipos de servicio en memoria RAM.");
     } else {
       log("⚠️ Advertencia: No se encontró la pestaña 'MATRIZ_CP' en la Bóveda.");
     }
@@ -97,11 +123,12 @@ function procesarBatchQRO(messageId) {
 
 
   // Conectar con la base de datos de Operación Histórica (BD_CENTRAL_2023)
-  let baseCentral, hojaBatchAWBCentral, hojaBatchPieceCentral;
+  let baseCentral, hojaBatchAWBCentral, hojaBatchPieceCentral, hojaRutaCentral;
   try {
     baseCentral = SpreadsheetApp.openById(ID_BD_CENTRAL_2023);
     hojaBatchAWBCentral = baseCentral.getSheetByName("Batch AWB");
     hojaBatchPieceCentral = baseCentral.getSheetByName("Batch Piece");
+    hojaRutaCentral = baseCentral.getSheetByName("RUTA");
     log("🏛️ Conectado con éxito a la base de datos histórica BD CENTRAL 2023.");
   } catch (e) {
     log("⚠️ Advertencia de infraestructura: No se pudo conectar a BD CENTRAL 2023: " + e.message);
@@ -349,6 +376,7 @@ function procesarBatchQRO(messageId) {
   // Listas de acumulación para inyección masiva
   const rowsRawShipment = [];
   const rowsBatchAWBCentral = [];
+  const rowsRutaCentral = [];
   const rowsGuiasApp = [];
   const rowsRawPiece = [];
   const rowsBatchPieceCentral = [];
@@ -463,7 +491,8 @@ function procesarBatchQRO(messageId) {
     }
     
     const idxEdd = indicesShipment["edd"];
-    const eddVal = idxEdd !== undefined ? String(fila[idxEdd]).trim() : "N/A";
+    const rawEdd = idxEdd !== undefined ? fila[idxEdd] : "";
+    const eddVal = formatearFechaEDD(rawEdd);
 
     // D. Acumular preasignaciones para la Mesa de Asignacion en Bóveda
     if (hojaMesaAsignacion) {
@@ -490,6 +519,39 @@ function procesarBatchQRO(messageId) {
     const prodCode = idxProd !== undefined ? String(fila[idxProd]).trim().toUpperCase() : "G";
     const esInternacional = (origCtry !== "MX" || destCtry !== "MX" || ["P", "U", "D", "K", "T", "I"].includes(prodCode));
 
+    if (hojaRutaCentral) {
+      const fechaHoyStr = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || "GMT-6", "dd/MM/yyyy");
+      const fechaHoraStr = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || "GMT-6", "dd/MM/yyyy HH:mm:ss");
+      const llaveUnica = Utilities.getUuid().substring(0, 8);
+      const interEstatus = (origCtry !== "MX" && origCtry !== "") ? "Inter" : "";
+      const tipoServicio = mapCP_TipoServicio[cp] || ((cp.startsWith("760") || cp.startsWith("761")) ? "Local" : "Foraneo");
+      const idxAddr1 = indicesShipment["rcvr addr 1"];
+      const idxAddr2 = indicesShipment["rcvr addr 2"];
+      const idxAddr3 = indicesShipment["rcvr addr 3"];
+      const addr1 = idxAddr1 !== undefined ? String(fila[idxAddr1]).trim() : "";
+      const addr2 = idxAddr2 !== undefined ? String(fila[idxAddr2]).trim() : "";
+      const addr3 = idxAddr3 !== undefined ? String(fila[idxAddr3]).trim() : "";
+      const filaRuta = new Array(21).fill("");
+      filaRuta[0] = guia;                                                    // Col A: Guia
+      filaRuta[1] = pidsDeGuia.length > 0 ? formatearPidDobleJ(pidsDeGuia[0].pid) : ""; // Col B: PID
+      filaRuta[2] = cp;                                                      // Col C: C.P.
+      filaRuta[3] = pidsDeGuia.length || 1;                                  // Col D: Piezas
+      filaRuta[4] = addr1;                                                   // Col E: Rcvr Addr 1
+      filaRuta[5] = addr2;                                                   // Col F: Rcvr Addr 2
+      filaRuta[6] = addr3;                                                   // Col G: Rcvr Addr 3
+      filaRuta[7] = destinatario;                                            // Col H: Receiver Name
+      filaRuta[9] = "PRE_ASIGNADO";                                          // Col J: Checkpoint
+      filaRuta[11] = fechaHoraStr;                                           // Col L: Fecha asignacion
+      filaRuta[14] = telChofer;                                              // Col O: ID correo (Pochteca)
+      filaRuta[15] = eddVal;                                                 // Col P: EDD (d/M/yyyy)
+      filaRuta[16] = "";                                                     // Col Q: Actualizacion (VACÍA según regla)
+      filaRuta[17] = llaveUnica;                                             // Col R: KEY
+      filaRuta[18] = tipoServicio;                                           // Col S: Tipo de servicio (MATRIZ_CP)
+      filaRuta[19] = interEstatus;                                           // Col T: Inter
+      filaRuta[20] = telFinal;                                               // Col U: Telefono
+      rowsRutaCentral.push(filaRuta);
+    }
+
     const finalDestinatario = esInternacional ? (destinatario + " [INTER]") : destinatario;
 
     // B. Acumular datos para la app móvil de los choferes (BD_APP_RUTA_2025)
@@ -500,7 +562,7 @@ function procesarBatchQRO(messageId) {
       guia,                   // Col A: Guia
       finalDestinatario,      // Col B: Destinatario (Con tag [INTER] si aplica)
       dirConCP,               // Col C: DireccionCompleta + C.P.
-      eddVal,                 // Col D: EDD
+      eddVal,                 // Col D: EDD (d/M/yyyy)
       telChofer,              // Col E: Chofer
       pidsDeGuia.length || 1, // Col F: Total_Piezas
       telFinal,               // Col G: Telefono
@@ -553,6 +615,12 @@ function procesarBatchQRO(messageId) {
     log("🏛️ BD CENTRAL 'Batch AWB': " + rowsBatchAWBCentral.length + " guías actualizadas.");
   }
 
+  if (hojaRutaCentral && rowsRutaCentral.length > 0) {
+    const lastRow = hojaRutaCentral.getLastRow();
+    hojaRutaCentral.getRange(lastRow + 1, 1, rowsRutaCentral.length, rowsRutaCentral[0].length).setValues(rowsRutaCentral);
+    log("🏛️ BD CENTRAL 'RUTA' (Vieja Aplicación): " + rowsRutaCentral.length + " registros inyectados con estatus Inter.");
+  }
+
   if (rowsGuiasApp.length > 0) {
     const lastRow = hojaGuiasApp.getLastRow();
     hojaGuiasApp.getRange("G:G").setNumberFormat("@");
@@ -576,7 +644,6 @@ function procesarBatchQRO(messageId) {
     pidsInyectados = rowsPiezasApp.length;
     log("🧩 PIEZAS_PID (AppSheet): " + pidsInyectados + " piezas validadas e inyectadas.");
   }
-
   // Copiar fórmulas de arrastre automático en la hoja central histórica de Batch AWB
   if (hojaBatchAWBCentral && guiasInyectadas > 0) {
     try {
@@ -653,7 +720,7 @@ function procesarQueriesQRO() {
     executionLogs.push("[" + time + "] " + msg);
   }
 
-  log("⚙️ Iniciando escaneo de Queries pendientes en Gmail...");
+  log("⚙️ [CANON SUPREMO] Iniciando Ingesta Expandida de Queries ('01_QUERY_QRO')...");
   const labelQuery = obtenerEtiquetaPorNombre("01_QUERY_QRO");
   if (!labelQuery) {
     log("⚠️ No se localizó la etiqueta '01_QUERY_QRO' en tu buzón.");
@@ -662,135 +729,212 @@ function procesarQueriesQRO() {
 
   const hilos = labelQuery.getThreads(0, 15);
   if (hilos.length === 0) {
-    log("📭 No hay correos de Queries no leídos en la etiqueta.");
+    log("📭 No hay correos de Queries no leídos en la etiqueta '01_QUERY_QRO'.");
     return { exito: false, mensaje: "No hay Queries pendientes en Gmail.", logs: executionLogs };
   }
 
-  const lock = LockService.getScriptLock();
-  try {
-    if (!lock.tryLock(30000)) {
-      log("❌ No se pudo adquirir el bloqueo de red. Sistema ocupado.");
-      return { exito: false, error: "El sistema está ocupado procesando otra solicitud.", logs: executionLogs };
-    }
+  // =========================================================================
+  // 1. EXTRACCIÓN Y PARSEO VECTORIZADO EN RAM (CERO RETENCIÓN DE CERROJO)
+  // =========================================================================
+  const registrosTelemetriaTotal = [];
+  const contactosTotal = {};
+  const hilosValidados = [];
 
-    const baseApp = SpreadsheetApp.openById(ID_BD_APP_RUTA_2025);
-    const hojaGuiasApp = baseApp.getSheetByName("GUIAS_ASIGNADAS") || baseApp.getSheetByName("RECOLECCIONES_ASIGNADAS");
-    if (!hojaGuiasApp) {
-      log("❌ ERROR: No se encontró la hoja de guías en la base de datos.");
-      return { exito: false, error: "No se encontró la pestaña de guías asignadas.", logs: executionLogs };
-    }
+  hilos.forEach(thread => {
+    const msgs = thread.getMessages();
+    const lastMsg = msgs[msgs.length - 1];
+    const htmlBody = lastMsg.getBody();
+    const plainTextBody = lastMsg.getPlainBody();
+    const subject = thread.getFirstMessageSubject();
 
-    const datosGuias = hojaGuiasApp.getDataRange().getValues();
-    let totalActualizados = 0;
+    const resultadoParseo = extraerTelemetriaExpandidaQuery(htmlBody, plainTextBody);
+    const contactos = resultadoParseo.contactos;
+    const telemetria = resultadoParseo.telemetria;
 
-    hilos.forEach(thread => {
-      const msgs = thread.getMessages();
-      const lastMsg = msgs[msgs.length - 1];
-      const htmlBody = lastMsg.getBody();
-      const plainTextBody = lastMsg.getPlainBody();
-
-      
-      const contactos = extraerContactosDeQuery(htmlBody, plainTextBody);
-      
-      // =========================================
-      // EXTRACCIÓN DINÁMICA DE TELÉFONOS EN CSV
-      // =========================================
-      const adjuntos = lastMsg.getAttachments();
-      log("⚙️ Revisando " + adjuntos.length + " adjuntos en el correo...");
-      adjuntos.forEach(att => {
-        log("   ↳ Adjunto: " + att.getName());
-        if (att.getName().toLowerCase().endsWith(".csv")) {
-          try {
-            const csvTexto = att.getDataAsString('UTF-8');
-            const csvData = Utilities.parseCsv(csvTexto);
-            if (csvData.length > 0) {
-              const headers = csvData[0].map(h => String(h).toLowerCase().trim()
-                .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-                .replace(/[^a-z0-9]/g, ""));
-              let idxGuia = -1;
-              let idxTel = -1;
-              for (let c = 0; c < headers.length; c++) {
-                const h = headers[c];
-                if (h.includes("guia") || h.includes("hwb") || h.includes("waybill")) {
-                  if (idxGuia === -1) idxGuia = c;
+    // Adjuntos CSV (Extracción fallback de teléfonos)
+    const adjuntos = lastMsg.getAttachments();
+    adjuntos.forEach(att => {
+      if (att.getName().toLowerCase().endsWith(".csv")) {
+        try {
+          const csvTexto = att.getDataAsString('UTF-8');
+          const csvData = Utilities.parseCsv(csvTexto);
+          if (csvData.length > 0) {
+            const headers = csvData[0].map(h => String(h).toLowerCase().trim()
+              .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+              .replace(/[^a-z0-9]/g, ""));
+            let idxGuia = -1, idxTel = -1;
+            for (let c = 0; c < headers.length; c++) {
+              if (headers[c].includes("guia") || headers[c].includes("hwb") || headers[c].includes("waybill")) idxGuia = c;
+              if (headers[c].includes("tel") || headers[c].includes("phone") || headers[c].includes("movil")) idxTel = c;
+            }
+            if (idxGuia !== -1 && idxTel !== -1) {
+              for (let r = 1; r < csvData.length; r++) {
+                const numGuia = String(csvData[r][idxGuia]).trim();
+                const rawTel = csvData[r][idxTel];
+                const numTel = limpiarYValidarTelefono_QRO(rawTel);
+                if (numGuia && numTel) {
+                  contactos[numGuia] = numTel;
                 }
-                if (h.includes("tel") || h.includes("phone") || h.includes("movil") || h.includes("celular")) {
-                  if (idxTel === -1) idxTel = c;
-                }
-              }
-              
-              if (idxGuia !== -1 && idxTel !== -1) {
-                log("⚙️ CSV Detectado: " + att.getName() + " | Mapeo -> Guía(Col" + idxGuia + "), Teléfono(Col" + idxTel + ")");
-                for (let r = 1; r < csvData.length; r++) {
-                  const numGuia = String(csvData[r][idxGuia]).trim();
-                  let rawTel = csvData[r][idxTel];
-                  let numTel = sanitizarTelefonoReal(rawTel);
-                  
-                  if (numTel === "HIDDEN" && rawTel) {
-                    log("⚠️ Guía " + numGuia + ": tel inválido o con dígitos perdidos (" + rawTel + "). Requiere captura manual.");
-                  }
-                  
-                  if (numGuia && numTel !== "HIDDEN") {
-                    contactos[numGuia] = numTel;
-                  }
-                }
-              } else {
-                log("⚠️ CSV detectado pero no se hallaron columnas de Guía/Teléfono.");
               }
             }
-          } catch(eCsv) {
-            log("⚠️ Error parseando CSV de Query: " + eCsv.message);
           }
+        } catch(eCsv) {
+          log("⚠️ Error parseando CSV de Query: " + eCsv.message);
         }
-      });
-
-      const llaves = Object.keys(contactos);
-      let hwbEncontradosEnEsteCorreo = 0;
-
-      llaves.forEach(awb => {
-        const tel = contactos[awb];
-        let encontrado = false;
-        for (let j = 1; j < datosGuias.length; j++) {
-          const guiaSheet = String(datosGuias[j][0]).trim();
-          if (normalizarAwb_QRO(guiaSheet) === normalizarAwb_QRO(awb)) {
-            // Actualizar columna G (tel_destinatario)
-            const cell = hojaGuiasApp.getRange(j + 1, 7);
-            cell.setNumberFormat("@");
-            cell.setValue(tel.toString());
-            totalActualizados++;
-            hwbEncontradosEnEsteCorreo++;
-            encontrado = true;
-            log("✅ Guía " + awb + " asociada con el teléfono: " + tel);
-          }
-        }
-        if (!encontrado) {
-          log("⚠️ Guía " + awb + " descifrada pero NO encontrada en la base de la App.");
-        }
-      });
-
-      if (hwbEncontradosEnEsteCorreo > 0 || llaves.length === 0) {
-        thread.markRead();
-        try {
-          thread.removeLabel(labelQuery);
-          log("🧹 Hilo de Query procesado con éxito y des-etiquetado.");
-        } catch(eLabel) {
-          log("⚠️ Advertencia al remover etiqueta de Query: " + eLabel.message);
-        }
-      } else {
-        log("⏳ Hilo de Query conservado en buzón (is:unread) en espera de que las guías se inyecten desde el Excel.");
       }
     });
 
-    // Registrar evento en LOG_TRAZABILIDAD
-    registrarTrazabilidadQRO("CRUCE QUERIES", "Multi-Guia", totalActualizados, "GMAIL", "ASOCIADO");
-    
-    return { exito: true, procesados: totalActualizados, mensaje: "Se asociaron e inyectaron " + totalActualizados + " teléfonos de QUERY.", logs: executionLogs };
-  } catch (err) {
+    Object.assign(contactosTotal, contactos);
+    telemetria.forEach(t => {
+      t.asunto = subject;
+      registrosTelemetriaTotal.push(t);
+    });
+    hilosValidados.push(thread);
+  });
+
+  log("📊 Telemetría extraída en RAM: " + registrosTelemetriaTotal.length + " eventos de telemetría, " + Object.keys(contactosTotal).length + " teléfonos recuperados.");
+
+  // =========================================================================
+  // 2. ADQUISICIÓN DE CERROJO PARA INYECCIÓN ATÓMICA (< 3s DE RETENCIÓN)
+  // =========================================================================
+  const lock = LockService.getScriptLock();
+  let totalActualizados = 0;
+  try {
+    if (!lock.tryLock(30000)) {
+      log("❌ No se pudo adquirir el bloqueo de red (LockService ocupado). Reintentando en próximo ciclo.");
+      return { exito: false, error: "Sistema ocupado. Reintentando en próximo ciclo.", logs: executionLogs };
+    }
+
+    // A. Enriquecer GUIAS_ASIGNADAS en BD_APP_RUTA_2025 (Eliminar 'HIDDEN' de la app móvil)
+    const baseApp = SpreadsheetApp.openById(ID_BD_APP_RUTA_2025);
+    const hojaGuiasApp = baseApp.getSheetByName("GUIAS_ASIGNADAS") || baseApp.getSheetByName("RECOLECCIONES_ASIGNADAS");
+    if (hojaGuiasApp) {
+      const datosGuias = hojaGuiasApp.getDataRange().getValues();
+      const cabGuias = datosGuias[0].map(h => String(h).trim().toLowerCase());
+      let colTelIdx = cabGuias.indexOf("tel_destinatario");
+      if (colTelIdx === -1) colTelIdx = cabGuias.indexOf("telefono");
+      if (colTelIdx === -1) colTelIdx = 6; // Col G por defecto
+
+      for (let j = 1; j < datosGuias.length; j++) {
+        const guiaSheet = normalizarAwb_QRO(datosGuias[j][0]);
+        if (contactosTotal[guiaSheet]) {
+          const telNuevo = contactosTotal[guiaSheet];
+          const telViejo = String(datosGuias[j][colTelIdx] || "").trim();
+          if (telViejo !== telNuevo) {
+            hojaGuiasApp.getRange(j + 1, colTelIdx + 1).setNumberFormat("@").setValue(telNuevo);
+            totalActualizados++;
+          }
+        }
+      }
+      log("✅ " + totalActualizados + " teléfonos saneados e inyectados en GUIAS_ASIGNADAS (Cero 'HIDDEN').");
+    }
+
+    // B. Resguardar en 'HISTORICO_QUERIES' en VALIDACIÓN_QRO_2025 (Blindando la hoja activa de 25 cols)
+    try {
+      const ssVal = SpreadsheetApp.openById(ID_VALIDACION_QRO_2025);
+      let hojaHistQuery = ssVal.getSheetByName("HISTORICO_QUERIES");
+      if (!hojaHistQuery) {
+        hojaHistQuery = ssVal.insertSheet("HISTORICO_QUERIES");
+      }
+      if (hojaHistQuery.getLastRow() === 0) {
+        hojaHistQuery.appendRow([
+          "Marca de Tiempo", "Guia", "PID", "Telefono Sanitizado",
+          "Receiver Name", "Receiver Ctc", "Rcvr Addr 1", "Rcvr Addr 2",
+          "Rcvr City", "Rcvr State", "Rcvr Postcode", "Shipper Name",
+          "Shipper Phone", "Shipper Ubicacion", "Peso Declarado",
+          "Peso Real RW", "Dimensiones RW", "Timestamp Evento AR",
+          "Timestamp Evento FD", "Horas Retencion AR_FD", "Asunto", "Estatus Auditoria"
+        ]);
+      }
+
+      if (registrosTelemetriaTotal.length > 0) {
+        const rowsHist = registrosTelemetriaTotal.map(t => [
+          Utilities.formatDate(new Date(), Session.getScriptTimeZone() || "GMT-6", "yyyy-MM-dd HH:mm:ss"),
+          t.guia,
+          t.pid,
+          t.telefono,
+          t.receiver_name,
+          t.receiver_ctc,
+          t.rcvr_addr1,
+          t.rcvr_addr2,
+          t.rcvr_city,
+          t.rcvr_state,
+          t.rcvr_postcode,
+          t.shipper_name,
+          t.shipper_phone,
+          t.shipper_city_state,
+          t.peso_declarado,
+          t.peso_real_rw,
+          t.dimensiones_rw,
+          t.timestamp_ar,
+          t.timestamp_fd,
+          t.horas_retencion_ar_fd,
+          t.asunto || "",
+          "INGESTA_QUERY_OK"
+        ]);
+
+        const startRow = hojaHistQuery.getLastRow() + 1;
+        hojaHistQuery.getRange(startRow, 1, rowsHist.length, rowsHist[0].length).setValues(rowsHist);
+        log("🏛️ " + rowsHist.length + " eventos de telemetría completa resguardados en 'HISTORICO_QUERIES' (VALIDACIÓN_QRO_2025).");
+      }
+    } catch(eHist) {
+      log("⚠️ Advertencia resguardando en HISTORICO_QUERIES: " + eHist.message);
+    }
+
+    // C. Resguardar en 'RAW_SHIPMENT' en BOVEDA_BATCH_MAESTRO
+    try {
+      const boveda = SpreadsheetApp.openById(ID_BOVEDA_BATCH_MAESTRO);
+      let hojaRaw = boveda.getSheetByName("RAW_SHIPMENT") || boveda.getSheetByName("RAW_PIECE");
+      if (hojaRaw && registrosTelemetriaTotal.length > 0) {
+        const rowsRaw = registrosTelemetriaTotal.map(t => [
+          Utilities.formatDate(new Date(), Session.getScriptTimeZone() || "GMT-6", "yyyy-MM-dd HH:mm:ss"),
+          t.guia,
+          t.pid,
+          t.peso_real_rw,
+          t.timestamp_ar,
+          t.timestamp_fd,
+          t.horas_retencion_ar_fd,
+          "01_QUERY_QRO"
+        ]);
+        const startRowBov = hojaRaw.getLastRow() + 1;
+        hojaRaw.getRange(startRowBov, 1, rowsRaw.length, rowsRaw[0].length).setValues(rowsRaw);
+        log("🏛️ " + rowsRaw.length + " eventos RAW sincronizados en Bóveda Batch Maestro.");
+      }
+    } catch(eBov) {
+      log("⚠️ Advertencia resguardando en RAW Bóveda: " + eBov.message);
+    }
+
+    // Registrar en LOG_TRAZABILIDAD
+    registrarTrazabilidadQRO("CRUCE QUERIES EXPANDIDO", "Multi-Guia", totalActualizados, "GMAIL", "TELEMETRIA_RESGUARDADA");
+
+  } catch(err) {
     log("❌ ERROR crítico durante la inyección de Query: " + err.message);
     return { exito: false, error: err.message, logs: executionLogs };
   } finally {
     lock.releaseLock();
+    log("🔓 Cerrojo LockService liberado exitosamente (< 3s).");
   }
+
+  // =========================================================================
+  // 3. DES-ETIQUETADO DE GMAIL (FUERA DEL CERROJO)
+  // =========================================================================
+  hilosValidados.forEach(thread => {
+    try {
+      thread.markRead();
+      thread.removeLabel(labelQuery);
+      log("🧹 Hilo de Query marcado como leído y des-etiquetado.");
+    } catch(eLabel) {
+      log("⚠️ Advertencia des-etiquetando hilo: " + eLabel.message);
+    }
+  });
+
+  return {
+    exito: true,
+    telemetrias_procesadas: registrosTelemetriaTotal.length,
+    telefonos_inyectados: totalActualizados,
+    mensaje: "Se procesaron " + registrosTelemetriaTotal.length + " telemetrías y se actualizaron " + totalActualizados + " teléfonos.",
+    logs: executionLogs
+  };
 }
 
 /**
@@ -803,7 +947,7 @@ function ejecutarProcesamientoUnificadoQRO() {
     executionLogs.push("[" + time + "] " + msg);
   }
 
-  log("⚙️ Iniciando Ejecución Unificada del Ecosistema OLLIN...");
+  log("⚙️ [v81.2 PROD] Iniciando Procesamiento Unificado QRO...");
   
   let resultadoBatch;
   try {
@@ -827,18 +971,51 @@ function ejecutarProcesamientoUnificadoQRO() {
     resultadoQueries = { exito: false, mensaje: e.message };
   }
 
-  // 🛡️ CONCILIACIÓN DE BLINDAJE: CRUCE PAINANI RAMPA FÍSICA VS BATCH
-  let resultadoConciliacion = { exito: false, mensaje: "No ejecutado" };
+  // 🛡️ REGLA DE NEGOCIO INQUEBRANTABLE v81.2 PROD: RESPETO ABSOLUTO A LA CUSTODIA FÍSICA
+  // 1. Las piezas nuevas inyectadas desde el Excel Batch nacen y permanecen en "SIN_CARGAR".
+  // 2. Si un Pochteca/Painani ya escaneó un bulto físicamente en rampa como "A_BORDO", ese estatus es SAGRADO.
+  // 3. La rutina de higiene NUNCA regresa "A_BORDO" a "SIN_CARGAR"; únicamente corrige anomalías residuales fuera de catálogo.
   try {
-    resultadoConciliacion = conciliarRampaConBatchQRO();
-    if (resultadoConciliacion.logs) {
-      resultadoConciliacion.logs.forEach(l => executionLogs.push(l));
+    const baseApp = SpreadsheetApp.openById(ID_BD_APP_RUTA_2025);
+    const hojaPiezas = baseApp.getSheetByName("PIEZAS_PID");
+    if (hojaPiezas && hojaPiezas.getLastRow() > 1) {
+      const datosP = hojaPiezas.getDataRange().getValues();
+      const cabP = datosP[0].map(h => String(h).trim().toLowerCase());
+      const colVIdx = cabP.indexOf("escaneo_validacion") !== -1 ? cabP.indexOf("escaneo_validacion") : cabP.indexOf("validacion");
+      const colEIdx = cabP.indexOf("estatus_pid") !== -1 ? cabP.indexOf("estatus_pid") : cabP.indexOf("estatus");
+      let sanitizados = 0;
+      for (let p = 1; p < datosP.length; p++) {
+        let cambiado = false;
+        if (colVIdx !== -1) {
+          const vActual = String(datosP[p][colVIdx]).trim();
+          // Si ya es A_BORDO, SIN_CARGAR, BYPASS_TLACHIXQUI o RECHAZADO: RESPETAR INTACTO
+          if (vActual === "A_BORDO_CONFIRMADO") {
+            datosP[p][colVIdx] = "A_BORDO";
+            cambiado = true;
+          } else if (vActual === "FALTANTE_DHL_NO_INGRESADO" || vActual === "") {
+            datosP[p][colVIdx] = "SIN_CARGAR";
+            cambiado = true;
+          }
+        }
+        if (colEIdx !== -1) {
+          const eActual = String(datosP[p][colEIdx]).trim();
+          if (eActual === "FALTANTE_DHL") {
+            datosP[p][colEIdx] = "PRE_ASIGNADO";
+            cambiado = true;
+          }
+        }
+        if (cambiado) sanitizados++;
+      }
+      if (sanitizados > 0) {
+        hojaPiezas.getRange(1, 1, datosP.length, datosP[0].length).setValues(datosP);
+        log("🧹 [v81.2 PROD] Higiene de Rampa: " + sanitizados + " anomalías normalizadas. Escaneos 'A_BORDO' existentes respetados.");
+      }
     }
-  } catch (eConc) {
-    log("⚠️ Advertencia en Conciliación de Rampa: " + eConc.message);
+  } catch (eSan) {
+    log("⚠️ Advertencia en higiene de rampa: " + eSan.message);
   }
 
-  const exitoGlobal = resultadoBatch.exito || resultadoQueries.exito || resultadoConciliacion.exito;
+  const exitoGlobal = resultadoBatch.exito || resultadoQueries.exito;
   let mensajeGlobal = "";
   if (resultadoBatch.exito && resultadoQueries.exito) {
     mensajeGlobal = "Éxito total: " + resultadoBatch.mensaje + " e " + resultadoQueries.mensaje;
@@ -850,11 +1027,9 @@ function ejecutarProcesamientoUnificadoQRO() {
     mensajeGlobal = "No se procesaron registros nuevos (" + (resultadoBatch.mensaje || "Batch sin cambios") + " / " + (resultadoQueries.mensaje || "Queries sin cambios") + ")";
   }
 
-  if (resultadoConciliacion.confirmados || resultadoConciliacion.faltantes) {
-    mensajeGlobal += ` | 🛡️ Rampa: ${resultadoConciliacion.confirmados || 0} confirmados, ${resultadoConciliacion.faltantes || 0} faltantes blindados.`;
-  }
+  mensajeGlobal += " | 🔒 Rampa v81.2: Piezas blindadas en 'SIN_CARGAR' a la espera de escaneo físico.";
 
-  log("🏁 Ejecución unificada de rampa finalizada.");
+  log("🏁 [v81.2 PROD] Ejecución unificada de rampa finalizada con éxito.");
 
   return {
     exito: exitoGlobal,
@@ -931,6 +1106,7 @@ function conciliarRampaConBatchQRO() {
       const colEstPidIdx = cabPiezas.indexOf("estatus_pid") !== -1 ? cabPiezas.indexOf("estatus_pid") : cabPiezas.indexOf("estatus");
 
       if (colPidIdx !== -1 && colValIdx !== -1) {
+        let huboCambios = false;
         for (let p = 1; p < datosPiezas.length; p++) {
           const pidFila = String(datosPiezas[p][colPidIdx]).trim().toUpperCase();
           const pidSan = (typeof sanitizarPIDParaBoveda === "function") ? sanitizarPIDParaBoveda(pidFila) : pidFila;
@@ -938,18 +1114,48 @@ function conciliarRampaConBatchQRO() {
           const estuvoEnRampa = setFisicos.has(pidFila) || setFisicos.has(pidSan);
 
           if (estuvoEnRampa) {
-            hojaPiezas.getRange(p + 1, colValIdx + 1).setValue("A_BORDO_CONFIRMADO");
-            if (colEstPidIdx !== -1) hojaPiezas.getRange(p + 1, colEstPidIdx + 1).setValue("OK");
+            // Rampa: A_BORDO (Catálogo CAT_CHECKPOINTS)
+            if (datosPiezas[p][colValIdx] !== "A_BORDO") {
+              datosPiezas[p][colValIdx] = "A_BORDO";
+              huboCambios = true;
+            }
+            // Ruta: Restaurar a PRE_ASIGNADO si se había inyectado OK o FALTANTE_DHL indebidamente
+            if (colEstPidIdx !== -1) {
+              const estPidActual = String(datosPiezas[p][colEstPidIdx]).trim();
+              if (estPidActual === "FALTANTE_DHL") {
+                datosPiezas[p][colEstPidIdx] = "PRE_ASIGNADO";
+                huboCambios = true;
+              }
+            }
             confirmadosFisicos++;
           } else {
-            // ¡BLINDAJE FINANCIERO! Si viene en Batch pero NO fue bipiado en rampa
+            // Si viene en Batch pero NO fue bipiado en rampa:
+            // Rampa: Mantener en SIN_CARGAR (Catálogo CAT_CHECKPOINTS)
             const estActual = String(datosPiezas[p][colValIdx]).trim();
-            if (estActual !== "A_BORDO_CONFIRMADO" && estActual !== "A_BORDO") {
-              hojaPiezas.getRange(p + 1, colValIdx + 1).setValue("FALTANTE_DHL_NO_INGRESADO");
-              if (colEstPidIdx !== -1) hojaPiezas.getRange(p + 1, colEstPidIdx + 1).setValue("FALTANTE_DHL");
-              faltantesDhlBlindados++;
+            if (estActual === "A_BORDO_CONFIRMADO") {
+              datosPiezas[p][colValIdx] = "A_BORDO";
+              huboCambios = true;
+            } else if (estActual === "FALTANTE_DHL_NO_INGRESADO" || estActual === "" || (estActual !== "A_BORDO" && estActual !== "BYPASS_TLACHIXQUI" && estActual !== "RECHAZADO")) {
+              if (datosPiezas[p][colValIdx] !== "SIN_CARGAR") {
+                datosPiezas[p][colValIdx] = "SIN_CARGAR";
+                huboCambios = true;
+              }
             }
+            // Ruta: Se mantiene como PRE_ASIGNADO (prohibido degradar OK)
+            if (colEstPidIdx !== -1) {
+              const estPidActual = String(datosPiezas[p][colEstPidIdx]).trim();
+              if (estPidActual === "FALTANTE_DHL") {
+                datosPiezas[p][colEstPidIdx] = "PRE_ASIGNADO";
+                huboCambios = true;
+              }
+            }
+            faltantesDhlBlindados++;
           }
+        }
+
+        if (huboCambios) {
+          hojaPiezas.getRange(1, 1, datosPiezas.length, datosPiezas[0].length).setValues(datosPiezas);
+          log("🧹 Normalización de CAT_CHECKPOINTS aplicada con éxito a PIEZAS_PID.");
         }
       }
     }
@@ -1028,81 +1234,217 @@ function stripHtml(html) {
   return html.replace(/<[^>]+>/g, " ");
 }
 
-function extraerContactosDeQuery(htmlBody, plainTextBody) {
-  // Desencriptar y descodificar preventivamente flujos MIME
+/**
+ * 🏛️ INGESTA EXPANDIDA DE QUERY (v84.0 PROD - CANON SUPREMO & OPENCODE ZDR)
+ * Extrae la telemetría completa de DHL para auditoría interna y enriquecimiento:
+ * a) Teléfono Sanitizado (10 dígitos, destruyendo 'HIDDEN').
+ * b) Timestamp del Evento 'AR' (Arrival at Service Center) en nodo 'QRO-QRO'.
+ * c) Nombre del Consignatario ('Receiver Name' / 'Ctc Nm').
+ * d) Dirección Completa de Entrega ('Rcvr Addr 1, 2, 3' y 'Rcvr Postcode').
+ * e) Datos del Remitente y Peso Real ('RW').
+ * f) PID Sanitizado bajo la Ley Doble J (JJD -> JD).
+ */
+function extraerTelemetriaExpandidaQuery(htmlBody, plainTextBody) {
   var cuerpoDecodificado = desencriptarQueryText(htmlBody, plainTextBody);
-  
-  // Limpiar etiquetas HTML de forma robusta
   var textoLimpio = cuerpoDecodificado;
   if (!plainTextBody && htmlBody) {
     textoLimpio = stripHtml(cuerpoDecodificado);
   }
-  
-  // Colapsar múltiples espacios horizontales en un solo espacio horizontal,
-  // y normalizar saltos de línea para poder procesar línea por línea.
   textoLimpio = textoLimpio.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   
   var mapaContactos = {};
+  var listaTelemetria = [];
   
-  // Split por cualquier variación de AWB, HWB, Waybill, etc. (case insensitive)
-  var bloques = textoLimpio.split(/(?:A\s*W\s*B|H\s*W\s*B|W\s*a\s*y\s*b\s*i\s*l\s*l|G\s*u\s*í\s*a|G\s*u\s*i\s*a)/i);
+  var bloques = textoLimpio.split(/(?:A\s*W\s*B\s*:|H\s*W\s*B\s*:|W\s*a\s*y\s*b\s*i\s*l\s*l\s*:|G\s*u\s*í\s*a\s*:|G\s*u\s*i\s*a\s*:|\bAWB\b|\bHWB\b)/i);
   if (bloques.length <= 1) {
-    return mapaContactos; // Retornar vacío si no hay bloques de guías
+    return { contactos: mapaContactos, telemetria: listaTelemetria };
   }
   
-  // Quitar el primer bloque (asunto o encabezado antes del primer AWB)
-  bloques.shift();
+  bloques.shift(); // Quitar encabezado previo al primer AWB
   
   bloques.forEach(function(bloque) {
-    // 1. Extraer la guía (los primeros 10 dígitos continuos permitiendo cualquier carácter no numérico antes de ellos)
     var guiaMatch = bloque.match(/^[^0-9]*(\d{10})/);
-    if (guiaMatch) {
-      var guia = normalizarAwb_QRO(guiaMatch[1]);
-      
-      // ESCUDO DE PROTECCIÓN CRÍTICA: No sobreescribir guías ya procesadas en el mismo correo (GEMA/OPUS trace tables)
-      if (mapaContactos[guia]) {
-        return; // Equivalente a continue en forEach. Mantiene intacto el teléfono real del cliente.
+    if (!guiaMatch) return;
+    var guia = normalizarAwb_QRO(guiaMatch[1]);
+    
+    // Parseo columnar horizontal Shipper / Receiver
+    var shpr = {}, rcvr = {};
+    var lineas = bloque.split("\n");
+    
+    lineas.forEach(function(linea) {
+      var nameMatch = linea.match(/^Name\s*:\s*(.*?)(?:\s{2,}Name\s*:\s*(.*))?$/i);
+      if (nameMatch) {
+        shpr.name = (nameMatch[1] || "").trim();
+        rcvr.name = (nameMatch[2] || "").trim();
       }
-      
-      // 2. Extraer teléfonos usando la Regex de alta fidelidad de LEN
+      var ctcMatch = linea.match(/^Ctc Nm\s*:\s*(.*?)(?:\s{2,}Ctc Nm\s*:\s*(.*))?$/i);
+      if (ctcMatch) {
+        shpr.ctc = (ctcMatch[1] || "").trim();
+        rcvr.ctc = (ctcMatch[2] || "").trim();
+      }
+      var addr1Match = linea.match(/^Addr 1\s*:\s*(.*?)(?:\s{2,}Addr 1\s*:\s*(.*))?$/i);
+      if (addr1Match) {
+        shpr.addr1 = (addr1Match[1] || "").trim();
+        rcvr.addr1 = (addr1Match[2] || "").trim();
+      }
+      var addr2Match = linea.match(/^Addr 2\s*:\s*(.*?)(?:\s{2,}Addr 2\s*:\s*(.*))?$/i);
+      if (addr2Match) {
+        shpr.addr2 = (addr2Match[1] || "").trim();
+        rcvr.addr2 = (addr2Match[2] || "").trim();
+      }
+      var cityMatch = linea.match(/^City\s*:\s*(.*?)(?:\s{2,}City\s*:\s*(.*))?$/i);
+      if (cityMatch) {
+        shpr.city = (cityMatch[1] || "").trim();
+        rcvr.city = (cityMatch[2] || "").trim();
+      }
+      var stateMatch = linea.match(/^State\s*:\s*(.*?)(?:\s{2,}State\s*:\s*(.*))?$/i);
+      if (stateMatch) {
+        shpr.state = (stateMatch[1] || "").trim();
+        rcvr.state = (stateMatch[2] || "").trim();
+      }
+      var zipMatch = linea.match(/^Zip\s*:\s*(.*?)(?:\s{2,}Zip\s*:\s*(.*))?$/i);
+      if (zipMatch) {
+        shpr.zip = (zipMatch[1] || "").trim();
+        rcvr.zip = (zipMatch[2] || "").trim();
+      }
+      var phoneMatch = linea.match(/^Phone\s*:\s*(.*?)(?:\s{2,}Phone\s*:\s*(.*))?$/i);
+      if (phoneMatch) {
+        shpr.phone = (phoneMatch[1] || "").trim();
+        rcvr.phone = (phoneMatch[2] || "").trim();
+      }
+    });
+    
+    // a) Sanitizar Teléfono de Destinatario (10 dígitos, cero HIDDEN)
+    var telSanitizado = "";
+    if (rcvr.phone && rcvr.phone.toUpperCase() !== "NOT SUPPLIED" && rcvr.phone.toUpperCase() !== "HIDDEN") {
+      telSanitizado = limpiarYValidarTelefono_QRO(rcvr.phone);
+    }
+    if (!telSanitizado) {
+      // Regex fallback
       var regexTel = /(?:P\s*h\s*o\s*n\s*e|T\s*e\s*l|C\s*o\s*n\s*t\s*a\s*c\s*t|M\s*o\s*b\s*i\s*l)[^0-9\+]*([\+\d][\d\s\-]{6,})/gi;
       var matchTel;
       var listaTels = [];
-      
       while ((matchTel = regexTel.exec(bloque)) !== null) {
-        var tel = matchTel[1].trim().split(/\s{2,}/)[0];
-        if (tel.toUpperCase() !== "NOT SUPPLIED") {
-          var cleanTel = limpiarYValidarTelefono_QRO(tel);
-          if (cleanTel) {
-            listaTels.push(cleanTel);
-          }
+        var tCandidate = matchTel[1].trim().split(/\s{2,}/)[0];
+        if (tCandidate.toUpperCase() !== "NOT SUPPLIED" && tCandidate.toUpperCase() !== "HIDDEN") {
+          var cleanT = limpiarYValidarTelefono_QRO(tCandidate);
+          if (cleanT && cleanT !== guia) listaTels.push(cleanT);
         }
       }
-      
-      // 3. Triple escudo fallback (Si no se encontró ningún teléfono con prefijo)
-      if (listaTels.length === 0) {
-        var todosLosNumeros = bloque.match(/\d{10,12}/g) || [];
-        for (var n = 0; n < todosLosNumeros.length; n++) {
-          var numLimpio = normalizarAwb_QRO(todosLosNumeros[n]);
-          if (numLimpio !== guia) {
-            var cleanTelFallback = limpiarYValidarTelefono_QRO(numLimpio);
-            if (cleanTelFallback) {
-              listaTels.push(cleanTelFallback);
-            }
-          }
-        }
-      }
-      
-      // 4. Asignación asíncrona inteligente (Segundo teléfono = Destinatario, Primer teléfono = Remitente)
       if (listaTels.length >= 2) {
-        mapaContactos[guia] = listaTels[1]; // Destinatario (Segundo teléfono de la fila horizontal de DHL)
+        telSanitizado = listaTels[1];
       } else if (listaTels.length === 1) {
-        mapaContactos[guia] = listaTels[0]; // Fallback al primero
+        telSanitizado = listaTels[0];
       }
     }
+    
+    // b) Timestamp del Evento 'AR' (Arrival at Service Center) en nodo 'QRO-QRO'
+    var arDtm = "", arNodo = "";
+    var arMatch = bloque.match(/(?:QRO-QRO[^\n]*?\bAR\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})|\bAR\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})[^\n]*?QRO)/i);
+    if (arMatch) {
+      arDtm = arMatch[1] || arMatch[2];
+      arNodo = "QRO-QRO";
+    }
+    
+    // Evento 'FD' (Salida a ruta) para cálculo de retención interna
+    var fdDtm = "";
+    var fdMatch = bloque.match(/\bFD\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/i);
+    if (fdMatch) fdDtm = fdMatch[1];
+    
+    var horasRetencion = "";
+    if (arDtm && fdDtm) {
+      try {
+        var dAR = new Date(arDtm.replace(" ", "T"));
+        var dFD = new Date(fdDtm.replace(" ", "T"));
+        var diffMs = dFD.getTime() - dAR.getTime();
+        if (!isNaN(diffMs) && diffMs >= 0) {
+          horasRetencion = (diffMs / (1000 * 3600)).toFixed(2);
+        }
+      } catch(_) {}
+    }
+    
+    // e) Datos del Remitente y Peso Real ('RW')
+    var rwKilos = "", rwDims = "";
+    var rwMatch = bloque.match(/\bRW\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})[^\n]*?<([\d\.]+)>(?:[^\n]*?<([^>]+)>)?/i);
+    if (rwMatch) {
+      rwKilos = rwMatch[2] || "";
+      rwDims = rwMatch[3] || "";
+    }
+    
+    var declaredKilos = "";
+    var kilosMatch = bloque.match(/\b(\d+\.\d{2})\b[^\n]*?Description of Goods/i);
+    if (kilosMatch) declaredKilos = kilosMatch[1];
+    
+    // f) PID Sanitizado con Ley Doble J
+    var pidMatch = bloque.match(/\b(JJD\d{10,20}|JD\d{10,20})\b/i);
+    var pidClean = pidMatch ? sanitizarPIDParaBoveda(pidMatch[1]) : "";
+    
+    if (telSanitizado && !mapaContactos[guia]) {
+      mapaContactos[guia] = telSanitizado;
+    }
+    
+    listaTelemetria.push({
+      guia: guia,
+      pid: pidClean,
+      telefono: telSanitizado,
+      receiver_name: rcvr.name || "",
+      receiver_ctc: rcvr.ctc || "",
+      rcvr_addr1: rcvr.addr1 || "",
+      rcvr_addr2: rcvr.addr2 || "",
+      rcvr_city: rcvr.city || "",
+      rcvr_state: rcvr.state || "",
+      rcvr_postcode: rcvr.zip || "",
+      shipper_name: shpr.name || "",
+      shipper_phone: shpr.phone || "",
+      shipper_city_state: (shpr.city || "") + (shpr.state ? ", " + shpr.state : ""),
+      peso_declarado: declaredKilos,
+      peso_real_rw: rwKilos,
+      dimensiones_rw: rwDims,
+      timestamp_ar: arDtm,
+      nodo_ar: arNodo,
+      timestamp_fd: fdDtm,
+      horas_retencion_ar_fd: horasRetencion
+    });
   });
   
-  return mapaContactos;
+  return { contactos: mapaContactos, telemetria: listaTelemetria };
+}
+
+function extraerContactosDeQuery(htmlBody, plainTextBody) {
+  var res = extraerTelemetriaExpandidaQuery(htmlBody, plainTextBody);
+  return res.contactos;
+}
+
+/**
+ * Formateador estricto de fechas EDD al formato d/M/yyyy (ej: 22/9/2026)
+ */
+function formatearFechaEDD(val) {
+  if (!val) return "";
+  if (val instanceof Date && !isNaN(val.getTime())) {
+    return Utilities.formatDate(val, Session.getScriptTimeZone() || "GMT-6", "d/M/yyyy");
+  }
+  const str = String(val).trim();
+  if (!str || str === "N/A") return "";
+
+  // Si viene como Date string largo de JS (ej: "Tue Sep 22 2026 00:59:00...")
+  const parsedDate = new Date(str);
+  if (!isNaN(parsedDate.getTime()) && str.length > 10) {
+    return Utilities.formatDate(parsedDate, Session.getScriptTimeZone() || "GMT-6", "d/M/yyyy");
+  }
+
+  // Si viene en formato ISO YYYY-MM-DD
+  const matchIso = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (matchIso) {
+    return parseInt(matchIso[3], 10) + "/" + parseInt(matchIso[2], 10) + "/" + matchIso[1];
+  }
+
+  // Si viene en formato DD/MM/YYYY
+  const matchLat = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (matchLat) {
+    return parseInt(matchLat[1], 10) + "/" + parseInt(matchLat[2], 10) + "/" + matchLat[3];
+  }
+
+  return str;
 }
 
 /**
@@ -1641,3 +1983,4 @@ function inyectarCatalogo_V8014() {
   ]]);
   return "Exito!";
 }
+

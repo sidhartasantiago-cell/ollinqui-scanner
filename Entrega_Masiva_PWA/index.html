@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Ollinqui | App de Ruta, Rampa e Incidencias</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <link rel="icon" type="image/png" href="./icon-192.png">
+  <link rel="shortcut icon" href="./icon-192.png">
+  <meta name="theme-color" content="#0B0F19">
+  
+  <!-- Estilos Visuales Obsidiana Náhuatl Premium & Glassmorphism -->
+  <link rel="stylesheet" href="./styles.css?v=3.3">
+
+  <!-- Carga Html5Qrcode local para escaneo de cámara sin dependencias externas -->
+  <script src="./html5-qrcode.min.js"></script>
+</head>
+<body>
+
+  <!-- Notificación Flotante (Toast) -->
+  <div class="toast" id="toast-msg">
+    <span id="toast-icon">⚡</span>
+    <span id="toast-text">Mensaje</span>
+  </div>
+
+  <!-- Modal Arranque de Turno (Poka-Yoke Login por PIN contra CAT_USUARIOS) -->
+  <div id="login-overlay" style="display:none;">
+    <div class="login-card">
+      <img src="./icon-192.png" alt="OLLIN" class="login-logo">
+      <div>
+        <div class="login-title">🏛️ OLLINQUI</div>
+        <div class="login-subtitle">Arranque de Turno Operativo</div>
+      </div>
+
+      <div style="text-align:left;">
+        <label style="font-size:0.75rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:6px;">👤 SELECCIONA TU USUARIO:</label>
+        <select id="login-user-select" class="login-select">
+          <option value="">-- Elige tu Nombre --</option>
+          <option value="edgar.rodriguez.arauto@gmail.com" data-pin="6310">Edgar Rodríguez [Pochteca]</option>
+          <option value="xichudaniel@gmail.com" data-pin="5625">Daniel Juárez [Tlachixqui / Sierra]</option>
+          <option value="irvin.reyes@arauto.express" data-pin="1708">Irvin Reyes [Tlachixqui / Rampa]</option>
+          <option value="sidharta.santiago@arauto.express" data-pin="5948">Sidharta Santiago [Tlayacanqui / Dir]</option>
+          <option value="fernando.maestro.1991@gmail.com" data-pin="6990">Fernando Maestro [Pochteca]</option>
+          <option value="victor18amadorm@gmail.com" data-pin="6463">Víctor Amador [Pochteca]</option>
+          <option value="diegovv21mar@gmail.com" data-pin="2361">Diego [Pochteca]</option>
+          <option value="fmsanluispaq@gmail.com" data-pin="5455">Gregorio [Pochteca]</option>
+          <option value="fmpaqueteriatvsm@gmail.com" data-pin="8571">Lyonnet [Pochteca]</option>
+          <option value="yesigonzg1827@gmail.com" data-pin="7704">Rosi [Pochteca]</option>
+          <option value="oscher1016@gmail.com" data-pin="2030">Oscher [Pochteca]</option>
+        </select>
+      </div>
+
+      <div style="text-align:left;">
+        <label style="font-size:0.75rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:6px;">🔑 PIN DE ACCESO (4 DÍGITOS):</label>
+        <input type="password" id="login-pin-input" class="login-pin-display" maxlength="4" placeholder="••••" readonly>
+      </div>
+
+      <!-- Teclado Numérico Ergonómico -->
+      <div class="login-keypad">
+        <button type="button" class="btn-keypad" onclick="pressKey(1)">1</button>
+        <button type="button" class="btn-keypad" onclick="pressKey(2)">2</button>
+        <button type="button" class="btn-keypad" onclick="pressKey(3)">3</button>
+        <button type="button" class="btn-keypad" onclick="pressKey(4)">4</button>
+        <button type="button" class="btn-keypad" onclick="pressKey(5)">5</button>
+        <button type="button" class="btn-keypad" onclick="pressKey(6)">6</button>
+        <button type="button" class="btn-keypad" onclick="pressKey(7)">7</button>
+        <button type="button" class="btn-keypad" onclick="pressKey(8)">8</button>
+        <button type="button" class="btn-keypad" onclick="pressKey(9)">9</button>
+        <button type="button" class="btn-keypad" onclick="clearKey()" style="color:#F87171;font-size:0.85rem;font-weight:700;">BORRAR</button>
+        <button type="button" class="btn-keypad" onclick="pressKey(0)">0</button>
+        <button type="button" class="btn-keypad" onclick="submitLogin()" style="color:#34D399;font-size:0.85rem;font-weight:800;">ENTRAR</button>
+      </div>
+
+      <div style="font-size:0.72rem;color:var(--text-muted);line-height:1.3;margin-top:4px;">
+        🛡️ Tu sesión queda activa en este celular por 24h. Opera 100% offline aunque no haya red en ruta.
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Conflicto de Sesión Concurrente (Anti-Concurrencia) -->
+  <div id="session-conflict-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:9999;align-items:center;justify-content:center;padding:20px;">
+    <div class="login-card" style="border:1.5px solid var(--amber);text-align:center;">
+      <div style="font-size:2.4rem;margin-bottom:6px;">🔒</div>
+      <div class="login-title" style="color:var(--amber);">TURNO ACTIVO EN OTRO EQUIPO</div>
+      <div style="font-size:0.82rem;color:var(--text-main);line-height:1.4;margin:12px 0;" id="conflict-msg-text">
+        Este usuario ya inició turno hoy en otro dispositivo móvil. Por seguridad, no se permite el acceso simultáneo de dos choferes con la misma cuenta.
+      </div>
+      <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:14px;line-height:1.3;">
+        Si cambiaste de camioneta o se dañó el teléfono anterior, solicita a Mesa de Control el PIN Maestro para forzar la transferencia a este celular.
+      </div>
+
+      <!-- Teclado para PIN Maestro de Transferencia -->
+      <div id="override-pin-section" style="display:none;margin-bottom:12px;">
+        <label style="font-size:0.72rem;color:var(--gold-primary);font-weight:700;display:block;margin-bottom:4px;">🔑 PIN MAESTRO DE TRANSFERENCIA:</label>
+        <input type="password" id="override-pin-input" class="login-pin-display" maxlength="4" placeholder="••••" style="margin-bottom:8px;">
+        <button type="button" class="btn-primary" onclick="ejecutarTransferenciaConPin()" style="width:100%;background:var(--emerald);">
+          Confirmar Transferencia
+        </button>
+      </div>
+
+      <div style="display:flex;gap:8px;width:100%;">
+        <button type="button" class="btn-primary" id="btn-show-override-keypad" onclick="mostrarInputOverridePin()" style="flex:1;background:var(--amber);font-size:0.75rem;">
+          🔓 Transferir Turno
+        </button>
+        <button type="button" class="btn-secondary" onclick="cerrarModalConflicto()" style="flex:1;font-size:0.75rem;">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Bloqueo Poka-Yoke: Paquete No Asignado a la Ruta -->
+  <div id="modal-bloqueo-pwa" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:99999;align-items:center;justify-content:center;padding:16px;">
+    <div style="background:#0F172A;border:2px solid #EF4444;border-radius:18px;max-width:380px;width:100%;padding:22px;box-shadow:0 0 40px rgba(239,68,68,0.4);text-align:center;">
+      <div style="font-size:2.8rem;margin-bottom:6px;">🛑</div>
+      <div id="modal-bloqueo-titulo" style="color:#EF4444;font-size:1.15rem;font-weight:900;letter-spacing:0.5px;margin-bottom:12px;">ACCESO DENEGADO</div>
+      <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:12px;padding:14px;margin-bottom:16px;text-align:left;font-size:0.85rem;line-height:1.45;">
+        <div style="margin-bottom:6px;"><strong>Bulto:</strong> <span id="modal-bloqueo-pid" style="font-family:monospace;color:#FCA5A5;font-weight:700;">---</span></div>
+        <div style="margin-bottom:6px;"><strong>Guía Madre:</strong> <span id="modal-bloqueo-hwb" style="color:#FFFFFF;font-weight:700;">---</span></div>
+        <div style="margin-bottom:8px;"><strong>Asignado a:</strong> <span id="modal-bloqueo-chofer" style="color:#FDE047;font-weight:800;">---</span></div>
+        <div id="modal-bloqueo-motivo" style="color:#CBD5E1;font-size:0.78rem;border-top:1px dashed rgba(255,255,255,0.15);padding-top:8px;">Este bulto no pertenece a tu ruta asignada.</div>
+      </div>
+      <button type="button" onclick="cerrarModalBloqueo()" style="width:100%;padding:14px;background:#EF4444;color:#FFFFFF;border:none;border-radius:12px;font-weight:900;font-size:0.95rem;cursor:pointer;box-shadow:0 4px 14px rgba(239,68,68,0.4);">
+        ✕ Entendido, no procesar bulto
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal Lightbox para Inspección de Fotos (Memoria de Domicilio / Evidencias) -->
+  <div id="image-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:999;align-items:center;justify-content:center;padding:20px;flex-direction:column;gap:14px;">
+    <img id="modal-img" src="" alt="Ampliación" style="max-width:100%;max-height:80vh;border-radius:12px;border:1px solid rgba(255,255,255,0.2);box-shadow:0 0 24px rgba(0,0,0,0.8);">
+    <button type="button" class="btn-secondary" id="btn-close-modal" style="min-width:140px;flex:none;">Cerrar Vista</button>
+  </div>
+
+  <!-- Bottom Sheet Modal para Evidencia / Firma / Fotos -->
+  <div class="sheet-backdrop" id="sheet-evidencia-backdrop" onclick="cerrarBottomSheetEvidencia()" style="display:none;"></div>
+  <div class="bottom-sheet-modal" id="sheet-evidencia" style="display:none;">
+    <div class="sheet-drag-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title">📋 Evidencia y Firma de Entrega</div>
+      <button type="button" class="btn-sheet-close" onclick="cerrarBottomSheetEvidencia()">✕</button>
+    </div>
+    
+    <div class="sheet-content">
+      <div id="card-receptor" class="receptor-box">
+        <div id="wrap-receptor-input">
+          <label id="label-receptor-title" style="font-size:0.75rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">👤 NOMBRE DE QUIEN RECIBE *</label>
+          <input type="text" id="input-receptor-nombre" class="input-receptor" placeholder="Nombre completo..." autocomplete="name">
+          <div class="receptor-notice" id="label-receptor-notice" style="margin-top:4px;">Requerido para piezas OK</div>
+        </div>
+
+        <!-- Banner Switch 7CA Activo (Oculta Firma) -->
+        <div class="banner-7ca" id="banner-7ca-exempt" style="display:none;margin-top:8px;">
+          <span>🛡️</span>
+          <span>Switch 7CA Activo: Firma física exenta para este operador</span>
+        </div>
+
+        <!-- Firma Digital Táctil (Exigida si Switch 7CA es FALSE) -->
+        <div class="signature-container" id="sig-container" style="margin-top:10px;">
+          <div class="signature-controls">
+            <span style="font-size:0.75rem;color:var(--text-muted);font-weight:600;">Firma Digital del Cliente:</span>
+            <button type="button" class="btn-clear-sig" id="btn-clear-canvas">Limpiar</button>
+          </div>
+          <canvas id="sig-canvas" class="signature-pad"></canvas>
+        </div>
+
+        <!-- Evidencia Fotográfica Adaptativa -->
+        <div class="photo-section" style="margin-top:10px;">
+          <button type="button" class="btn-photo-capture" id="btn-take-photo">
+            <span id="btn-photo-capture-text">📸 Capturar Foto Fachada / Paquete</span>
+          </button>
+          <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none;">
+          <img id="photo-preview-img" class="photo-preview" alt="Preview Foto">
+          <div id="photo-requirement-notice" style="font-size:0.72rem;margin-top:4px;color:var(--text-muted);font-weight:600;">Foto de entrega recomendada</div>
+        </div>
+
+        <!-- Acceso Directo de Audio-Evidencia dentro de Evidencia -->
+        <div id="evidencia-audio-quick-card" style="margin-top:12px;background:rgba(37,99,235,0.12);border:1.5px solid #3B82F6;border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="cerrarBottomSheetEvidencia();abrirBottomSheetAudio(false);">
+          <span style="font-size:1.3rem;" id="evidencia-audio-quick-icon">🎙️</span>
+          <div style="flex:1;">
+            <div style="font-size:0.78rem;font-weight:800;color:#60A5FA;" id="evidencia-audio-quick-title">Nota de Voz Teoyolotl</div>
+            <div style="font-size:0.7rem;color:#CBD5E1;" id="evidencia-audio-quick-desc">Toca para grabar o revisar audio</div>
+          </div>
+          <span style="font-size:0.8rem;color:#60A5FA;font-weight:900;">➔</span>
+        </div>
+      </div>
+
+      <button type="button" class="btn-primary" onclick="aplicarEvidenciaYContinuar()" style="margin-top:14px;width:100%;font-size:0.95rem;padding:12px;font-weight:900;">
+        ✅ Listo / Aplicar Evidencia
+      </button>
+    </div>
+  </div>
+
+  <!-- Bottom Sheet Modal para Audio-Evidencia Teoyolotl (13s) -->
+  <div class="sheet-backdrop" id="sheet-audio-backdrop" onclick="cerrarBottomSheetAudio()" style="display:none;z-index:9998;"></div>
+  <div class="bottom-sheet-modal" id="sheet-audio" style="display:none;z-index:9999;max-height:85vh;">
+    <div class="sheet-drag-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title" style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:1.3rem;">🎙️</span>
+        <span>Audio-Evidencia Teoyolotl</span>
+      </div>
+      <button type="button" class="btn-sheet-close" onclick="cerrarBottomSheetAudio()">✕</button>
+    </div>
+    
+    <div class="sheet-content" style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:10px 14px 14px 14px;gap:8px;">
+      
+      <!-- Banner Estado de Audio -->
+      <div id="audio-sheet-status-banner" style="width:100%;background:rgba(245,158,11,0.12);border:1.5px solid #F59E0B;border-radius:12px;padding:8px 10px;font-size:0.82rem;color:#FDE047;font-weight:800;display:flex;align-items:center;gap:10px;text-align:left;">
+        <span style="font-size:1.3rem;" id="audio-sheet-status-icon">⚠️</span>
+        <div style="flex:1;">
+          <div id="audio-sheet-status-title">Audio-Evidencia Pendiente</div>
+          <div style="font-size:0.72rem;font-weight:600;color:#CBD5E1;margin-top:2px;" id="audio-sheet-status-desc">
+            Graba una nota de voz explicando el detalle de la entrega o incidencia.
+          </div>
+        </div>
+      </div>
+
+      <!-- Gran Botón Táctil de Micrófono (Diseño Ergonómico de Impacto) -->
+      <div style="margin:2px 0;display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <button type="button" id="btn-audio-sheet-mic" onclick="toggleAudioModalRecording()" style="width:84px;height:84px;border-radius:50%;background:linear-gradient(135deg, #2563EB, #1D4ED8);border:3px solid #60A5FA;color:#FFFFFF;font-size:2.5rem;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 0 22px rgba(37,99,235,0.5);transition:all 0.2s ease;">
+          🎙️
+        </button>
+        <div id="audio-sheet-timer" style="font-size:1.1rem;font-weight:900;color:#60A5FA;font-family:monospace;letter-spacing:1px;">
+          (0s / 13s)
+        </div>
+        <div id="audio-sheet-helper" style="font-size:0.8rem;color:var(--text-muted);font-weight:700;">
+          Toca el micrófono para comenzar a hablar
+        </div>
+      </div>
+
+      <!-- Sugerencias Rápidas de Audio -->
+      <div style="width:100%;background:rgba(0,0,0,0.3);border-radius:10px;padding:8px 10px;border:1px solid rgba(255,255,255,0.08);text-align:left;">
+        <div style="font-size:0.68rem;font-weight:800;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">💡 Frases sugeridas para la IA:</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;">
+          <span style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);padding:3px 7px;border-radius:6px;font-size:0.72rem;color:#E2E8F0;">“Entregado a titular con INE”</span>
+          <span style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);padding:3px 7px;border-radius:6px;font-size:0.72rem;color:#E2E8F0;">“Dejado en caseta de vigilancia”</span>
+          <span style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);padding:3px 7px;border-radius:6px;font-size:0.72rem;color:#E2E8F0;">“Domicilio cerrado, sin respuesta”</span>
+        </div>
+      </div>
+
+      <!-- Botón de Confirmación / Proceder -->
+      <button type="button" class="btn-primary" onclick="finalizarAudioEvidencia()" style="width:100%;padding:12px;font-size:0.95rem;font-weight:900;display:flex;align-items:center;justify-content:center;gap:10px;background:var(--emerald);box-shadow:0 4px 14px rgba(16,185,129,0.4);">
+        <span>🚀</span> Listo / Proceder a Confirmar Entrega
+      </button>
+
+      <button type="button" onclick="cerrarBottomSheetAudio()" style="background:none;border:none;color:var(--text-muted);font-size:0.78rem;text-decoration:underline;cursor:pointer;">
+        Volver a la pantalla de entrega
+      </button>
+
+    </div>
+  </div>
+
+  <!-- Contenedor Maestro Estático de la PWA (100dvh) -->
+  <div class="app-container">
+
+    <!-- ================================================================ -->
+    <!-- VISTA 1: DASHBOARD OPERATIVO INICIAL                             -->
+    <!-- ================================================================ -->
+    <div id="view-inicio" class="app-view active">
+      
+      <!-- Píldora Superior Neón de Conexión -->
+      <div class="badge-status-top" id="net-badge-top">
+        <div class="pulse-dot"></div>
+        <span id="net-status-text">● EN LÍNEA / OFFLINE READY</span>
+      </div>
+
+      <!-- Tarjeta Ejecutiva del Pochteca -->
+      <div class="header-card">
+        <div class="brand-section">
+          <img src="./icon-192.png" alt="OLLIN" class="brand-icon">
+          <div>
+            <div class="brand-title">
+              OLLINQUI
+              <span style="color:var(--emerald);font-size:0.75rem;font-weight:900;">v3.8 PROD</span>
+            </div>
+            <div class="brand-subtitle">
+              <span id="user-display">Pochteca en Ruta</span>
+              <button type="button" class="btn-logout-mini" id="btn-logout-header" onclick="cerrarSesionOperador()" title="Cerrar turno o cambiar chofer">Salir</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+          <div id="badge-7ca-indicator" class="banner-7ca" style="padding:2px 8px;font-size:0.65rem;display:none;">
+            🛡️ 7CA ACTIVO
+          </div>
+          <div id="role-display-badge" style="font-size:0.7rem;color:var(--gold-primary);font-weight:800;letter-spacing:0.5px;">
+            POCHTECA
+          </div>
+        </div>
+      </div>
+
+      <!-- Botones Principales de Alto Impacto -->
+      <div class="dashboard-actions">
+        <!-- BOTÓN PASO 1: SUBIR A BORDO (RAMPA) -->
+        <button type="button" class="btn-sub-action" onclick="navegarA('view-carga-bordo')" style="background:rgba(16,185,129,0.12);border:1.5px solid rgba(16,185,129,0.45);grid-column:1 / -1;padding:12px 14px;display:flex;align-items:center;gap:12px;">
+          <span class="sub-action-icon" style="font-size:1.8rem;">📦</span>
+          <div class="sub-action-text" style="flex:1;text-align:left;">
+            <div class="sub-title" style="color:var(--emerald);font-size:0.95rem;font-weight:900;">1. SUBIR A BORDO (Rampa)</div>
+            <div class="sub-desc" id="kpi-a-bordo-sub">Pasa bultos de Pre-Asignado a A_Bordo</div>
+          </div>
+          <div class="card-counter" id="badge-a-bordo-count" style="margin-right:4px;background:rgba(16,185,129,0.2);color:var(--emerald);border-color:rgba(16,185,129,0.4);">0 Bultos</div>
+          <div style="font-size:1.1rem;color:var(--emerald);font-weight:900;">➔</div>
+        </button>
+
+        <!-- BOTÓN PASO 2: HOJA DE RUTA ASISTIDA IA (MERCADO LIBRE STYLE) -->
+        <button type="button" class="btn-hero-action" onclick="navegarA('view-hoja-ruta')" style="background:linear-gradient(135deg, rgba(30,58,138,0.6), rgba(15,23,42,0.9));border:1.8px solid #3B82F6;box-shadow:0 0 20px rgba(59,130,246,0.35);">
+          <div class="hero-icon-pulse" style="font-size:2.2rem;">🧭</div>
+          <div class="hero-text-wrap">
+            <div class="hero-title" style="color:#60A5FA;">2. HOJA DE RUTA ASISTIDA (IA)</div>
+            <div class="hero-subtitle">⚡ Secuencia óptima • Google Maps 1-Tap</div>
+          </div>
+          <div class="hero-arrow" style="color:#60A5FA;">➔</div>
+        </button>
+
+        <!-- BOTÓN PASO 3: INICIAR ENTREGA MANUAL (CALLE) -->
+        <button type="button" class="btn-sub-action" onclick="navegarA('view-entrega')" style="background:rgba(245,158,11,0.08);border:1.5px solid rgba(245,158,11,0.4);grid-column:1 / -1;padding:11px 14px;display:flex;align-items:center;gap:12px;">
+          <span class="sub-action-icon" style="font-size:1.6rem;">🚚</span>
+          <div class="sub-action-text" style="flex:1;text-align:left;">
+            <div class="sub-title" style="color:var(--gold-primary);font-size:0.9rem;font-weight:900;">3. ENTREGA MANUAL RÁPIDA (Calle)</div>
+            <div class="sub-desc">Escaneo directo de bulto, checkpoints y firma</div>
+          </div>
+          <div style="font-size:1.1rem;color:var(--gold-primary);font-weight:900;">➔</div>
+        </button>
+
+        <!-- ACCIONES SECUNDARIAS -->
+        <div class="grid-sub-actions">
+          <button type="button" class="btn-sub-action" onclick="navegarA('view-recoleccion')">
+            <span class="sub-action-icon">📦</span>
+            <div class="sub-action-text">
+              <div class="sub-title">Recolección (PU)</div>
+              <div class="sub-desc">18 Col. Normativas</div>
+            </div>
+          </button>
+
+          <button type="button" class="btn-sub-action" onclick="navegarA('view-bitacora')">
+            <span class="sub-action-icon">📋</span>
+            <div class="sub-action-text">
+              <div class="sub-title">Manifiesto Hoy</div>
+              <div class="sub-desc" id="kpi-bitacora-sub">0 registros</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- KPIs Resumen de la Jornada -->
+      <div class="kpi-board-card">
+        <div class="kpi-board-title">RESUMEN DEL TURNO</div>
+        <div class="kpi-board-grid">
+          <div class="kpi-item">
+            <div class="kpi-num" id="kpi-entregados" style="color:var(--emerald);">0</div>
+            <div class="kpi-label">Entregados OK</div>
+          </div>
+          <div class="kpi-item">
+            <div class="kpi-num" id="kpi-incidencias" style="color:var(--amber);">0</div>
+            <div class="kpi-label">Incidencias</div>
+          </div>
+          <div class="kpi-item">
+            <div class="kpi-num" id="kpi-pickups" style="color:#60A5FA;">0</div>
+            <div class="kpi-label">Pickups PU</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:1;"></div>
+
+      <footer class="app-footer" style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div>OLLINQUI v3.8 PROD • ARAUTO EXPRESS • QUERÉTARO</div>
+        <button type="button" onclick="forzarActualizacionApp()" style="background:none;border:none;color:var(--gold-primary);font-size:0.7rem;cursor:pointer;text-decoration:underline;">🔄 Forzar Actualización v3.8 (Limpiar Caché)</button>
+      </footer>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- VISTA 2: ESTACIÓN DE ENTREGA ESTÁTICA (100dvh — CERO SCROLL)     -->
+    <!-- ================================================================ -->
+    <div id="view-entrega" class="app-view">
+      
+      <!-- Barra Superior de Navegación Compacta -->
+      <div class="stage-nav-bar">
+        <button type="button" class="btn-nav-back" onclick="navegarA('view-inicio')">
+          <span>⬅️</span> Dashboard
+        </button>
+        <div class="stage-nav-center">
+          <div class="stage-badge-operador" id="stage-user-pill">Edgar R.</div>
+        </div>
+        <div class="stage-lote-counter" id="counter-bultos">0 Bultos</div>
+      </div>
+
+      <!-- Escenario Superior de Escaneo Dual -->
+      <div class="compact-scan-stage">
+        <!-- Botón Táctil Prominente para Abrir/Cerrar Cámara -->
+        <button type="button" class="btn-trigger-camera-touch" id="btn-trigger-cam" onclick="toggleCamaraPorToque()">
+          <span id="cam-trigger-icon">📷</span>
+          <span id="cam-trigger-text">Activar Cámara de Celular</span>
+        </button>
+
+        <!-- Visor de Cámara (Se despliega únicamente al tocar el botón) -->
+        <div class="camera-visor-frame" id="camera-frame-wrap" style="display:none;">
+          <div id="camera-reader"></div>
+          <button type="button" class="btn-close-cam-floating" onclick="toggleCamaraPorToque()" title="Cerrar Cámara">✕</button>
+        </div>
+
+        <!-- Entrada Láser Compacta (Siempre activa) -->
+        <div class="laser-compact-bar">
+          <span class="laser-tag-icon">⚡</span>
+          <input type="text" id="laser-input" class="input-laser-compact" placeholder="Escanea código JD/JJD o escribe..." autocomplete="off" autofocus>
+          <button type="button" class="btn-clear-laser" onclick="document.getElementById('laser-input').value='';document.getElementById('laser-input').focus();">✕</button>
+        </div>
+      </div>
+
+      <!-- Ficha de Guía Madre y Multibulto Desglosado -->
+      <div class="parent-guide-compact-card" id="card-parent-guide">
+        <div class="guide-header-row">
+          <div class="guide-hwb-tag">
+            <span class="guide-icon">📦</span>
+            <span class="guide-hwb-text" id="view-hwb">SIN GUÍA ESCANEADA</span>
+          </div>
+          <div class="guide-piece-badge" id="badge-piece-ratio">Bulto 0 de 0</div>
+        </div>
+
+        <div class="guide-dest-row">
+          <span class="dest-text" id="view-dest">Escanea un bulto para conciliar</span>
+          <span class="pid-text" id="view-pid">---</span>
+        </div>
+
+        <!-- Alertas de Envío Internacional y Aduana -->
+        <div class="guide-alerts-row" id="package-badges-wrap" style="display:none;">
+          <span class="pill-inter-glow" id="pill-inter-package" style="display:none;">🌐 INTERNACIONAL</span>
+          <span class="pill-aduana-glow" id="pill-aduana-package" style="display:none;">💰 ADUANA: $<span id="view-aduana-amount">0</span></span>
+        </div>
+
+        <!-- Chips de PIDs Multibulto -->
+        <div class="pids-chips-scroll" id="pids-chips-container">
+          <span class="chip-empty">⚡ Los PIDs de la guía aparecerán aquí</span>
+        </div>
+
+        <!-- Banner de Fisionomía y Búsqueda en Van -->
+        <div id="view-avatar-fisionomia-wrap" style="display:none;margin-top:4px;"></div>
+      </div>
+
+      <!-- Memoria de Domicilio Previa (Mini-Card Colapsible si existe) -->
+      <div class="memoria-mini-bar" id="card-memoria" style="display:none;">
+        <span class="memoria-icon">🏠</span>
+        <div class="memoria-mini-text">
+          <span id="memoria-receiver-text">Recibe habitual</span> • <span id="memoria-notes-text">Ref</span>
+        </div>
+        <img id="memoria-thumb" src="" alt="Fachada" class="memoria-mini-thumb" style="display:none;">
+      </div>
+
+      <!-- Rejilla Ergonómica 2 Columnas de Checkpoints Obsidian con Descripciones -->
+      <div class="checkpoints-stage-card">
+        <div class="cp-header-row">
+          <span class="cp-stage-title">🎯 CHECKPOINT</span>
+          <span class="cp-selected-badge" id="current-checkpoint-label">Seleccionado: OK</span>
+        </div>
+
+        <div class="grid-cp-2col">
+          <!-- 1. OK (Verde Esmeralda Neón) -->
+          <button type="button" class="btn-cp-obsidian cp-ok active" id="btn-obsidian-ok" onclick="asignarCheckpointActivo('OK')">
+            <span class="cp-icon">✓</span>
+            <div class="cp-texts">
+              <span class="cp-title">OK</span>
+              <span class="cp-sub">Entregado</span>
+              <span class="cp-desc">Recibe titular, familiar o caseta</span>
+            </div>
+          </button>
+
+          <!-- 2. NH (Ámbar Neón) -->
+          <button type="button" class="btn-cp-obsidian cp-amber" id="btn-obsidian-nh" onclick="asignarCheckpointActivo('NH')">
+            <span class="cp-icon">🏠</span>
+            <div class="cp-texts">
+              <span class="cp-title">NH</span>
+              <span class="cp-sub">Nadie en Domicilio</span>
+              <span class="cp-desc">Sin respuesta al timbre/llamada</span>
+            </div>
+          </button>
+
+          <!-- 3. BA (Ámbar Neón) -->
+          <button type="button" class="btn-cp-obsidian cp-amber" id="btn-obsidian-ba" onclick="asignarCheckpointActivo('BA')">
+            <span class="cp-icon">🗺️</span>
+            <div class="cp-texts">
+              <span class="cp-title">BA</span>
+              <span class="cp-sub">Dirección Errónea</span>
+              <span class="cp-desc">Calle o número no localizado</span>
+            </div>
+          </button>
+
+          <!-- 4. CA (Ámbar Neón) -->
+          <button type="button" class="btn-cp-obsidian cp-amber" id="btn-obsidian-ca" onclick="asignarCheckpointActivo('CA')">
+            <span class="cp-icon">🏢</span>
+            <div class="cp-texts">
+              <span class="cp-title">CA</span>
+              <span class="cp-sub">Negocio Cerrado</span>
+              <span class="cp-desc">Empresa/oficina fuera de horario</span>
+            </div>
+          </button>
+
+          <!-- 5. RD (Rojo Neón) -->
+          <button type="button" class="btn-cp-obsidian cp-amber" id="btn-obsidian-rd" onclick="asignarCheckpointActivo('RD')">
+            <span class="cp-icon">🚫</span>
+            <div class="cp-texts">
+              <span class="cp-title">RD</span>
+              <span class="cp-sub">Rechazado</span>
+              <span class="cp-desc">Cliente se niega a recibir</span>
+            </div>
+          </button>
+
+          <!-- 6. ND (🔒 Bloqueado) -->
+          <button type="button" class="btn-cp-obsidian cp-nd" id="btn-obsidian-nd" disabled title="Candado Poka-Yoke: ND requiere Mesa de Control">
+            <span class="cp-icon">🔒</span>
+            <div class="cp-texts">
+              <span class="cp-title">ND</span>
+              <span class="cp-sub">Bloqueado</span>
+              <span class="cp-desc">Zona inaccesible / Mesa Control</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- Checkpoints Secundarios Colapsables -->
+        <button type="button" class="btn-toggle-extra-clean" id="btn-toggle-extra-cp" onclick="toggleExtraCheckpoints()">
+          <span>➕</span> Otros Checkpoints (CM, Rescate, FD, WC)
+        </button>
+
+        <div id="extra-checkpoints-panel" style="display:none;grid-template-columns:repeat(4, 1fr);gap:6px;margin-top:4px;">
+          <button type="button" class="btn-checkpoint-mini" onclick="asignarCheckpointActivo('CM')">CM</button>
+          <button type="button" class="btn-checkpoint-mini" onclick="asignarCheckpointActivo('Rescate')">Rescate</button>
+          <button type="button" class="btn-checkpoint-mini" onclick="asignarCheckpointActivo('FD')">FD</button>
+          <button type="button" class="btn-checkpoint-mini" onclick="asignarCheckpointActivo('WC')">WC</button>
+        </div>
+      </div>
+
+      <!-- Tarjeta Flotante Inteligente: IA Copilot (Voz a Acción) -->
+      <div class="ia-copilot-card" id="ia-copilot-card" style="display:none;">
+        <div class="ia-copilot-header">
+          <span class="ia-copilot-robot">🤖</span>
+          <div class="ia-copilot-info">
+            <div class="ia-copilot-title" id="ia-copilot-title">IA COPILOT: Checkpoint Detectado</div>
+            <div class="ia-copilot-desc" id="ia-copilot-desc">Analizando nota de voz...</div>
+          </div>
+        </div>
+        <div class="ia-copilot-actions">
+          <button type="button" class="btn-ia-apply" id="btn-ia-apply" onclick="confirmarInterpretacionIA()">
+            ✅ Aplicar (<span id="ia-countdown">3</span>s)
+          </button>
+          <button type="button" class="btn-ia-cancel" onclick="cancelarInterpretacionIA()">
+            ✏️ Corregir
+          </button>
+        </div>
+      </div>
+
+      <!-- Dock Inferior Fijo: Teoyolotl Mic + Botones de Acción -->
+      <div class="static-dock-bottom">
+        <!-- Cápsula Teoyolotl Mic (13s) -->
+        <div class="capsule-teoyolotl-compact" id="capsule-teoyolotl-mic" onclick="toggleGrabacionTeoyolotlCapsule()">          <div class="mic-spinner-ring" id="mic-ring-spinner">🎙️</div>
+          <div class="capsule-text-wrap">
+            <div class="capsule-title">Teoyolotl <span id="capsule-timer-text" style="color:#60A5FA;font-size:0.75rem;">(13s)</span></div>
+            <div class="capsule-sub" id="capsule-sub-text">Nota de voz</div>
+          </div>
+        </div>
+
+        <!-- Botón para abrir Bottom Sheet de Evidencia / Firma -->
+        <button type="button" class="btn-dock-evidence" onclick="abrirBottomSheetEvidencia()" title="Abrir Firma y Evidencia">
+          <span>✍️</span> Evidencia
+        </button>
+
+        <!-- Botón Primario: Confirmar y Guardar Lote -->
+        <button type="button" class="btn-dock-submit" id="btn-guardar-lote">
+          <span>🚀</span> Confirmar (<span id="dock-bultos-count">0</span>)
+        </button>
+
+        <!-- Botón Limpiar Lote -->
+        <button type="button" class="btn-dock-clear" id="btn-limpiar-lote" title="Reiniciar lote actual">
+          🗑️
+        </button>
+      </div>
+
+      <!-- Contenedor invisible para compatibilidad de audio player -->
+      <div class="voice-audio-container" id="voice-audio-container" style="display:none;">
+        <audio id="voice-player" class="voice-player" controls></audio>
+        <button type="button" class="btn-voice-delete" id="btn-delete-voice" title="Borrar audio">🗑️</button>
+      </div>
+
+      <!-- Contenedor oculto para la lista de bultos en memoria -->
+      <div id="bultos-container" style="display:none;"></div>
+      <div id="card-active-package" style="display:none;"></div>
+      <div id="guide-status-bar" style="display:none;"><span id="guide-status-text"></span><span id="guide-status-breakdown"></span></div>
+      <div id="label-hwb-madre" style="display:none;"></div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- VISTA: ESTACIÓN DE CARGA A BORDO (RAMPA A UNIDAD — CERO SCROLL) -->
+    <!-- ================================================================ -->
+    <div id="view-carga-bordo" class="app-view">
+      
+      <!-- Barra Superior de Navegación Compacta -->
+      <div class="stage-nav-bar">
+        <button type="button" class="btn-nav-back" onclick="navegarA('view-inicio')">
+          <span>⬅️</span> Dashboard
+        </button>
+        <div class="stage-nav-center">
+          <div class="stage-badge-operador" id="stage-user-bordo">Edgar R.</div>
+        </div>
+        <div class="stage-lote-counter" id="counter-bordo" style="color:var(--emerald);border-color:rgba(16,185,129,0.4);background:rgba(16,185,129,0.15);">0 A Bordo</div>
+      </div>
+
+      <!-- Escenario Superior de Escaneo Dual (Cámara + Láser) -->
+      <div class="compact-scan-stage">
+        <!-- Botón Táctil Prominente para Abrir/Cerrar Cámara -->
+        <button type="button" class="btn-trigger-camera-touch" id="btn-trigger-cam-bordo" onclick="toggleCamaraBordoPorToque()">
+          <span id="cam-bordo-trigger-icon">📷</span>
+          <span id="cam-bordo-trigger-text">Activar Cámara de Celular</span>
+        </button>
+
+        <!-- Visor de Cámara (Desplegable) -->
+        <div class="camera-visor-frame" id="camera-frame-wrap-bordo" style="display:none;">
+          <div id="camera-reader-bordo"></div>
+          <button type="button" class="btn-close-cam-floating" onclick="toggleCamaraBordoPorToque()" title="Cerrar Cámara">✕</button>
+        </div>
+
+        <!-- Entrada Láser Permanente (Autofocus constante) -->
+        <div class="laser-compact-bar">
+          <span class="laser-tag-icon" style="color:var(--emerald);">⚡</span>
+          <input type="text" id="laser-input-bordo" class="input-laser-compact" placeholder="Bipiar código JD/JJD para subir a bordo..." autocomplete="off" autofocus>
+          <button type="button" class="btn-clear-laser" onclick="document.getElementById('laser-input-bordo').value='';document.getElementById('laser-input-bordo').focus();">✕</button>
+        </div>
+      </div>
+
+      <!-- Ficha de Último Bulto Abordado -->
+      <div class="parent-guide-compact-card" id="card-last-bordo">
+        <div class="guide-header-row">
+          <div class="guide-hwb-tag">
+            <span class="guide-icon">📦</span>
+            <span class="guide-hwb-text" id="bordo-last-hwb">SIN BULTOS BIPIADOS</span>
+          </div>
+          <div class="guide-piece-badge" id="bordo-badge-status" style="color:var(--emerald);border-color:rgba(16,185,129,0.4);background:rgba(16,185,129,0.15);">✅ A_BORDO</div>
+        </div>
+
+        <div class="guide-dest-row">
+          <span class="dest-text" id="bordo-last-dest">Escanea los paquetes físicos para cargarlos</span>
+          <span class="pid-text" id="bordo-last-pid" style="color:var(--emerald);font-weight:900;">---</span>
+        </div>
+
+        <!-- Chips / Barra de PIDs Abordados -->
+        <div class="pids-chips-scroll" id="pids-bordo-chips-container" style="max-height:110px;overflow-y:auto;">
+          <span class="chip-empty">⚡ Los bultos a bordo aparecerán aquí</span>
+        </div>
+      </div>
+
+      <!-- Barra de Resumen / Avance -->
+      <div style="padding:4px 10px;display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;color:var(--text-muted);">
+        <span>📊 Total Sesión: <strong id="lbl-total-bordo-sesion" style="color:var(--emerald);">0 bultos</strong></span>
+        <button type="button" onclick="consultarAsignacionRampa()" style="background:none;border:none;color:var(--gold-primary);font-size:0.72rem;cursor:pointer;text-decoration:underline;">🔄 Refrescar Asignación</button>
+      </div>
+
+      <div style="flex:1;"></div>
+
+      <!-- Dock Inferior: Confirmar Carga y Salir a Ruta -->
+      <div class="static-dock-bottom" style="margin-top:auto;">
+        <button type="button" class="btn-dock-submit" id="btn-confirmar-carga-bordo" onclick="confirmarCargaYSalirARuta()" style="flex:2;background:linear-gradient(135deg, #10B981, #059669);">
+          <span>🚀</span> Confirmar Carga (<span id="dock-bordo-count">0</span>) y Salir a Ruta
+        </button>
+        <button type="button" class="btn-dock-clear" onclick="limpiarSesionBordo()" title="Reiniciar lista de carga">
+          🗑️
+        </button>
+      </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- VISTA 3: MÓDULO DE RECOLECCIONES (PICKUPS)                       -->
+    <!-- ================================================================ -->
+    <div id="view-recoleccion" class="app-view">
+      
+      <!-- Header de Navegación -->
+      <div class="stage-nav-bar">
+        <button type="button" class="btn-nav-back" onclick="navegarA('view-inicio')">
+          <span>⬅️</span> Dashboard
+        </button>
+        <div class="stage-nav-center">
+          <span style="font-size:0.8rem;font-weight:800;color:var(--gold-primary);">📦 RECOLECCIÓN PU</span>
+        </div>
+        <span class="memoria-badge" style="font-size:0.65rem;">18 Col.</span>
+      </div>
+
+      <!-- Formulario Desplazable de PU -->
+      <div class="scrollable-form-stage">
+        <div class="glass-card">
+          <div class="form-grid-pu">
+            <div>
+              <label style="font-size:0.75rem;color:var(--text-muted);font-weight:700;">ID BOOKING / FOLIO PU *</label>
+              <input type="text" id="input-pu-booking" class="input-laser" placeholder="Folio o Booking..." style="margin-top:4px;">
+            </div>
+
+            <div>
+              <label style="font-size:0.75rem;color:var(--text-muted);font-weight:700;">REMITENTE / EMPRESA *</label>
+              <input type="text" id="input-pu-remitente" class="input-receptor" placeholder="Empresa remitente..." style="margin-top:4px;">
+            </div>
+
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;">
+              <div>
+                <label style="font-size:0.75rem;color:var(--text-muted);font-weight:700;">DIRECCIÓN</label>
+                <input type="text" id="input-pu-direccion" class="input-receptor" placeholder="Calle y número..." style="margin-top:4px;">
+              </div>
+              <div>
+                <label style="font-size:0.75rem;color:var(--text-muted);font-weight:700;">C.P.</label>
+                <input type="text" id="input-pu-cp" class="input-receptor" placeholder="76000" style="margin-top:4px;">
+              </div>
+            </div>
+
+            <!-- Selector de Estatus PU vs Booking -->
+            <div>
+              <label style="font-size:0.75rem;color:var(--text-muted);font-weight:700;margin-bottom:6px;display:block;">ESTATUS DE RECOLECCIÓN *</label>
+              <div class="checkpoint-grid-pickups">
+                <button type="button" class="btn-checkpoint-card active-pu" id="btn-pu-ok" onclick="seleccionarEstatusPU('PU')">
+                  <span class="cp-icon">✓</span>
+                  <span class="cp-code">PU</span>
+                  <span class="cp-sub">Pick Up Exitoso</span>
+                </button>
+                <button type="button" class="btn-checkpoint-card" id="btn-pu-booking" onclick="seleccionarEstatusPU('BOOKING')">
+                  <span class="cp-icon">⏳</span>
+                  <span class="cp-code">Booking</span>
+                  <span class="cp-sub">Parada Vacía</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Stepper Piezas Estimadas vs Reales -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div>
+                <label style="font-size:0.72rem;color:var(--text-muted);font-weight:700;">PIEZAS ESTIMADAS</label>
+                <div class="counter-stepper">
+                  <button type="button" class="btn-step" onclick="ajustarPiezasPU('estimadas', -1)">-</button>
+                  <span class="step-value" id="val-pu-estimadas">1</span>
+                  <button type="button" class="btn-step" onclick="ajustarPiezasPU('estimadas', 1)">+</button>
+                </div>
+              </div>
+
+              <div>
+                <label style="font-size:0.72rem;color:var(--text-muted);font-weight:700;">PIEZAS REALES *</label>
+                <div class="counter-stepper">
+                  <button type="button" class="btn-step" onclick="ajustarPiezasPU('reales', -1)">-</button>
+                  <span class="step-value" id="val-pu-reales">1</span>
+                  <button type="button" class="btn-step" onclick="ajustarPiezasPU('reales', 1)">+</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Firma del Remitente PU -->
+            <div class="signature-container" id="sig-pu-wrap">
+              <div class="signature-controls">
+                <span style="font-size:0.75rem;color:var(--text-muted);font-weight:600;">Firma de Remitente:</span>
+                <button type="button" class="btn-clear-sig" id="btn-clear-pu-sig">Limpiar</button>
+              </div>
+              <canvas id="sig-pu-canvas" class="signature-pad"></canvas>
+            </div>
+
+            <!-- Foto de Empaque / Guía PU -->
+            <div class="photo-section">
+              <button type="button" class="btn-photo-capture" id="btn-take-pu-photo">
+                <span>📸</span> Foto Paquete / Guía PU
+              </button>
+              <input type="file" id="photo-pu-input" accept="image/*" capture="environment" style="display:none;">
+              <img id="photo-pu-preview-img" class="photo-preview" alt="Preview PU">
+            </div>
+
+            <!-- Check-in GPS -->
+            <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.04);padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);">
+              <span>📍</span>
+              <div style="flex:1;">
+                <div style="font-size:0.72rem;color:var(--text-muted);">Check-in GPS:</div>
+                <div style="font-size:0.8rem;color:#FFFFFF;font-family:monospace;" id="pu-gps-display">Obteniendo ubicación...</div>
+              </div>
+              <button type="button" class="btn-secondary" onclick="actualizarGPSPU()" style="padding:4px 8px;font-size:0.72rem;">Actualizar</button>
+            </div>
+
+            <!-- Motivo de discrepancia o cancelación -->
+            <div>
+              <label style="font-size:0.75rem;color:var(--text-muted);font-weight:700;">OBSERVACIONES / MOTIVO DISCREPANCIA</label>
+              <input type="text" id="input-pu-motivo" class="input-receptor" placeholder="Ej. Cliente cerrado, bultos sin rotular..." style="margin-top:4px;">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Fijo para PU -->
+      <div class="action-footer">
+        <button type="button" class="btn-primary" id="btn-submit-pu" onclick="guardarRecoleccionPU()">
+          <span>📦</span> Registrar Recolección
+        </button>
+      </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- VISTA 4: MANIFIESTO Y BITÁCORA DEL DÍA                           -->
+    <!-- ================================================================ -->
+    <div id="view-bitacora" class="app-view">
+      <!-- Header de Navegación -->
+      <div class="stage-nav-bar">
+        <button type="button" class="btn-nav-back" onclick="navegarA('view-inicio')">
+          <span>⬅️</span> Dashboard
+        </button>
+        <div class="stage-nav-center">
+          <span style="font-size:0.8rem;font-weight:800;color:#FFFFFF;">📋 MANIFIESTO HOY</span>
+        </div>
+        <button type="button" class="btn-nav-back" id="btn-force-sync" style="color:var(--gold-primary);font-size:0.75rem;">
+          🔄 Sync
+        </button>
+      </div>
+
+      <div class="scrollable-form-stage">
+        <div class="glass-card">
+          <div class="card-header">
+            <div class="card-title">
+              <span>🚚</span> Bultos Procesados en Turno
+            </div>
+            <span style="font-size:0.75rem;color:var(--emerald);font-weight:700;" id="bitacora-total-label">0 procesados</span>
+          </div>
+          
+          <div class="bitacora-list" id="bitacora-items-wrap">
+            <div style="text-align:center;padding:30px;color:var(--text-muted);font-size:0.85rem;">
+              ⚡ Aún no has registrado entregas o recolecciones hoy.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- VISTA: HOJA DE RUTA ASISTIDA POR IA (MERCADO LIBRE STYLE)       -->
+    <!-- ================================================================ -->
+    <div id="view-hoja-ruta" class="app-view" style="padding:8px 10px;height:100%;overflow-y:auto;box-sizing:border-box;">
+      
+      <!-- Barra Superior de Navegación -->
+      <div class="stage-nav-bar" style="margin-bottom:8px;">
+        <button type="button" class="btn-nav-back" onclick="navegarA('view-inicio')">
+          <span>⬅️</span> Dashboard
+        </button>
+        <div class="stage-nav-center">
+          <div class="stage-badge-operador" id="stage-user-ruta" style="color:#60A5FA;border-color:rgba(59,130,246,0.4);background:rgba(59,130,246,0.15);">🧭 Asistente IA</div>
+        </div>
+        <div class="stage-lote-counter" id="counter-ruta-avance" style="color:var(--gold-primary);border-color:rgba(245,158,11,0.4);background:rgba(245,158,11,0.15);">0 / 0</div>
+      </div>
+
+      <!-- Barra de Progreso Visual de Ruta -->
+      <div style="background:rgba(17,24,39,0.7);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:8px 12px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;margin-bottom:6px;">
+          <span style="color:var(--text-muted);font-weight:700;">PROGRESO DE ENTREGAS:</span>
+          <span id="lbl-porcentaje-ruta" style="color:var(--emerald);font-weight:900;">0%</span>
+        </div>
+        <div style="width:100%;height:6px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;">
+          <div id="bar-progreso-ruta" style="width:0%;height:100%;background:linear-gradient(90deg, #3B82F6, #10B981);transition:width 0.3s ease;"></div>
+        </div>
+      </div>
+
+      <!-- Resumen de Carga en Ruta (Internacionales, Corporativos, etc.) -->
+      <div id="kpis-resumen-ruta" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:6px;font-size:0.72rem;font-weight:800;">
+        <span id="kpi-pill-inter" style="background:rgba(59,130,246,0.15);color:#93C5FD;border:1px solid rgba(59,130,246,0.3);padding:3px 8px;border-radius:10px;white-space:nowrap;">⚡ 0 Inter</span>
+        <span id="kpi-pill-corp" style="background:rgba(245,158,11,0.15);color:#FDE047;border:1px solid rgba(245,158,11,0.3);padding:3px 8px;border-radius:10px;white-space:nowrap;">🏢 0 Corp</span>
+        <span id="kpi-pill-natura" style="background:rgba(16,185,129,0.15);color:#6EE7B7;border:1px solid rgba(16,185,129,0.3);padding:3px 8px;border-radius:10px;white-space:nowrap;">🌿 0 Natura</span>
+        <span id="kpi-pill-residencial" style="background:rgba(107,114,128,0.15);color:#D1D5DB;border:1px solid rgba(107,114,128,0.3);padding:3px 8px;border-radius:10px;white-space:nowrap;">🏠 0 Residencial</span>
+        <span id="kpi-pill-bancario" style="background:rgba(239,68,68,0.15);color:#FCA5A5;border:1px solid rgba(239,68,68,0.3);padding:3px 8px;border-radius:10px;white-space:nowrap;">💳 0 Bancario</span>
+      </div>
+
+      <!-- Filtros de Navegación de Paradas (Jerarquía Arauto Express v3.5) -->
+      <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:8px;" id="filtros-ruta-container">
+        <button type="button" class="btn-filtro-ruta active" onclick="filtrarHojaDeRuta('TODAS')" id="filtro-btn-TODAS">Todas</button>
+        <button type="button" class="btn-filtro-ruta" onclick="filtrarHojaDeRuta('INTERNACIONAL')" id="filtro-btn-INTERNACIONAL" style="border-color:#3B82F6;color:#93C5FD;">🌎 Internacional</button>
+        <button type="button" class="btn-filtro-ruta" onclick="filtrarHojaDeRuta('CORPORATIVO')" id="filtro-btn-CORPORATIVO" style="border-color:#F59E0B;color:#FDE047;">🏢 Corporativo</button>
+        <button type="button" class="btn-filtro-ruta" onclick="filtrarHojaDeRuta('NATURA')" id="filtro-btn-NATURA" style="border-color:#10B981;color:#6EE7B7;">🌿 Natura</button>
+        <button type="button" class="btn-filtro-ruta" onclick="filtrarHojaDeRuta('RESIDENCIAL')" id="filtro-btn-RESIDENCIAL" style="border-color:#6B7280;color:#D1D5DB;">🏠 Residencial</button>
+        <button type="button" class="btn-filtro-ruta" onclick="filtrarHojaDeRuta('BANCARIO')" id="filtro-btn-BANCARIO" style="border-color:#EF4444;color:#FCA5A5;">💳 Bancario</button>
+      </div>
+
+      <!-- Tarjeta Principal: Siguiente Parada Activa -->
+      <div id="next-stop-container">
+        <!-- Generado dinámicamente por renderHojaDeRutaAsistida() -->
+      </div>
+
+      <!-- Línea de Tiempo de Paradas Restantes -->
+      <div style="margin-top:12px;">
+        <div style="font-size:0.75rem;font-weight:800;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:6px;display:flex;justify-content:space-between;">
+          <span>📋 SIGUIENTES PARADAS EN RUTA</span>
+          <span id="lbl-total-restantes" style="color:#60A5FA;">0 paradas</span>
+        </div>
+        <div id="timeline-paradas-wrap" style="display:flex;flex-direction:column;gap:8px;padding-bottom:50px;">
+          <!-- Items generados dinámicamente -->
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Script del Controlador Autónomo v3.5 -->
+  <script src="./app.js?v=3.5"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "evento": "DEPURACION_HISTORICA_GMAIL_FRENTE_6",
+  "fecha_ejecucion": "2026-09-23T13:10:59.865127",
+  "total_hilos": 1,
+  "total_inyectados_monitor": 1,
+  "total_archivados_inbox": 1,
+  "detalle": [
+    {
+      "thread_id": "1a0cd19a163d0560",
+      "asunto": "Aclaración de entrega HWB 1234567890 - Dirección no localizada). urgente",
+      "hwb": "1234567890",
+      "incidencia": "Dirección no localizada / Aclaración urgente",
+      "cp": "76120",
+      "pochteca": "Edgar",
+      "inyectado_monitor": true,
+      "archivado_gmail": true,
+      "timestamp": "2026-09-23T13:10:59.864647"
+    }
+  ]
+}

@@ -6,3 +6,8 @@ Fuentes_OLLIN/Historico/
 *.zip
 *.docx
 *.pdf
+.agents/
+
+
+# Local Netlify folder
+.netlify

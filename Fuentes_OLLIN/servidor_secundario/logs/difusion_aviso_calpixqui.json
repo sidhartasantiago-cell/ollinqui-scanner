@@ -1,0 +1,81 @@
+[
+  {
+    "nombre": "Diego",
+    "rol": "Pochteca",
+    "telefono": "5661562361",
+    "chat_id": "525661562361@c.us",
+    "estatus": "ENVIADO",
+    "message_id": "ok_headless"
+  },
+  {
+    "nombre": "Edgar Rodríguez",
+    "rol": "Pochteca",
+    "telefono": "4423816310",
+    "chat_id": "524423816310@c.us",
+    "estatus": "ENVIADO",
+    "message_id": "ok_headless"
+  },
+  {
+    "nombre": "Fernando",
+    "rol": "Pochteca",
+    "telefono": "7295676990",
+    "chat_id": "527295676990@c.us",
+    "estatus": "ENVIADO",
+    "message_id": "ok_headless"
+  },
+  {
+    "nombre": "Irvin Reyes",
+    "rol": "Tlachixqui (Rampa)",
+    "telefono": "5541891708",
+    "chat_id": "525541891708@c.us",
+    "estatus": "ENVIADO",
+    "message_id": "ok_headless"
+  },
+  {
+    "nombre": "Daniel Juárez",
+    "rol": "Tlachixqui (Sierra Gorda)",
+    "telefono": "4191155625",
+    "chat_id": "524191155625@c.us",
+    "estatus": "ENVIADO",
+    "message_id": "ok_headless"
+  },
+  {
+    "nombre": "Víctor",
+    "rol": "Pochteca",
+    "telefono": "4681566463",
+    "chat_id": "524681566463@c.us",
+    "estatus": "ENVIADO",
+    "message_id": "ok_headless"
+  },
+  {
+    "nombre": "Gregorio",
+    "rol": "Pochteca",
+    "telefono": "4192705455",
+    "chat_id": "524192705455@c.us",
+    "estatus": "ENVIADO",
+    "message_id": "ok_headless"
+  },
+  {
+    "nombre": "Lyonnet",
+    "rol": "Pochteca",
+    "telefono": "8607718571",
+    "chat_id": "18607718571@c.us",
+    "estatus": "ENVIADO",
+    "message_id": "ok_headless"
+  },
+  {
+    "nombre": "Rosi",
+    "rol": "Pochteca",
+    "telefono": "4191297704",
+    "chat_id": "524191297704@c.us",
+    "estatus": "ENVIADO",
+    "message_id": "ok_headless"
+  },
+  {
+    "nombre": "Oscher",
+    "rol": "Pochteca",
+    "telefono": "4191002030",
+    "chat_id": "524191002030@c.us",
+    "estatus": "ERROR: HTTP Error 500: Internal Server Error"
+  }
+]

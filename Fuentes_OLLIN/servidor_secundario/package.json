@@ -1,0 +1,25 @@
+{
+  "name": "ollin-agente-calpixqui",
+  "version": "1.0.0",
+  "description": "Agente CALPIXQUI (Calpix) 24/7 - Guardián de la Casa y Administrador de Bóveda para el Ecosistema OLLIN",
+  "main": "calpixqui_worker.py",
+  "scripts": {
+    "start": "python calpixqui_worker.py",
+    "activate": "ACTIVAR_CALPIXQUI.bat",
+    "setup": "powershell -ExecutionPolicy Bypass -File ./setup_entorno.ps1",
+    "register-service": "powershell -ExecutionPolicy Bypass -File ./registrar_servicio_247.ps1",
+    "unregister-service": "powershell -ExecutionPolicy Bypass -File ./desinstalar_servicio_247.ps1",
+    "status": "powershell -Command \"Get-Service -Name CalpixquiWorker -ErrorAction SilentlyContinue | Format-Table -AutoSize\""
+  },
+  "keywords": [
+    "ollin",
+    "hermes",
+    "tailscale",
+    "gemini",
+    "multimodal",
+    "last-mile",
+    "arauto-express"
+  ],
+  "author": "Antigravity (Google DeepMind) & Sidharta Santiago Garduño",
+  "license": "ISC"
+}
