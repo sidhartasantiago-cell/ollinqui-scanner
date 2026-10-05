@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ollin-pure-pwa-v3-24';
+const CACHE_NAME = 'ollin-pure-pwa-v3-25';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

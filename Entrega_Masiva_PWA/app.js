@@ -3222,7 +3222,6 @@ window.addEventListener('load', () => {
   openDatabase();
   initSession();
   cargarManifiestoOperativo();
-  actualizarGPSPU();
   consultarPickupsAsignadosServidor(false);
   actualizarKPIsDashboard();
 
