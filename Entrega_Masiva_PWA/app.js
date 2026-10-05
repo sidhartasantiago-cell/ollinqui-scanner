@@ -242,6 +242,7 @@ function setAuthenticatedUser(email) {
   if (badge7CA) badge7CA.style.display = userTiene7CA ? 'inline-flex' : 'none';
 
   actualizarManifiestoChoferActual();
+  consultarPickupsAsignadosServidor(false);
 
   const overlay = document.getElementById('login-overlay');
   if (overlay) overlay.style.display = 'none';
@@ -2600,10 +2601,324 @@ function resetEntregaForm(abrirModal = false) {
 }
 
 // ====================================================================
-// 15. MÓDULO DE RECOLECCIONES (PICKUPS)
+// 15. MÓDULO DE RECOLECCIONES (PICKUPS & BOOKINGS INYECTADOS)
 // ====================================================================
 let estatusPUSeleccionado = 'PU';
 let piezasPUReales = 1;
+let PICKUPS_ASIGNADOS_GLOBAL = [];
+let pickupActivoAtendiendo = null; // Objeto de la recolección actualmente seleccionada
+let audioAlertaPUInterval = null;
+
+// Solicitar permisos de notificación nativa al navegador/móvil
+async function solicitarPermisoNotificaciones() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    try {
+      await Notification.requestPermission();
+    } catch(e) {}
+  }
+}
+
+// 📦 Consultar recolecciones asignadas desde el backend (BD_APP_RUTA_2025)
+async function consultarPickupsAsignadosServidor(mostrarAlertaSiHayNuevos = true) {
+  if (!CURRENT_USER) return;
+  try {
+    const cleanEmail = CURRENT_USER.trim().toLowerCase();
+    const url = `${WEBHOOK_URL}?accion=consultar_pickups_asignados_chofer&chofer=${encodeURIComponent(cleanEmail)}`;
+    const resp = await fetch(url);
+    if (!resp.ok) return;
+
+    const data = await resp.json();
+    if (data && data.exito && Array.isArray(data.recolecciones)) {
+      const anterioresIDs = new Set(PICKUPS_ASIGNADOS_GLOBAL.map(p => p.id_pu || p.id_booking));
+      PICKUPS_ASIGNADOS_GLOBAL = data.recolecciones;
+      try {
+        localStorage.setItem('ollin_pickups_asignados', JSON.stringify(data.recolecciones));
+      } catch(e) {}
+
+      // Detectar si hay nuevas recolecciones inyectadas que no teníamos
+      const nuevos = data.recolecciones.filter(p => {
+        const esPendiente = (p.estatus === 'PRE_ASIGNADO' || p.estatus === 'PENDIENTE');
+        const esNuevo = !anterioresIDs.has(p.id_pu || p.id_booking);
+        return esPendiente && esNuevo;
+      });
+
+      renderizarListaPickupsAsignados();
+      actualizarKPIsDashboard();
+
+      if (nuevos.length > 0 && mostrarAlertaSiHayNuevos) {
+        dispararAlertaNuevaRecoleccionPokaYoke(nuevos[0]);
+      }
+    }
+  } catch(err) {
+    console.warn('⚠️ No se pudo consultar recolecciones en vivo, usando locales:', err);
+    // Cargar caché local si no hay red
+    const cached = localStorage.getItem('ollin_pickups_asignados');
+    if (cached) {
+      try {
+        PICKUPS_ASIGNADOS_GLOBAL = JSON.parse(cached);
+        renderizarListaPickupsAsignados();
+        actualizarKPIsDashboard();
+      } catch(e) {}
+    }
+  }
+}
+
+// 🚨 Alarma Sonora y Modal de Bloqueo Antidescuido
+function dispararAlertaNuevaRecoleccionPokaYoke(itemPU) {
+  solicitarPermisoNotificaciones();
+
+  // 1. Tono y vibración de alta prioridad
+  initAudio();
+  playBeep('incidencia');
+  if (navigator.vibrate) {
+    navigator.vibrate([250, 100, 250, 100, 450]);
+  }
+
+  // 2. Notificación nativa del sistema
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      new Notification('📦 ¡NUEVA RECOLECCIÓN ASIGNADA!', {
+        body: `${itemPU.remitente} • C.P. ${itemPU.cp} • (${itemPU.piezas_estimadas} pz) • ${itemPU.horario_apertura || '08:00'} - ${itemPU.horario_cierre || '17:00'}`,
+        icon: './icon-192.png',
+        tag: 'ollin-pu-alerta-' + (itemPU.id_pu || itemPU.id_booking),
+        vibrate: [250, 100, 250, 100, 450]
+      });
+    } catch(e) {}
+  }
+
+  // 3. Modal de Bloqueo en Pantalla
+  const modal = document.getElementById('modal-alerta-recoleccion');
+  const bFolio = document.getElementById('modal-pu-booking');
+  const bRem = document.getElementById('modal-pu-remitente');
+  const bDir = document.getElementById('modal-pu-direccion');
+  const bCp = document.getElementById('modal-pu-cp');
+  const bPzs = document.getElementById('modal-pu-piezas');
+  const bHor = document.getElementById('modal-pu-horario');
+
+  if (bFolio) bFolio.textContent = itemPU.id_booking || itemPU.id_pu;
+  if (bRem) bRem.textContent = itemPU.remitente;
+  if (bDir) bDir.textContent = itemPU.direccion;
+  if (bCp) bCp.textContent = itemPU.cp;
+  if (bPzs) bPzs.textContent = itemPU.piezas_estimadas || 1;
+  if (bHor) bHor.textContent = `${itemPU.horario_apertura || '08:00'} - ${itemPU.horario_cierre || '17:00'}`;
+
+  // Guardar referencia para abrir directo
+  window._ultimoPUNuevoDetectado = itemPU;
+
+  if (modal) modal.style.display = 'flex';
+}
+
+window.confirmarLecturaNuevaRecoleccion = function() {
+  const modal = document.getElementById('modal-alerta-recoleccion');
+  if (modal) modal.style.display = 'none';
+
+  if (window._ultimoPUNuevoDetectado) {
+    abrirFormularioParaAtenderPU(window._ultimoPUNuevoDetectado);
+    window._ultimoPUNuevoDetectado = null;
+  } else {
+    navegarA('view-recoleccion');
+  }
+};
+
+// 📋 Renderizar tarjetas de recolecciones asignadas
+function renderizarListaPickupsAsignados() {
+  const cont = document.getElementById('lista-pu-asignadas-items');
+  const badgeCount = document.getElementById('badge-pu-asignadas-count');
+  if (!cont) return;
+
+  const pendientes = PICKUPS_ASIGNADOS_GLOBAL.filter(p => p.estatus === 'PRE_ASIGNADO' || p.estatus === 'PENDIENTE');
+  const atendidos = PICKUPS_ASIGNADOS_GLOBAL.filter(p => p.estatus !== 'PRE_ASIGNADO' && p.estatus !== 'PENDIENTE');
+
+  if (badgeCount) badgeCount.textContent = pendientes.length;
+
+  if (PICKUPS_ASIGNADOS_GLOBAL.length === 0) {
+    cont.innerHTML = `
+      <div style="text-align:center;padding:35px 20px;color:var(--text-muted);font-size:0.85rem;">
+        <span style="font-size:2.2rem;display:block;margin-bottom:8px;">☕</span>
+        No tienes recolecciones asignadas en este momento.<br>
+        <button type="button" onclick="consultarPickupsAsignadosServidor(false)" style="margin-top:12px;background:rgba(212,175,55,0.15);border:1px solid var(--gold-primary);color:var(--gold-primary);padding:6px 14px;border-radius:10px;font-weight:700;font-size:0.75rem;cursor:pointer;">
+          🔄 Actualizar Lista
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  let html = '';
+
+  // Renderizar pendientes primero
+  pendientes.forEach((item, idx) => {
+    const tel = extraerTelefonoDeDireccion(item.direccion);
+    html += `
+      <div class="glass-card" style="border:1.5px solid var(--gold-primary);background:rgba(15,23,42,0.85);padding:14px;border-radius:14px;position:relative;box-shadow:0 0 15px rgba(212,175,55,0.15);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+          <div>
+            <span style="background:rgba(212,175,55,0.2);color:var(--gold-primary);font-weight:900;font-family:monospace;padding:3px 8px;border-radius:6px;font-size:0.75rem;letter-spacing:0.5px;">
+              ${item.id_booking || item.id_pu}
+            </span>
+            <div style="color:#FFFFFF;font-weight:800;font-size:0.95rem;margin-top:6px;">${item.remitente}</div>
+          </div>
+          <span style="background:rgba(59,130,246,0.15);color:#93C5FD;border:1px solid rgba(59,130,246,0.3);padding:3px 8px;border-radius:8px;font-size:0.68rem;font-weight:800;">
+            ${item.piezas_estimadas} PZ(S)
+          </span>
+        </div>
+
+        <div style="font-size:0.78rem;color:#CBD5E1;margin-bottom:10px;line-height:1.4;">
+          📍 ${item.direccion} (C.P. ${item.cp})
+        </div>
+
+        <div style="display:flex;gap:8px;font-size:0.72rem;color:var(--text-muted);margin-bottom:12px;align-items:center;">
+          <span>⏰ Ventana: <strong style="color:#FDE047;">${item.horario_apertura || '08:00'} - ${item.horario_cierre || '17:00'}</strong></span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          ${tel ? `
+            <a href="tel:${tel}" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;background:rgba(34,197,94,0.15);border:1px solid #22C55E;color:#4ADE80;border-radius:10px;font-weight:800;font-size:0.75rem;text-decoration:none;">
+              📞 Llamar
+            </a>
+          ` : `
+            <button type="button" onclick="copiarDireccionPU('${escapeHtml(item.direccion)}')" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#CBD5E1;border-radius:10px;font-weight:700;font-size:0.75rem;cursor:pointer;">
+              📋 Copiar Dir
+            </button>
+          `}
+          <button type="button" onclick="abrirFormularioParaAtenderPUByIndex(${idx})" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;background:linear-gradient(135deg, #D4AF37, #B8860B);color:#000000;border:none;border-radius:10px;font-weight:900;font-size:0.75rem;cursor:pointer;box-shadow:0 2px 10px rgba(212,175,55,0.3);">
+            ⚡ Atender Pick Up
+          </button>
+        </div>
+      </div>
+    `;
+  });
+
+  // Renderizar atendidas abajo si las hay
+  if (atendidos.length > 0) {
+    html += `
+      <div style="margin-top:14px;border-top:1px dashed rgba(255,255,255,0.15);padding-top:12px;">
+        <div style="font-size:0.75rem;font-weight:800;color:var(--text-muted);margin-bottom:8px;">
+          ✓ RECOLECCIONES REALIZADAS HOY (${atendidos.length})
+        </div>
+    `;
+    atendidos.forEach(item => {
+      html += `
+        <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-weight:800;font-size:0.82rem;color:#6EE7B7;">${item.remitente}</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);">${item.id_booking || item.id_pu} • ${item.piezas_reales || item.piezas_estimadas} pzs</div>
+          </div>
+          <span style="background:rgba(16,185,129,0.2);color:#34D399;font-weight:900;font-size:0.7rem;padding:3px 8px;border-radius:6px;">
+            ${item.estatus}
+          </span>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+
+  cont.innerHTML = html;
+}
+
+function extraerTelefonoDeDireccion(dir) {
+  if (!dir) return '';
+  const match = dir.match(/\[TEL:\s*([0-9]{10})\]/i);
+  return match ? match[1] : '';
+}
+
+function escapeHtml(text) {
+  return String(text || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+window.copiarDireccionPU = function(dir) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(dir);
+    showToast('Dirección copiada', '📋');
+  }
+};
+
+window.cambiarSubTabPU = function(tab) {
+  const btnAsig = document.getElementById('tab-btn-pu-asignadas');
+  const btnMan = document.getElementById('tab-btn-pu-manual');
+  const cAsig = document.getElementById('pu-asignadas-container');
+  const cForm = document.getElementById('pu-formulario-container');
+
+  if (tab === 'asignadas') {
+    if (btnAsig) {
+      btnAsig.style.background = 'var(--gold-primary)';
+      btnAsig.style.color = '#000000';
+    }
+    if (btnMan) {
+      btnMan.style.background = 'rgba(255,255,255,0.06)';
+      btnMan.style.color = 'var(--text-muted)';
+    }
+    if (cAsig) cAsig.style.display = 'block';
+    if (cForm) cForm.style.display = 'none';
+  } else {
+    if (btnMan) {
+      btnMan.style.background = 'var(--gold-primary)';
+      btnMan.style.color = '#000000';
+    }
+    if (btnAsig) {
+      btnAsig.style.background = 'rgba(255,255,255,0.06)';
+      btnAsig.style.color = 'var(--text-muted)';
+    }
+    if (cAsig) cAsig.style.display = 'none';
+    if (cForm) cForm.style.display = 'block';
+  }
+};
+
+window.abrirFormularioParaAtenderPUByIndex = function(idx) {
+  const pendientes = PICKUPS_ASIGNADOS_GLOBAL.filter(p => p.estatus === 'PRE_ASIGNADO' || p.estatus === 'PENDIENTE');
+  const item = pendientes[idx];
+  if (item) {
+    abrirFormularioParaAtenderPU(item);
+  }
+};
+
+function abrirFormularioParaAtenderPU(item) {
+  pickupActivoAtendiendo = item;
+  cambiarSubTabPU('manual');
+
+  // Mostrar Banner Atendiendo
+  const bAt = document.getElementById('banner-pu-atendiendo');
+  const lFolio = document.getElementById('lbl-pu-atendiendo-folio');
+  if (bAt) bAt.style.display = 'flex';
+  if (lFolio) lFolio.textContent = `${item.id_booking || item.id_pu} - ${item.remitente}`;
+
+  // Pre-rellenar formulario con datos del booking asignado
+  const bEl = document.getElementById('input-pu-booking');
+  const remEl = document.getElementById('input-pu-remitente');
+  const dirEl = document.getElementById('input-pu-direccion');
+  const cpEl = document.getElementById('input-pu-cp');
+  const estEl = document.getElementById('val-pu-estimadas');
+  const realEl = document.getElementById('val-pu-reales');
+
+  if (bEl) bEl.value = item.id_booking || item.id_pu;
+  if (remEl) remEl.value = item.remitente || '';
+  if (dirEl) dirEl.value = item.direccion || '';
+  if (cpEl) cpEl.value = item.cp || '';
+  if (estEl) estEl.textContent = item.piezas_estimadas || 1;
+  if (realEl) realEl.textContent = item.piezas_estimadas || 1;
+  piezasPUReales = parseInt(item.piezas_estimadas) || 1;
+
+  navegarA('view-recoleccion');
+  showToast(`Atendiendo ${item.remitente}`, '📦');
+}
+
+window.cancelarAtencionPU = function() {
+  pickupActivoAtendiendo = null;
+  const bAt = document.getElementById('banner-pu-atendiendo');
+  if (bAt) bAt.style.display = 'none';
+
+  // Limpiar campos
+  const bEl = document.getElementById('input-pu-booking');
+  const remEl = document.getElementById('input-pu-remitente');
+  const dirEl = document.getElementById('input-pu-direccion');
+  const cpEl = document.getElementById('input-pu-cp');
+  if (bEl) bEl.value = '';
+  if (remEl) remEl.value = '';
+  if (dirEl) dirEl.value = '';
+  if (cpEl) cpEl.value = '';
+
+  cambiarSubTabPU('asignadas');
+};
 
 window.seleccionarEstatusPU = function(est) {
   initAudio();
@@ -2700,8 +3015,15 @@ window.guardarRecoleccionPU = async function() {
   }
 
   const firmaData = sigPadPU.toDataURL('image/png');
+  
+  // Preservar el ID_PU original si venía de un booking asignado
+  const idPUFinal = (pickupActivoAtendiendo && pickupActivoAtendiendo.id_pu) 
+    ? pickupActivoAtendiendo.id_pu 
+    : ('PU_' + Date.now().toString(36).toUpperCase());
+
   const puPayload = {
-    id_pu: 'PU_' + Date.now().toString(36).toUpperCase(),
+    accion: 'sincronizar_recoleccion',
+    id_pu: idPUFinal,
     id_booking: booking,
     remitente: remitente,
     direccion: direccion,
@@ -2729,7 +3051,19 @@ window.guardarRecoleccionPU = async function() {
     hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   });
 
-  // 3. Sincronizar si Online
+  // 3. Actualizar memoria local de asignadas
+  if (pickupActivoAtendiendo) {
+    const idx = PICKUPS_ASIGNADOS_GLOBAL.findIndex(p => p.id_pu === pickupActivoAtendiendo.id_pu || p.id_booking === booking);
+    if (idx !== -1) {
+      PICKUPS_ASIGNADOS_GLOBAL[idx].estatus = estatusPUSeleccionado;
+      PICKUPS_ASIGNADOS_GLOBAL[idx].piezas_reales = piezasPUReales;
+      try {
+        localStorage.setItem('ollin_pickups_asignados', JSON.stringify(PICKUPS_ASIGNADOS_GLOBAL));
+      } catch(e) {}
+    }
+  }
+
+  // 4. Sincronizar si Online
   if (navigator.onLine) {
     try {
       const resp = await fetch(WEBHOOK_URL, {
@@ -2753,6 +3087,10 @@ window.guardarRecoleccionPU = async function() {
   }
 
   // Resetear Formulario PU
+  pickupActivoAtendiendo = null;
+  const bAt = document.getElementById('banner-pu-atendiendo');
+  if (bAt) bAt.style.display = 'none';
+
   if (bookingEl) bookingEl.value = '';
   if (remitenteEl) remitenteEl.value = '';
   if (dirEl) dirEl.value = '';
@@ -2771,6 +3109,8 @@ window.guardarRecoleccionPU = async function() {
     btnPU.innerHTML = '<span>📦</span> Registrar Recolección';
   }
 
+  cambiarSubTabPU('asignadas');
+  renderizarListaPickupsAsignados();
   actualizarKPIsDashboard();
   navegarA('view-inicio');
 };
@@ -2781,7 +3121,8 @@ window.guardarRecoleccionPU = async function() {
 function actualizarKPIsDashboard() {
   const entregados = historialTurno.filter(i => i.tipo === 'ENTREGA' && i.estatus === 'OK').length;
   const incidencias = historialTurno.filter(i => i.tipo === 'ENTREGA' && i.estatus !== 'OK').length;
-  const pickups = historialTurno.filter(i => i.tipo === 'PU').length;
+  const pickupsRealizados = historialTurno.filter(i => i.tipo === 'PU').length;
+  const pickupsPendientes = PICKUPS_ASIGNADOS_GLOBAL.filter(p => p.estatus === 'PRE_ASIGNADO' || p.estatus === 'PENDIENTE').length;
 
   const kpiOk = document.getElementById('kpi-entregados');
   const kpiInc = document.getElementById('kpi-incidencias');
@@ -2790,8 +3131,28 @@ function actualizarKPIsDashboard() {
 
   if (kpiOk) kpiOk.textContent = entregados;
   if (kpiInc) kpiInc.textContent = incidencias;
-  if (kpiPu) kpiPu.textContent = pickups;
+  if (kpiPu) {
+    if (pickupsPendientes > 0) {
+      kpiPu.innerHTML = `<span style="color:#FDE047;">${pickupsPendientes}</span><span style="font-size:0.65rem;color:var(--text-muted);display:block;">pendientes</span>`;
+    } else {
+      kpiPu.textContent = pickupsRealizados;
+    }
+  }
   if (kpiSub) kpiSub.textContent = `${historialTurno.length} registros`;
+
+  // Controlar Banner de Alerta en Dashboard
+  const bannerAlert = document.getElementById('banner-pu-alert-dashboard');
+  const bannerTitle = document.getElementById('banner-pu-alert-title');
+  const bannerSub = document.getElementById('banner-pu-alert-sub');
+  if (bannerAlert) {
+    if (pickupsPendientes > 0) {
+      bannerAlert.style.display = 'flex';
+      if (bannerTitle) bannerTitle.textContent = `¡TIENES ${pickupsPendientes} RECOLECCIÓN(ES) ASIGNADA(S)!`;
+      if (bannerSub) bannerSub.textContent = `Toca aquí para revisar direcciones, clientes y horarios por atender`;
+    } else {
+      bannerAlert.style.display = 'none';
+    }
+  }
 }
 
 function renderBitacora() {
@@ -2862,7 +3223,15 @@ window.addEventListener('load', () => {
   initSession();
   cargarManifiestoOperativo();
   actualizarGPSPU();
+  consultarPickupsAsignadosServidor(false);
   actualizarKPIsDashboard();
+
+  // Sondeo periódico cada 4 minutos para inyectar bookings en vivo al chofer
+  setInterval(() => {
+    if (navigator.onLine && CURRENT_USER) {
+      consultarPickupsAsignadosServidor(true);
+    }
+  }, 240000);
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js?v=3.8')

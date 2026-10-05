@@ -124,6 +124,29 @@
       <button type="button" onclick="cerrarModalBloqueo()" style="width:100%;padding:14px;background:#EF4444;color:#FFFFFF;border:none;border-radius:12px;font-weight:900;font-size:0.95rem;cursor:pointer;box-shadow:0 4px 14px rgba(239,68,68,0.4);">
         ✕ Entendido, no procesar bulto
       </button>
+  </div>
+
+  <!-- Modal Alerta Poka-Yoke: Nueva Recolección Asignada (Antidescuido) -->
+  <div id="modal-alerta-recoleccion" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:99999;align-items:center;justify-content:center;padding:16px;">
+    <div style="background:#0F172A;border:2.5px solid var(--gold-primary);border-radius:18px;max-width:390px;width:100%;padding:22px;box-shadow:0 0 45px rgba(212,175,55,0.45);text-align:center;">
+      <div style="font-size:2.8rem;margin-bottom:4px;animation:pulse 1.2s infinite;">📦⚡</div>
+      <div style="color:var(--gold-primary);font-size:1.15rem;font-weight:900;letter-spacing:0.5px;margin-bottom:6px;">¡NUEVA RECOLECCIÓN ASIGNADA!</div>
+      <div style="color:#CBD5E1;font-size:0.75rem;margin-bottom:12px;">Mesa de Control ha inyectado un nuevo Booking a tu ruta:</div>
+      <div style="background:rgba(212,175,55,0.08);border:1px solid rgba(212,175,55,0.3);border-radius:12px;padding:14px;margin-bottom:16px;text-align:left;font-size:0.85rem;line-height:1.45;">
+        <div style="margin-bottom:6px;"><strong>Booking:</strong> <span id="modal-pu-booking" style="font-family:monospace;color:#FDE047;font-weight:800;">---</span></div>
+        <div style="margin-bottom:6px;"><strong>Cliente / Remitente:</strong> <span id="modal-pu-remitente" style="color:#FFFFFF;font-weight:700;">---</span></div>
+        <div style="margin-bottom:6px;"><strong>Dirección:</strong> <span id="modal-pu-direccion" style="color:#94A3B8;font-size:0.78rem;">---</span></div>
+        <div style="margin-bottom:6px;display:flex;justify-content:space-between;">
+          <span><strong>C.P.:</strong> <span id="modal-pu-cp" style="color:#60A5FA;font-weight:700;">---</span></span>
+          <span><strong>Piezas Est.:</strong> <span id="modal-pu-piezas" style="color:#34D399;font-weight:800;">1</span></span>
+        </div>
+        <div style="color:#FDE047;font-size:0.75rem;border-top:1px dashed rgba(255,255,255,0.15);padding-top:6px;margin-top:6px;">
+          <strong>Ventana Horario:</strong> <span id="modal-pu-horario">08:00 - 17:00</span>
+        </div>
+      </div>
+      <button type="button" onclick="confirmarLecturaNuevaRecoleccion()" style="width:100%;padding:14px;background:linear-gradient(135deg, #D4AF37, #B8860B);color:#000000;border:none;border-radius:12px;font-weight:900;font-size:0.95rem;cursor:pointer;box-shadow:0 4px 15px rgba(212,175,55,0.4);">
+        ✓ Entendido, Ver Recolección en Mi Ruta
+      </button>
     </div>
   </div>
 
@@ -342,6 +365,16 @@
             </div>
           </button>
         </div>
+      </div>
+
+      <!-- Banner de Alerta de Recolecciones Asignadas (Poka-Yoke) -->
+      <div id="banner-pu-alert-dashboard" style="display:none;margin-bottom:12px;background:rgba(212,175,55,0.12);border:1.5px solid var(--gold-primary);border-radius:14px;padding:12px 14px;align-items:center;gap:12px;cursor:pointer;box-shadow:0 0 20px rgba(212,175,55,0.25);" onclick="navegarA('view-recoleccion')">
+        <span style="font-size:1.8rem;animation:pulse 1.2s infinite;">📦⚡</span>
+        <div style="flex:1;">
+          <div style="color:var(--gold-primary);font-size:0.88rem;font-weight:900;" id="banner-pu-alert-title">¡TIENES RECOLECCIONES ASIGNADAS!</div>
+          <div style="color:#CBD5E1;font-size:0.75rem;" id="banner-pu-alert-sub">Toca aquí para revisar direcciones y clientes por atender</div>
+        </div>
+        <div style="color:var(--gold-primary);font-size:1.2rem;font-weight:900;">➔</div>
       </div>
 
       <!-- KPIs Resumen de la Jornada -->
@@ -682,8 +715,32 @@
         <span class="memoria-badge" style="font-size:0.65rem;">18 Col.</span>
       </div>
 
-      <!-- Formulario Desplazable de PU -->
-      <div class="scrollable-form-stage">
+      <!-- Selector de Modo: Asignadas vs Captura Manual -->
+      <div style="display:flex;gap:8px;padding:8px 12px;background:rgba(15,23,42,0.6);border-bottom:1px solid rgba(255,255,255,0.08);">
+        <button type="button" id="tab-btn-pu-asignadas" onclick="cambiarSubTabPU('asignadas')" style="flex:1;padding:8px;border-radius:10px;background:var(--gold-primary);color:#000000;font-weight:900;font-size:0.75rem;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+          <span>📋</span> Asignadas (<span id="badge-pu-asignadas-count">0</span>)
+        </button>
+        <button type="button" id="tab-btn-pu-manual" onclick="cambiarSubTabPU('manual')" style="flex:1;padding:8px;border-radius:10px;background:rgba(255,255,255,0.06);color:var(--text-muted);font-weight:700;font-size:0.75rem;border:1px solid rgba(255,255,255,0.1);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+          <span>➕</span> Captura Libre
+        </button>
+      </div>
+
+      <!-- Contenedor 1: Lista de Recolecciones Asignadas (Tarjetas) -->
+      <div id="pu-asignadas-container" class="scrollable-form-stage" style="display:block;">
+        <div id="lista-pu-asignadas-items" style="display:flex;flex-direction:column;gap:10px;">
+          <div style="text-align:center;padding:30px 15px;color:var(--text-muted);font-size:0.85rem;">
+            🔄 Consultando recolecciones asignadas para tu ruta...
+          </div>
+        </div>
+      </div>
+
+      <!-- Contenedor 2: Formulario Desplazable de PU (Manual o para atender una seleccionada) -->
+      <div id="pu-formulario-container" class="scrollable-form-stage" style="display:none;">
+        <div id="banner-pu-atendiendo" style="display:none;background:rgba(212,175,55,0.15);border:1px solid var(--gold-primary);border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:0.78rem;color:#FDE047;display:flex;justify-content:space-between;align-items:center;">
+          <span>⚡ Atendiendo Booking: <strong id="lbl-pu-atendiendo-folio">---</strong></span>
+          <button type="button" onclick="cancelarAtencionPU()" style="background:none;border:none;color:#EF4444;font-size:0.75rem;cursor:pointer;font-weight:800;">✕ Cancelar</button>
+        </div>
+
         <div class="glass-card">
           <div class="form-grid-pu">
             <div>

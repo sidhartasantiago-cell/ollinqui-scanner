@@ -9,7 +9,7 @@
 // IDs de Infraestructura del Ecosistema OLLIN
 var ID_BD_APP_RUTA_2025 = ID_BD_APP_RUTA_2025 || "1Rj7Ce6jWIFTXTamfcgO2h-uhFKBuNhSB8m_tBY_g__w"; // Base de AppSheet / Pochtecas
 // const ID_BOVEDA_BATCH_MAESTRO = "1wIz5YlSbpOLtDY9UNShZ9LHdcez_Vyxlu1wYxBZKTkw"; // Ya declarado en CONTROL_FACTURACION_QRO_2026
-const ID_VALIDACION_QRO_2025 = "1tkfIyZIO2UxzSHFNRPFssRKOpkOscn7qNbkYA7SXr0M"; // Matriz Canónica 25 Columnas
+var ID_VALIDACION_QRO_2025 = typeof ID_VALIDACION_QRO_2025 !== 'undefined' ? ID_VALIDACION_QRO_2025 : "1tkfIyZIO2UxzSHFNRPFssRKOpkOscn7qNbkYA7SXr0M"; // Matriz Canónica 25 Columnas
 // const ID_BD_CENTRAL_2023 = "1osolxYzL12I05J2CUy5PBAGpPD2Z3XeU37RzUlFPPO8"; // Declarado en Code.gs
 
 const EMAIL_ADMIN_IRVIN = "irvin.reyes@arauto.express";
@@ -1857,8 +1857,8 @@ function ejecutarDespachoBookingACampo(payloadJson) {
   try {
     if (!lock.tryLock(30000)) throw new Error("No se pudo obtener el bloqueo de red. Intenta de nuevo.");
     
-    const datos = JSON.parse(payloadJson);
-    const idBookingLimpio = String(datos.id_booking).trim();
+    const datos = typeof payloadJson === 'string' ? JSON.parse(payloadJson) : payloadJson;
+    const idBookingLimpio = String(datos.id_booking || "").trim();
     const idPU = "PU-" + Math.random().toString(36).substr(2, 8).toUpperCase();
     const fechaHoy = new Date();
     const horaServidor = fechaHoy.toLocaleTimeString();
@@ -1867,11 +1867,16 @@ function ejecutarDespachoBookingACampo(payloadJson) {
     const hojaPU = libroLocal.getSheetByName("RECOLECCIONES_VALIDACION");
     if (!hojaPU) throw new Error("No se encontró la hoja 'RECOLECCIONES_VALIDACION'.");
     
+    const tel = String(datos.telefono || "").trim();
+    const dirConTel = tel ? (datos.direccion + " [TEL: " + tel + "]") : datos.direccion;
+    const hApertura = String(datos.horario_apertura || "08:00").trim();
+    const hCierre = String(datos.horario_cierre || "17:00").trim();
+
     hojaPU.appendRow([
       idPU,
       idBookingLimpio,
       datos.remitente,
-      datos.direccion,
+      dirConTel,
       datos.cp,
       datos.chofer,
       "SIN_CARGAR",
@@ -1890,10 +1895,10 @@ function ejecutarDespachoBookingACampo(payloadJson) {
       idPU,
       idBookingLimpio,
       datos.remitente,
-      datos.direccion,
+      dirConTel,
       datos.cp,
-      "08:00",
-      "17:00",
+      hApertura,
+      hCierre,
       datos.chofer,
       "PRE_ASIGNADO",
       datos.piezas_estimadas,
@@ -1982,5 +1987,126 @@ function inyectarCatalogo_V8014() {
     true
   ]]);
   return "Exito!";
+}
+
+/**
+ * 📦 EXTRACCIÓN IA DE BOOKINGS (GEMINI MULTIMODAL OCR)
+ * Analiza capturas de pantalla de bookings de DHL para extraer automáticamente:
+ * - ID Booking (ej. 004668, BK-99887766)
+ * - Remitente (ej. ESTHEFANIA MORENO)
+ * - Dirección completa
+ * - Código Postal (5 dígitos)
+ * - Piezas estimadas
+ * - Teléfono de contacto (10 dígitos)
+ */
+function analizarCapturaBookingConGemini(base64Image, mimeType) {
+  try {
+    var apiKey = "";
+    try {
+      apiKey = PropertiesService.getScriptProperties().getProperty("GEMINI_API_KEY");
+    } catch (eKey) {}
+    
+    if (!apiKey && typeof GEMINI_API_KEY !== 'undefined') {
+      apiKey = GEMINI_API_KEY;
+    }
+    
+    if (!apiKey || apiKey === "TU_API_KEY_AQUI") {
+      Logger.log("⚠️ GEMINI_API_KEY no configurada. Ejecutando extracción de contingencia.");
+      return {
+        id_booking: "BK-" + Math.floor(100000 + Math.random() * 900000),
+        remitente: "REMITENTE PENDIENTE",
+        direccion: "DIRECCION PENDIENTE",
+        cp: "76000",
+        piezas_estimadas: 1,
+        telefono: "4420000000"
+      };
+    }
+
+    var base64Limpio = String(base64Image || "").replace(/^data:image\/\w+;base64,/, "");
+    var promptTexto = 
+      "Eres un asistente de operaciones logísticas para Arauto Express (DHL Querétaro).\n" +
+      "Analiza esta captura de pantalla de un Booking de recolección de DHL (App de campo o sistema web).\n" +
+      "Extrae con precisión milimétrica los siguientes datos:\n" +
+      "1. id_booking: Número de orden, referencia o booking (suele aparecer arriba de las dimensiones o cerca del código de barras, ej: '004668', '988240191', 'BK-12345').\n" +
+      "2. remitente: Nombre de la persona o negocio que entrega el paquete (ej: 'ESTHEFANIA MORENO').\n" +
+      "3. direccion: Calle, número exterior/interior, colonia, municipio y referencias visibles.\n" +
+      "4. cp: Código postal mexicano de exactamente 5 dígitos (ej: '76255').\n" +
+      "5. piezas_estimadas: Cantidad de bultos o piezas (número entero, mínimo 1).\n" +
+      "6. telefono: Teléfono de contacto (10 dígitos numéricos limpios, sin espacios ni guiones, ej: '524424526038' -> '4424526038').\n\n" +
+      "Responde ÚNICA Y ESTRICTAMENTE con un objeto JSON válido con estas claves exactas:\n" +
+      "{\n" +
+      '  "id_booking": "string",\n' +
+      '  "remitente": "string",\n' +
+      '  "direccion": "string",\n' +
+      '  "cp": "string",\n' +
+      '  "piezas_estimadas": 1,\n' +
+      '  "telefono": "string"\n' +
+      "}";
+
+    var payload = {
+      contents: [{
+        parts: [
+          { text: promptTexto },
+          {
+            inlineData: {
+              mimeType: mimeType || "image/jpeg",
+              data: base64Limpio
+            }
+          }
+        ]
+      }],
+      generationConfig: {
+        temperature: 0.1,
+        responseMimeType: "application/json"
+      }
+    };
+
+    var modelos = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-2.5-flash", "gemini-flash-latest"];
+    for (var i = 0; i < modelos.length; i++) {
+      var mod = modelos[i];
+      var url = "https://generativelanguage.googleapis.com/v1beta/models/" + mod + ":generateContent?key=" + apiKey;
+      try {
+        var resp = UrlFetchApp.fetch(url, {
+          method: "post",
+          contentType: "application/json",
+          payload: JSON.stringify(payload),
+          muteHttpExceptions: true
+        });
+        
+        var statusCode = resp.getResponseCode();
+        var rawText = resp.getContentText();
+        
+        if (statusCode === 200) {
+          var jRes = JSON.parse(rawText);
+          if (jRes.candidates && jRes.candidates.length > 0 && jRes.candidates[0].content && jRes.candidates[0].content.parts) {
+            var answerText = jRes.candidates[0].content.parts[0].text;
+            answerText = answerText.replace(/```json/gi, "").replace(/```/gi, "").trim();
+            var parsed = JSON.parse(answerText);
+            
+            // Sanitizar teléfono a 10 dígitos si viene con 52
+            if (parsed.telefono) {
+              var telClean = parsed.telefono.replace(/\D/g, "");
+              if (telClean.length === 12 && telClean.indexOf("52") === 0) {
+                telClean = telClean.substring(2);
+              }
+              parsed.telefono = telClean;
+            }
+            
+            Logger.log("✅ Booking extraído con éxito con " + mod + ": " + parsed.id_booking);
+            return parsed;
+          }
+        } else {
+          Logger.log("⚠️ Error con " + mod + " (" + statusCode + "): " + rawText.substring(0, 200));
+        }
+      } catch (eFetch) {
+        Logger.log("⚠️ Excepción al llamar a " + mod + ": " + eFetch.message);
+      }
+    }
+    
+    throw new Error("No se pudo obtener respuesta de ningún modelo de Gemini.");
+  } catch (err) {
+    Logger.log("❌ Error en analizarCapturaBookingConGemini: " + err.message);
+    throw err;
+  }
 }
 
