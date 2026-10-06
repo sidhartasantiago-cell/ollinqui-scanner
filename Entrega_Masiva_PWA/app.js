@@ -12,18 +12,16 @@ const INITIAL_UNIVERSAL_PIN = "0000"; // NIP de activación provisional de bienv
 const MASTER_PIN = "2026"; // PIN Maestro reservado para contingencia de Mesa de Control / Tlayacanqui
 
 const DIRECTORIO_POCHTECAS = {
-  "edgar.rodriguez.arauto@gmail.com": { nombre: "Edgar Rodríguez", tiene_7ca: true, rol: "POCHTECA" },
-  "edgar.rodriguez@arauto.express": { nombre: "Edgar Rodríguez", tiene_7ca: true, rol: "POCHTECA" },
-  "xichudaniel@gmail.com": { nombre: "Daniel Juárez", tiene_7ca: false, rol: "TLACHIXQUI" },
-  "irvin.reyes@arauto.express": { nombre: "Irvin Reyes", tiene_7ca: false, rol: "TLACHIXQUI" },
-  "sidharta.santiago@arauto.express": { nombre: "Sidharta Santiago", tiene_7ca: true, rol: "TLAYACANQUI" },
-  "fernando.maestro.1991@gmail.com": { nombre: "Fernando Maestro", tiene_7ca: false, rol: "POCHTECA" },
-  "victor18amadorm@gmail.com": { nombre: "Víctor Amador", tiene_7ca: false, rol: "POCHTECA" },
-  "diegovv21mar@gmail.com": { nombre: "Diego", tiene_7ca: false, rol: "POCHTECA" },
-  "fmsanluispaq@gmail.com": { nombre: "Gregorio", tiene_7ca: false, rol: "POCHTECA" },
-  "fmpaqueteriatvsm@gmail.com": { nombre: "Lyonnet", tiene_7ca: false, rol: "POCHTECA" },
-  "yesigonzg1827@gmail.com": { nombre: "Rosi", tiene_7ca: false, rol: "POCHTECA" },
-  "oscher1016@gmail.com": { nombre: "Oscher", tiene_7ca: false, rol: "POCHTECA" }
+  "fmtierrabla1@gmail.com": { nombre: "Diego", tiene_7ca: false, rol: "POCHTECA", telefono: "" },
+  "victor18amadorm@gmail.com": { nombre: "Víctor", tiene_7ca: false, rol: "POCHTECA", telefono: "" },
+  "xichudaniel@gmail.com": { nombre: "Daniel", tiene_7ca: false, rol: "TLACHIXQUI", telefono: "" },
+  "fmsanluispaq@gmail.com": { nombre: "Gregorio", tiene_7ca: false, rol: "POCHTECA", telefono: "" },
+  "fmpaqueteriatvsm@gmail.com": { nombre: "Lyonnet", tiene_7ca: false, rol: "POCHTECA", telefono: "" },
+  "yesigonzg1827@gmail.com": { nombre: "Rosi", tiene_7ca: false, rol: "POCHTECA", telefono: "" },
+  "edgar.rodriguez.arauto@gmail.com": { nombre: "Edgar", tiene_7ca: true, rol: "POCHTECA", telefono: "" },
+  "fernando.maestro.1991@gmail.com": { nombre: "Fernando", tiene_7ca: false, rol: "POCHTECA", telefono: "" },
+  "irvin.reyes@arauto.express": { nombre: "Irvin", tiene_7ca: false, rol: "TLACHIXQUI", telefono: "" },
+  "sidharta.santiago@arauto.express": { nombre: "Sidharta", tiene_7ca: false, rol: "TLAYACANQUI", telefono: "" }
 };
 
 // Obtener PIN personal del usuario con jerarquía: LocalStorage -> Backend/Offline -> Provisional '0000'
@@ -275,7 +273,68 @@ function setAuthenticatedUser(email) {
   iniciarHeartbeatSesion();
 }
 
+function repoblarSelectUsuarios(usuariosArray) {
+  const select = document.getElementById('login-user-select');
+  if (!select || !Array.isArray(usuariosArray) || usuariosArray.length === 0) return;
+
+  const valorPrevio = select.value;
+  select.innerHTML = '<option value="">-- Elige tu Nombre --</option>';
+
+  usuariosArray.forEach(u => {
+    if (!u.correo) return;
+    const correoKey = u.correo.toLowerCase().trim();
+    // Actualizar también directorio en memoria
+    DIRECTORIO_POCHTECAS[correoKey] = {
+      nombre: u.nombre || correoKey,
+      tiene_7ca: Boolean(u.tiene_7ca),
+      rol: (u.rol || 'POCHTECA').toUpperCase(),
+      telefono: u.telefono || ''
+    };
+
+    const opt = document.createElement('option');
+    opt.value = correoKey;
+    const labelRol = u.rol ? ` [${u.rol}]` : '';
+    opt.textContent = `${u.nombre || correoKey}${labelRol}`;
+    select.appendChild(opt);
+  });
+
+  if (valorPrevio && DIRECTORIO_POCHTECAS[valorPrevio]) {
+    select.value = valorPrevio;
+  }
+}
+
+async function sincronizarCatalogoUsuariosDesdeSheet() {
+  // 1. Cargar primero de caché local si existe
+  try {
+    const cached = localStorage.getItem('ollin_cat_usuarios');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        repoblarSelectUsuarios(parsed);
+      }
+    }
+  } catch(e) {}
+
+  // 2. Si hay conexión, consultar el catálogo en vivo desde CAT_USUARIOS
+  if (navigator.onLine) {
+    try {
+      const resp = await fetch(`${WEBHOOK_URL}?accion=consultar_usuarios_catalogo`);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data && data.exito && Array.isArray(data.usuarios) && data.usuarios.length > 0) {
+          localStorage.setItem('ollin_cat_usuarios', JSON.stringify(data.usuarios));
+          repoblarSelectUsuarios(data.usuarios);
+          console.log(`✅ Catálogo CAT_USUARIOS sincronizado en vivo (${data.usuarios.length} operadores).`);
+        }
+      }
+    } catch(err) {
+      console.warn('⚠️ No se pudo consultar catálogo de usuarios en vivo, usando fallback offline:', err);
+    }
+  }
+}
+
 function mostrarLoginModal() {
+  sincronizarCatalogoUsuariosDesdeSheet();
   const overlay = document.getElementById('login-overlay');
   if (overlay) {
     overlay.style.display = 'flex';
@@ -285,6 +344,7 @@ function mostrarLoginModal() {
 }
 
 function initSession() {
+  sincronizarCatalogoUsuariosDesdeSheet();
   const urlParams = new URLSearchParams(window.location.search);
   const paramUser = urlParams.get('chofer') || urlParams.get('email');
   if (paramUser && DIRECTORIO_POCHTECAS[paramUser.toLowerCase().trim()]) {

@@ -3,7 +3,7 @@
  * 🚀 Webhook de Entrada PID-Level con Auto-Lookup Dinámico y Generador de KEY Fallback
  * 📋 Canaliza Pickups (18 columnas) y Deliveries (25 columnas rígidas) en VALIDACIÓN_QRO_2025
  */
-function doGet(e) {
+function receptorPU_doGet(e) {
   try {
     var params = (e && e.parameter) ? e.parameter : {};
     var accion = params.accion || params.action || "";
@@ -25,6 +25,12 @@ function doGet(e) {
       var nPin = params.nuevo_pin || params.pin || "";
       var resPin = actualizarPinUsuario_(emailPin, nPin);
       return ContentService.createTextOutput(JSON.stringify(resPin))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (accion === "consultar_usuarios_catalogo" || accion === "obtener_usuarios_catalogo") {
+      var resUsers = consultarUsuariosCatalogo_();
+      return ContentService.createTextOutput(JSON.stringify(resUsers))
         .setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -79,7 +85,7 @@ function doGet(e) {
   }
 }
 
-function doPost(e) {
+function receptorPU_doPost(e) {
   var lock = LockService.getScriptLock();
   try {
     if (!lock.tryLock(30000)) {
@@ -2461,58 +2467,73 @@ function procesarSincronizacionEntregaMasivaOffline_(loteData) {
     }
   }
 
-  // 7. Reflejo directo en VALIDACIÓN_QRO_2025 (Esquema Rígido de 25 Columnas con Mapeo Dinámico)
+  // 7. Reflejo directo en VALIDACIÓN_QRO_2025 (Esquema Moderno Ollinqui PWA)
   try {
     var ssVal = SpreadsheetApp.openById("1tkfIyZIO2UxzSHFNRPFssRKOpkOscn7qNbkYA7SXr0M");
-    var sheetVal = ssVal.getSheetByName("VALIDACIÓN_QRO_2025") || ssVal.getSheets()[0];
-    if (sheetVal && sheetVal.getLastRow() > 1 && pidsActualizados.length > 0) {
+    var sheetVal = ssVal.getSheetByName("Validación") || ssVal.getSheets()[0];
+    if (sheetVal && pidsActualizados.length > 0) {
       var vHeaders = sheetVal.getRange(1, 1, 1, sheetVal.getLastColumn()).getValues()[0];
-      var idxPidVal = getHeaderIndex_(vHeaders, "pid", 1);
-      var idxCpVal = getHeaderIndex_(vHeaders, "checkpoint", 9);
-      var idxRcvrName = getHeaderIndex_(vHeaders, "receiver name", 7);
-      var idxFachada = getHeaderIndex_(vHeaders, "imagen fachada", 13);
-      var idxFirma = getHeaderIndex_(vHeaders, "firma", 19);
-      var idxHoraLlegada = getHeaderIndex_(vHeaders, "hora de llegada", 21);
-      var idxTimestamp = getHeaderIndex_(vHeaders, "marca de tiempo", 24);
-      var idxKey = getHeaderIndex_(vHeaders, "key", 16); // 🔒 INALTERABLE
-      var idxTel = getHeaderIndex_(vHeaders, "telefono", 20); // 🔒 SÓLO 10 DÍGITOS NUMÉRICOS
+      var idxHwbV = getHeaderIndex_(vHeaders, "guia", 0);
+      var idxPidV = getHeaderIndex_(vHeaders, "pid", 1);
+      var idxCpV = getHeaderIndex_(vHeaders, "cp", 2);
+      var idxChkVal = getHeaderIndex_(vHeaders, "checkpoint", 3);
+      var idxRcvrName = getHeaderIndex_(vHeaders, "receptor", 4);
+      var idxFirma = getHeaderIndex_(vHeaders, "firma", 5);
+      var idxFachada = getHeaderIndex_(vHeaders, "foto_fachada", 6);
+      var idxAudio = getHeaderIndex_(vHeaders, "audio_teoyolotl", 7);
+      var idxGps = getHeaderIndex_(vHeaders, "gps", 8);
+      var idxPochteca = getHeaderIndex_(vHeaders, "pochteca", 9);
+      var idxFEntrega = getHeaderIndex_(vHeaders, "fecha_entrega", 10);
+      var idxAuditor = getHeaderIndex_(vHeaders, "aprobacion_auditor", 11);
+      var idxTimestamp = getHeaderIndex_(vHeaders, "marca_tiempo", 14);
 
-      var vData = sheetVal.getDataRange().getValues();
-      var pidMapVal = {};
-      pidsActualizados.forEach(function(item) { pidMapVal[item.pid] = item.estatus; });
-
+      var vData = sheetVal.getLastRow() > 1 ? sheetVal.getDataRange().getValues() : [];
+      var existingRowMap = {};
       for (var v = 1; v < vData.length; v++) {
-        var vPidRaw = String(vData[v][idxPidVal] || "").trim();
-        var vPidSan = (typeof sanitizarPIDParaBoveda === "function") ? sanitizarPIDParaBoveda(vPidRaw) : vPidRaw;
-
-        var estatusMatch = pidMapVal[vPidSan];
-        if (estatusMatch) {
-          // Actualizar Checkpoint
-          if (idxCpVal !== -1) sheetVal.getRange(v + 1, idxCpVal + 1).setValue(estatusMatch);
-          
-          if (nombreRecibe && (estatusMatch === "OK" || estatusMatch === "PD") && idxRcvrName !== -1) {
-            sheetVal.getRange(v + 1, idxRcvrName + 1).setValue(nombreRecibe);
-          }
-          if (firmaRelPath && (estatusMatch === "OK" || estatusMatch === "PD") && idxFirma !== -1) {
-            sheetVal.getRange(v + 1, idxFirma + 1).setValue(firmaRelPath);
-          }
-          if (fotoRelPath && idxFachada !== -1) {
-            sheetVal.getRange(v + 1, idxFachada + 1).setValue(fotoRelPath);
-          }
-          if (idxHoraLlegada !== -1) {
-            sheetVal.getRange(v + 1, idxHoraLlegada + 1).setValue(fechaHora);
-          }
-          if (idxTimestamp !== -1) {
-            sheetVal.getRange(v + 1, idxTimestamp + 1).setValue(new Date());
-          }
-
-          // 🛡️ REGLA INVIOLABLE: Columna Q (KEY) NUNCA SE MODIFICA
-          // 🛡️ REGLA INVIOLABLE: Columna U (Telefono) NUNCA recibe firma ni foto. Solo si viene teléfono válido de 10 dígitos:
-          if (loteData.telefono && /^\d{10}$/.test(String(loteData.telefono).trim()) && idxTel !== -1) {
-            sheetVal.getRange(v + 1, idxTel + 1).setValue(String(loteData.telefono).trim());
-          }
-        }
+        var pRaw = String(vData[v][idxPidV !== -1 ? idxPidV : 1] || "").trim().toUpperCase();
+        if (pRaw) existingRowMap[pRaw] = v + 1;
       }
+
+      var gpsCoordStr = String(loteData.gps || "").trim();
+      var idGuiaMadre = Object.keys(guiasImpactadas)[0] || "";
+
+      pidsActualizados.forEach(function(item) {
+        var pidDobleJ = (typeof formatearPidDobleJ === "function") ? formatearPidDobleJ(item.raw || item.pid) : String(item.raw || item.pid);
+        var pidSan = (typeof sanitizarPIDParaBoveda === "function") ? sanitizarPIDParaBoveda(item.pid) : item.pid;
+        var rowTarget = existingRowMap[pidDobleJ] || existingRowMap[pidSan];
+
+        if (rowTarget) {
+          // Actualizar fila existente
+          if (idxChkVal !== -1) sheetVal.getRange(rowTarget, idxChkVal + 1).setValue(item.estatus);
+          if (nombreRecibe && idxRcvrName !== -1) sheetVal.getRange(rowTarget, idxRcvrName + 1).setValue(nombreRecibe);
+          if (firmaRelPath && idxFirma !== -1) sheetVal.getRange(rowTarget, idxFirma + 1).setValue(firmaRelPath);
+          if (fotoRelPath && idxFachada !== -1) sheetVal.getRange(rowTarget, idxFachada + 1).setValue(fotoRelPath);
+          if (audioRelPath && idxAudio !== -1) sheetVal.getRange(rowTarget, idxAudio + 1).setValue(audioRelPath);
+          if (gpsCoordStr && idxGps !== -1) sheetVal.getRange(rowTarget, idxGps + 1).setValue(gpsCoordStr);
+          if (idxFEntrega !== -1) sheetVal.getRange(rowTarget, idxFEntrega + 1).setValue(fechaHora);
+          if (idxTimestamp !== -1) sheetVal.getRange(rowTarget, idxTimestamp + 1).setValue(new Date());
+        } else {
+          // Insertar fila nueva en VALIDACIÓN_QRO_2025
+          var nuevaFilaVal = [
+            idGuiaMadre || item.pid,               // 0: Guia
+            pidDobleJ,                             // 1: PID (JJD)
+            String(loteData.cp || "").trim(),      // 2: CP
+            item.estatus,                          // 3: Checkpoint
+            nombreRecibe || "CLIENTE",             // 4: Receptor
+            firmaRelPath,                          // 5: Firma
+            fotoRelPath,                           // 6: Foto_Fachada
+            audioRelPath,                          // 7: Audio_Teoyolotl
+            gpsCoordStr,                           // 8: GPS
+            chofer || "sin_asignar@arauto.express",// 9: Pochteca
+            fechaHora,                             // 10: Fecha_Entrega
+            "PENDIENTE",                           // 11: Aprobacion_Auditor
+            "",                                    // 12: Motivo_Rechazo
+            "",                                    // 13: Auditor_Validador
+            new Date()                             // 14: Marca_Tiempo
+          ];
+          sheetVal.appendRow(nuevaFilaVal);
+        }
+      });
     }
   } catch(eVal) {
     Logger.log("⚠️ Error sincronizando en VALIDACIÓN_QRO_2025: " + eVal.message);
@@ -2681,6 +2702,61 @@ function actualizarPinUsuario_(email, nuevoPin) {
   }
 
   return { exito: false, error: "Usuario no encontrado en CAT_USUARIOS" };
+}
+
+/**
+ * 👥 CONSULTAR LISTA COMPLETA DE USUARIOS DE CAT_USUARIOS
+ */
+function consultarUsuariosCatalogo_() {
+  var ID_BD_APP_RUTA_2025 = "1Rj7Ce6jWIFTXTamfcgO2h-uhFKBuNhSB8m_tBY_g__w";
+  var ssRuta = SpreadsheetApp.openById(ID_BD_APP_RUTA_2025);
+  var shUsers = ssRuta.getSheetByName("CAT_USUARIOS");
+  if (!shUsers || shUsers.getLastRow() < 2) {
+    return { exito: false, usuarios: [] };
+  }
+
+  var data = shUsers.getDataRange().getValues();
+  var headers = data[0].map(function(h) { return String(h).trim(); });
+  var idxCorreo = getHeaderIndex_(headers, "correo", 0);
+  var idxNombre = getHeaderIndex_(headers, "nombre", 1);
+  var idxRol = getHeaderIndex_(headers, "rol", 2);
+  var idx7CA = getHeaderIndex_(headers, "tiene_7ca", -1);
+  if (idx7CA === -1) idx7CA = getHeaderIndex_(headers, "7ca", -1);
+  var idxTel = getHeaderIndex_(headers, "telefono", -1);
+  var idxPin = getHeaderIndex_(headers, "pin", -1);
+
+  // Asegurar que exista la columna de Telefono en la hoja si no existe
+  if (idxTel === -1) {
+    idxTel = headers.length;
+    shUsers.getRange(1, idxTel + 1).setValue("Telefono");
+  }
+
+  var lista = [];
+  for (var r = 1; r < data.length; r++) {
+    var email = String(data[r][idxCorreo] || "").trim();
+    if (!email) continue;
+    var nombre = idxNombre !== -1 ? String(data[r][idxNombre] || "").trim() : "";
+    var rol = idxRol !== -1 ? String(data[r][idxRol] || "").trim() : "Pochteca";
+    var tel = idxTel !== -1 ? String(data[r][idxTel] || "").trim() : "";
+    var val7CA = idx7CA !== -1 ? data[r][idx7CA] : false;
+    var tiene7ca = (val7CA === true || String(val7CA).trim().toUpperCase() === "TRUE" || String(val7CA).trim() === "1");
+    var pinVal = idxPin !== -1 ? String(data[r][idxPin] || "").trim() : "";
+
+    lista.push({
+      correo: email,
+      nombre: nombre,
+      rol: rol,
+      telefono: tel,
+      tiene_7ca: tiene7ca,
+      requiere_cambio_pin: (!pinVal || pinVal === "0000")
+    });
+  }
+
+  return {
+    exito: true,
+    total: lista.length,
+    usuarios: lista
+  };
 }
 
 /**
