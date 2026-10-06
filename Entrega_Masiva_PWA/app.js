@@ -7,22 +7,43 @@
  * ====================================================================
  */
 
-// 1. Directorio Canónico de Pochtecas (Fallback Offline, RBAC y PIN de Arranque)
+// 1. Directorio Canónico de Pochtecas (Fallback Offline y RBAC)
+const INITIAL_UNIVERSAL_PIN = "0000"; // NIP de activación provisional de bienvenida
+const MASTER_PIN = "2026"; // PIN Maestro reservado para contingencia de Mesa de Control / Tlayacanqui
+
 const DIRECTORIO_POCHTECAS = {
-  "edgar.rodriguez.arauto@gmail.com": { nombre: "Edgar Rodríguez", tiene_7ca: true, rol: "POCHTECA", pin: "6310" },
-  "edgar.rodriguez@arauto.express": { nombre: "Edgar Rodríguez", tiene_7ca: true, rol: "POCHTECA", pin: "6310" },
-  "xichudaniel@gmail.com": { nombre: "Daniel Juárez", tiene_7ca: false, rol: "TLACHIXQUI", pin: "5625" },
-  "irvin.reyes@arauto.express": { nombre: "Irvin Reyes", tiene_7ca: false, rol: "TLACHIXQUI", pin: "1708" },
-  "sidharta.santiago@arauto.express": { nombre: "Sidharta Santiago", tiene_7ca: true, rol: "TLAYACANQUI", pin: "5948" },
-  "fernando.maestro.1991@gmail.com": { nombre: "Fernando Maestro", tiene_7ca: false, rol: "POCHTECA", pin: "6990" },
-  "victor18amadorm@gmail.com": { nombre: "Víctor Amador", tiene_7ca: false, rol: "POCHTECA", pin: "6463" },
-  "diegovv21mar@gmail.com": { nombre: "Diego", tiene_7ca: false, rol: "POCHTECA", pin: "2361" },
-  "fmsanluispaq@gmail.com": { nombre: "Gregorio", tiene_7ca: false, rol: "POCHTECA", pin: "5455" },
-  "fmpaqueteriatvsm@gmail.com": { nombre: "Lyonnet", tiene_7ca: false, rol: "POCHTECA", pin: "8571" },
-  "yesigonzg1827@gmail.com": { nombre: "Rosi", tiene_7ca: false, rol: "POCHTECA", pin: "7704" },
-  "oscher1016@gmail.com": { nombre: "Oscher", tiene_7ca: false, rol: "POCHTECA", pin: "2030" }
+  "edgar.rodriguez.arauto@gmail.com": { nombre: "Edgar Rodríguez", tiene_7ca: true, rol: "POCHTECA" },
+  "edgar.rodriguez@arauto.express": { nombre: "Edgar Rodríguez", tiene_7ca: true, rol: "POCHTECA" },
+  "xichudaniel@gmail.com": { nombre: "Daniel Juárez", tiene_7ca: false, rol: "TLACHIXQUI" },
+  "irvin.reyes@arauto.express": { nombre: "Irvin Reyes", tiene_7ca: false, rol: "TLACHIXQUI" },
+  "sidharta.santiago@arauto.express": { nombre: "Sidharta Santiago", tiene_7ca: true, rol: "TLAYACANQUI" },
+  "fernando.maestro.1991@gmail.com": { nombre: "Fernando Maestro", tiene_7ca: false, rol: "POCHTECA" },
+  "victor18amadorm@gmail.com": { nombre: "Víctor Amador", tiene_7ca: false, rol: "POCHTECA" },
+  "diegovv21mar@gmail.com": { nombre: "Diego", tiene_7ca: false, rol: "POCHTECA" },
+  "fmsanluispaq@gmail.com": { nombre: "Gregorio", tiene_7ca: false, rol: "POCHTECA" },
+  "fmpaqueteriatvsm@gmail.com": { nombre: "Lyonnet", tiene_7ca: false, rol: "POCHTECA" },
+  "yesigonzg1827@gmail.com": { nombre: "Rosi", tiene_7ca: false, rol: "POCHTECA" },
+  "oscher1016@gmail.com": { nombre: "Oscher", tiene_7ca: false, rol: "POCHTECA" }
 };
-const MASTER_PIN = "2026";
+
+// Obtener PIN personal del usuario con jerarquía: LocalStorage -> Backend/Offline -> Provisional '0000'
+function obtenerPinLocalUsuario(email) {
+  if (!email) return INITIAL_UNIVERSAL_PIN;
+  const clean = email.toLowerCase().trim();
+  const pinGuardado = localStorage.getItem('ollin_pin_' + clean);
+  if (pinGuardado && /^\d{4}$/.test(pinGuardado)) {
+    return pinGuardado;
+  }
+  return INITIAL_UNIVERSAL_PIN;
+}
+
+function guardarPinLocalUsuario(email, nuevoPin) {
+  if (!email || !nuevoPin) return;
+  const clean = email.toLowerCase().trim();
+  try {
+    localStorage.setItem('ollin_pin_' + clean, String(nuevoPin).trim());
+  } catch(e) {}
+}
 
 // Webhook Activo en Google Apps Script (Receptor_PU Arauto Express Universo 2)
 const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwCKdmeHHqRwsNAMJTjxaEDiznvYdPggPchlrVhQcd5kbW7LfLn_qub-fCn6w6JmyRw/exec';
@@ -331,6 +352,10 @@ async function validarSesionConcurrente(email, override = false) {
   return { status: 'OK', autorizado: true, contingencia: true };
 }
 
+// Variables para el flujo de Activación / Creación de NIP
+let usuarioPendienteActivacionPin = null;
+let campoPinSetupActivo = 'nuevo'; // 'nuevo' o 'confirmar'
+
 window.submitLogin = async function() {
   initAudio();
   const select = document.getElementById('login-user-select');
@@ -350,17 +375,47 @@ window.submitLogin = async function() {
   }
 
   const perfil = DIRECTORIO_POCHTECAS[selectedUser];
-  const pinValido = perfil && (perfil.pin === enteredPin || enteredPin === MASTER_PIN);
+  const pinLocal = obtenerPinLocalUsuario(selectedUser);
+  const esMaster = (enteredPin === MASTER_PIN);
+  const esProvisional = (enteredPin === INITIAL_UNIVERSAL_PIN);
+
+  // 1. Validar si el PIN ingresado coincide con su PIN local, o con '0000', o es Master
+  let pinValido = (enteredPin === pinLocal || esProvisional || esMaster);
+
+  // 2. Si no es válido localmente y hay red, consultar perfil en tiempo real al backend
+  let perfilBackend = null;
+  if (!pinValido && navigator.onLine) {
+    try {
+      const respP = await fetch(`${WEBHOOK_URL}?accion=consultar_perfil_usuario&email=${encodeURIComponent(selectedUser)}`);
+      if (respP.ok) {
+        perfilBackend = await respP.json();
+        if (perfilBackend && perfilBackend.encontrado && perfilBackend.pin) {
+          guardarPinLocalUsuario(selectedUser, perfilBackend.pin);
+          if (enteredPin === perfilBackend.pin) {
+            pinValido = true;
+          }
+        }
+      }
+    } catch(e) {}
+  }
+
   if (!pinValido) {
     playBeep('error');
     if (pinInput) pinInput.value = '';
-    showToast('PIN incorrecto. Reintenta o contacta a Mesa de Control', '❌');
+    showToast('NIP incorrecto. Reintenta o consulta a Mesa de Control', '❌');
     return;
   }
 
-  // POKA-YOKE: CANDADO DE SESIÓN ÚNICA DIARIA
+  // 3. ACTIVACIÓN POKA-YOKE: Si ingresó con el NIP provisional '0000' o el usuario aún no tiene NIP propio
+  const requiereActivacion = (pinLocal === INITIAL_UNIVERSAL_PIN && esProvisional) || (perfilBackend && perfilBackend.requiere_cambio_pin && !esMaster);
+  if (requiereActivacion && !esMaster) {
+    playBeep('alerta');
+    abrirModalConfiguracionPin(selectedUser);
+    return;
+  }
+
+  // 4. POKA-YOKE: CANDADO DE SESIÓN ÚNICA DIARIA
   showToast('Validando turno exclusivo...', '⏳');
-  const esMaster = enteredPin === MASTER_PIN;
   const sesionResp = await validarSesionConcurrente(selectedUser, esMaster);
 
   if (sesionResp.status === 'BLOQUEADO') {
@@ -378,7 +433,141 @@ window.submitLogin = async function() {
   // Autorizado con éxito
   playBeep('ok');
   setAuthenticatedUser(selectedUser);
-  showToast(`¡Bienvenido, ${perfil.nombre}!`, '🚀');
+  showToast(`¡Bienvenido, ${perfil ? perfil.nombre : selectedUser}!`, '🚀');
+};
+
+// ====================================================================
+// MODAL ACTIVACIÓN: CREAR NIP PERSONAL (POKA-YOKE)
+// ====================================================================
+function abrirModalConfiguracionPin(email) {
+  usuarioPendienteActivacionPin = email;
+  campoPinSetupActivo = 'nuevo';
+
+  const mSetup = document.getElementById('modal-cambio-pin');
+  const inpN = document.getElementById('input-nuevo-pin');
+  const inpC = document.getElementById('input-confirmar-pin');
+  const lblSub = document.getElementById('lbl-cambio-pin-sub');
+  const perfil = DIRECTORIO_POCHTECAS[email];
+
+  if (inpN) inpN.value = '';
+  if (inpC) inpC.value = '';
+  if (lblSub && perfil) {
+    lblSub.textContent = `Hola ${perfil.nombre}. Por seguridad operativa, crea tu NIP secreto de 4 dígitos para tus turnos.`;
+  }
+
+  enfocarCampoPin('nuevo');
+  if (mSetup) mSetup.style.display = 'flex';
+}
+
+window.enfocarCampoPin = function(campo) {
+  initAudio();
+  campoPinSetupActivo = campo;
+  const btnN = document.getElementById('btn-focus-nuevo-pin');
+  const btnC = document.getElementById('btn-focus-confirmar-pin');
+
+  if (campo === 'nuevo') {
+    if (btnN) { btnN.style.background = 'var(--gold-primary)'; btnN.style.color = '#000'; }
+    if (btnC) { btnC.style.background = 'rgba(255,255,255,0.08)'; btnC.style.color = 'var(--text-muted)'; }
+  } else {
+    if (btnC) { btnC.style.background = 'var(--gold-primary)'; btnC.style.color = '#000'; }
+    if (btnN) { btnN.style.background = 'rgba(255,255,255,0.08)'; btnN.style.color = 'var(--text-muted)'; }
+  }
+};
+
+window.pressKeySetupPin = function(digit) {
+  initAudio();
+  if (navigator.vibrate) navigator.vibrate(30);
+
+  const inp = (campoPinSetupActivo === 'nuevo') 
+    ? document.getElementById('input-nuevo-pin') 
+    : document.getElementById('input-confirmar-pin');
+
+  if (inp && inp.value.length < 4) {
+    inp.value += digit;
+    // Auto-saltar al segundo campo cuando el primer PIN llega a 4 dígitos
+    if (campoPinSetupActivo === 'nuevo' && inp.value.length === 4) {
+      setTimeout(() => enfocarCampoPin('confirmar'), 200);
+    }
+  }
+};
+
+window.clearKeySetupPin = function() {
+  initAudio();
+  if (navigator.vibrate) navigator.vibrate(40);
+  const inp = (campoPinSetupActivo === 'nuevo') 
+    ? document.getElementById('input-nuevo-pin') 
+    : document.getElementById('input-confirmar-pin');
+
+  if (inp) inp.value = '';
+};
+
+window.guardarNuevoPinUsuario = async function() {
+  initAudio();
+  const inpN = document.getElementById('input-nuevo-pin');
+  const inpC = document.getElementById('input-confirmar-pin');
+  const nuevoPin = inpN ? inpN.value.trim() : '';
+  const confirmPin = inpC ? inpC.value.trim() : '';
+
+  if (!nuevoPin || nuevoPin.length !== 4) {
+    playBeep('error');
+    showToast('El nuevo NIP debe tener 4 dígitos', '⚠️');
+    enfocarCampoPin('nuevo');
+    return;
+  }
+
+  if (nuevoPin === INITIAL_UNIVERSAL_PIN) {
+    playBeep('error');
+    showToast('No puedes usar 0000 como NIP. Elige otro', '⚠️');
+    if (inpN) inpN.value = '';
+    if (inpC) inpC.value = '';
+    enfocarCampoPin('nuevo');
+    return;
+  }
+
+  if (nuevoPin !== confirmPin) {
+    playBeep('error');
+    showToast('Los NIPs no coinciden. Intenta de nuevo', '❌');
+    if (inpC) inpC.value = '';
+    enfocarCampoPin('confirmar');
+    return;
+  }
+
+  const user = usuarioPendienteActivacionPin;
+  if (!user) return;
+
+  showToast('Guardando tu nuevo NIP...', '⏳');
+
+  // 1. Guardar de inmediato en LocalStorage (Offline Resilient)
+  guardarPinLocalUsuario(user, nuevoPin);
+
+  // 2. Persistir en Google Sheets (CAT_USUARIOS)
+  if (navigator.onLine) {
+    try {
+      const resp = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accion: 'actualizar_pin_usuario',
+          email: user,
+          nuevo_pin: nuevoPin
+        })
+      });
+      const data = await resp.json();
+      console.log('✅ PIN persistido en CAT_USUARIOS:', data);
+    } catch(e) {
+      console.warn('⚠️ No se pudo sincronizar NIP con Sheets en vivo, se sincronizará luego:', e);
+    }
+  }
+
+  playBeep('ok');
+  showToast('¡NIP personal creado exitosamente!', '🎉');
+
+  // Cerrar modal de setup
+  const mSetup = document.getElementById('modal-cambio-pin');
+  if (mSetup) mSetup.style.display = 'none';
+
+  // Proceder a iniciar el turno
+  setAuthenticatedUser(user);
 };
 
 window.mostrarInputOverridePin = function() {

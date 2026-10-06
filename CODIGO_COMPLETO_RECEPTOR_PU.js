@@ -20,6 +20,14 @@ function doGet(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
 
+    if (accion === "actualizar_pin_usuario") {
+      var emailPin = params.email || params.correo || params.chofer || "";
+      var nPin = params.nuevo_pin || params.pin || "";
+      var resPin = actualizarPinUsuario_(emailPin, nPin);
+      return ContentService.createTextOutput(JSON.stringify(resPin))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     if (accion === "consultar_memoria_domicilio") {
       var guia = params.guia || "";
       var pid = params.pid || "";
@@ -90,6 +98,13 @@ function doPost(e) {
       var emailUser = datos.email || datos.correo || datos.chofer || "";
       var resPerfil = consultarPerfilUsuario_(emailUser);
       return ContentService.createTextOutput(JSON.stringify(resPerfil)).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (datos && (datos.accion === "actualizar_pin_usuario" || datos.action === "actualizar_pin_usuario")) {
+      var emailUserPin = datos.email || datos.correo || datos.chofer || "";
+      var nPinPost = datos.nuevo_pin || datos.pin || "";
+      var resPinPost = actualizarPinUsuario_(emailUserPin, nPinPost);
+      return ContentService.createTextOutput(JSON.stringify(resPinPost)).setMimeType(ContentService.MimeType.JSON);
     }
 
     // ==========================================
@@ -2600,24 +2615,72 @@ function consultarPerfilUsuario_(email) {
   if (idx7CA === -1) idx7CA = getHeaderIndex_(headers, "7ca", -1);
   var idxTel = getHeaderIndex_(headers, "telefono", -1);
 
+  var idxPin = getHeaderIndex_(headers, "pin", -1);
   var targetEmail = String(email || "").trim().toLowerCase();
   for (var r = 1; r < data.length; r++) {
     var rowEmail = String(data[r][idxCorreo] || "").trim().toLowerCase();
     if (rowEmail === targetEmail && targetEmail !== "") {
       var val7CA = idx7CA !== -1 ? data[r][idx7CA] : false;
       var tiene7ca = (val7CA === true || String(val7CA).trim().toUpperCase() === "TRUE" || String(val7CA).trim() === "1");
+      var pinGuardado = idxPin !== -1 ? String(data[r][idxPin] || "").trim() : "";
       return {
         encontrado: true,
         correo: data[r][idxCorreo],
         nombre: idxNombre !== -1 ? String(data[r][idxNombre] || "") : "",
         rol: idxRol !== -1 ? String(data[r][idxRol] || "") : "POCHTECA",
         tiene_7ca: tiene7ca,
-        telefono: idxTel !== -1 ? String(data[r][idxTel] || "") : ""
+        telefono: idxTel !== -1 ? String(data[r][idxTel] || "") : "",
+        pin: pinGuardado,
+        requiere_cambio_pin: (!pinGuardado || pinGuardado === "0000")
       };
     }
   }
 
-  return { encontrado: false, tiene_7ca: false, rol: "POCHTECA", correo: email };
+  return { encontrado: false, tiene_7ca: false, rol: "POCHTECA", correo: email, pin: "", requiere_cambio_pin: true };
+}
+
+/**
+ * 🔑 ACTUALIZAR PIN DE USUARIO EN CAT_USUARIOS (POKA-YOKE ACTIVACIÓN)
+ */
+function actualizarPinUsuario_(email, nuevoPin) {
+  var ID_BD_APP_RUTA_2025 = "1Rj7Ce6jWIFTXTamfcgO2h-uhFKBuNhSB8m_tBY_g__w";
+  var ssRuta = SpreadsheetApp.openById(ID_BD_APP_RUTA_2025);
+  var shUsers = ssRuta.getSheetByName("CAT_USUARIOS");
+  if (!shUsers || shUsers.getLastRow() < 2) {
+    return { exito: false, error: "Hoja CAT_USUARIOS no encontrada" };
+  }
+
+  var cleanPin = String(nuevoPin || "").trim();
+  if (!/^\d{4}$/.test(cleanPin)) {
+    return { exito: false, error: "El PIN debe tener exactamente 4 dígitos numéricos" };
+  }
+
+  var data = shUsers.getDataRange().getValues();
+  var headers = data[0].map(function(h) { return String(h).trim(); });
+  var idxCorreo = getHeaderIndex_(headers, "correo", 0);
+  var idxPin = getHeaderIndex_(headers, "pin", -1);
+
+  // Si la columna PIN aún no existe en CAT_USUARIOS, crearla automáticamente
+  if (idxPin === -1) {
+    idxPin = headers.length;
+    shUsers.getRange(1, idxPin + 1).setValue("PIN");
+  }
+
+  var targetEmail = String(email || "").trim().toLowerCase();
+  for (var r = 1; r < data.length; r++) {
+    var rowEmail = String(data[r][idxCorreo] || "").trim().toLowerCase();
+    if (rowEmail === targetEmail && targetEmail !== "") {
+      shUsers.getRange(r + 1, idxPin + 1).setValue("'" + cleanPin);
+      SpreadsheetApp.flush();
+      return {
+        exito: true,
+        correo: targetEmail,
+        mensaje: "PIN actualizado exitosamente en CAT_USUARIOS"
+      };
+    }
+  }
+
+  return { exito: false, error: "Usuario no encontrado en CAT_USUARIOS" };
 }
 
 /**

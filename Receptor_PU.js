@@ -3,7 +3,7 @@
  * 🚀 Webhook de Entrada PID-Level con Auto-Lookup Dinámico y Generador de KEY Fallback
  * 📋 Canaliza Pickups (18 columnas) y Deliveries (25 columnas rígidas) en VALIDACIÓN_QRO_2025
  */
-function receptorPU_doGet(e) {
+function doGet(e) {
   try {
     var params = (e && e.parameter) ? e.parameter : {};
     var accion = params.accion || params.action || "";
@@ -17,6 +17,14 @@ function receptorPU_doGet(e) {
       var email = params.email || params.correo || params.chofer || "";
       var perfil = consultarPerfilUsuario_(email);
       return ContentService.createTextOutput(JSON.stringify(perfil))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (accion === "actualizar_pin_usuario") {
+      var emailPin = params.email || params.correo || params.chofer || "";
+      var nPin = params.nuevo_pin || params.pin || "";
+      var resPin = actualizarPinUsuario_(emailPin, nPin);
+      return ContentService.createTextOutput(JSON.stringify(resPin))
         .setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -51,6 +59,12 @@ function receptorPU_doGet(e) {
       return ContentService.createTextOutput(JSON.stringify(resAsig)).setMimeType(ContentService.MimeType.JSON);
     }
 
+    if (accion === "consultar_pickups_asignados_chofer") {
+      var choferPU = params.chofer || params.email || "";
+      var resPickups = consultarPickupsAsignadosChofer_(choferPU);
+      return ContentService.createTextOutput(JSON.stringify(resPickups)).setMimeType(ContentService.MimeType.JSON);
+    }
+
     if (accion === "sincronizar_carga_a_bordo") {
       var payloadBordoGet = params.payload ? JSON.parse(params.payload) : params;
       var resBordoGet = procesarCargaABordo_(payloadBordoGet);
@@ -65,7 +79,7 @@ function receptorPU_doGet(e) {
   }
 }
 
-function receptorPU_doPost(e) {
+function doPost(e) {
   var lock = LockService.getScriptLock();
   try {
     if (!lock.tryLock(30000)) {
@@ -84,6 +98,13 @@ function receptorPU_doPost(e) {
       var emailUser = datos.email || datos.correo || datos.chofer || "";
       var resPerfil = consultarPerfilUsuario_(emailUser);
       return ContentService.createTextOutput(JSON.stringify(resPerfil)).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (datos && (datos.accion === "actualizar_pin_usuario" || datos.action === "actualizar_pin_usuario")) {
+      var emailUserPin = datos.email || datos.correo || datos.chofer || "";
+      var nPinPost = datos.nuevo_pin || datos.pin || "";
+      var resPinPost = actualizarPinUsuario_(emailUserPin, nPinPost);
+      return ContentService.createTextOutput(JSON.stringify(resPinPost)).setMimeType(ContentService.MimeType.JSON);
     }
 
     // ==========================================
@@ -2594,24 +2615,72 @@ function consultarPerfilUsuario_(email) {
   if (idx7CA === -1) idx7CA = getHeaderIndex_(headers, "7ca", -1);
   var idxTel = getHeaderIndex_(headers, "telefono", -1);
 
+  var idxPin = getHeaderIndex_(headers, "pin", -1);
   var targetEmail = String(email || "").trim().toLowerCase();
   for (var r = 1; r < data.length; r++) {
     var rowEmail = String(data[r][idxCorreo] || "").trim().toLowerCase();
     if (rowEmail === targetEmail && targetEmail !== "") {
       var val7CA = idx7CA !== -1 ? data[r][idx7CA] : false;
       var tiene7ca = (val7CA === true || String(val7CA).trim().toUpperCase() === "TRUE" || String(val7CA).trim() === "1");
+      var pinGuardado = idxPin !== -1 ? String(data[r][idxPin] || "").trim() : "";
       return {
         encontrado: true,
         correo: data[r][idxCorreo],
         nombre: idxNombre !== -1 ? String(data[r][idxNombre] || "") : "",
         rol: idxRol !== -1 ? String(data[r][idxRol] || "") : "POCHTECA",
         tiene_7ca: tiene7ca,
-        telefono: idxTel !== -1 ? String(data[r][idxTel] || "") : ""
+        telefono: idxTel !== -1 ? String(data[r][idxTel] || "") : "",
+        pin: pinGuardado,
+        requiere_cambio_pin: (!pinGuardado || pinGuardado === "0000")
       };
     }
   }
 
-  return { encontrado: false, tiene_7ca: false, rol: "POCHTECA", correo: email };
+  return { encontrado: false, tiene_7ca: false, rol: "POCHTECA", correo: email, pin: "", requiere_cambio_pin: true };
+}
+
+/**
+ * 🔑 ACTUALIZAR PIN DE USUARIO EN CAT_USUARIOS (POKA-YOKE ACTIVACIÓN)
+ */
+function actualizarPinUsuario_(email, nuevoPin) {
+  var ID_BD_APP_RUTA_2025 = "1Rj7Ce6jWIFTXTamfcgO2h-uhFKBuNhSB8m_tBY_g__w";
+  var ssRuta = SpreadsheetApp.openById(ID_BD_APP_RUTA_2025);
+  var shUsers = ssRuta.getSheetByName("CAT_USUARIOS");
+  if (!shUsers || shUsers.getLastRow() < 2) {
+    return { exito: false, error: "Hoja CAT_USUARIOS no encontrada" };
+  }
+
+  var cleanPin = String(nuevoPin || "").trim();
+  if (!/^\d{4}$/.test(cleanPin)) {
+    return { exito: false, error: "El PIN debe tener exactamente 4 dígitos numéricos" };
+  }
+
+  var data = shUsers.getDataRange().getValues();
+  var headers = data[0].map(function(h) { return String(h).trim(); });
+  var idxCorreo = getHeaderIndex_(headers, "correo", 0);
+  var idxPin = getHeaderIndex_(headers, "pin", -1);
+
+  // Si la columna PIN aún no existe en CAT_USUARIOS, crearla automáticamente
+  if (idxPin === -1) {
+    idxPin = headers.length;
+    shUsers.getRange(1, idxPin + 1).setValue("PIN");
+  }
+
+  var targetEmail = String(email || "").trim().toLowerCase();
+  for (var r = 1; r < data.length; r++) {
+    var rowEmail = String(data[r][idxCorreo] || "").trim().toLowerCase();
+    if (rowEmail === targetEmail && targetEmail !== "") {
+      shUsers.getRange(r + 1, idxPin + 1).setValue("'" + cleanPin);
+      SpreadsheetApp.flush();
+      return {
+        exito: true,
+        correo: targetEmail,
+        mensaje: "PIN actualizado exitosamente en CAT_USUARIOS"
+      };
+    }
+  }
+
+  return { exito: false, error: "Usuario no encontrado en CAT_USUARIOS" };
 }
 
 /**
@@ -3000,6 +3069,51 @@ function procesarRecoleccionPWA_(datos) {
     accionPU = "INYECTADA";
   }
 
+  // ==========================================
+  // 🔄 SINCRONIZACIÓN EN BD_APP_RUTA_2025 (RECOLECCIONES_ASIGNADAS)
+  // Actualiza la fila original asignada al Pochteca para cerrar el ciclo en campo
+  // ==========================================
+  try {
+    var hojaAsig = ssRuta ? ssRuta.getSheetByName("RECOLECCIONES_ASIGNADAS") : null;
+    if (hojaAsig) {
+      var ultAsig = hojaAsig.getLastRow();
+      if (ultAsig > 1) {
+        var idsAsig = hojaAsig.getRange(2, 1, ultAsig - 1, 2).getValues();
+        var filaMatchAsig = -1;
+        for (var k = 0; k < idsAsig.length; k++) {
+          var kPU = String(idsAsig[k][0] || "").trim();
+          var kBk = String(idsAsig[k][1] || "").trim();
+          if ((idPU && kPU === idPU) || (idBooking && kBk === idBooking)) {
+            filaMatchAsig = k + 2;
+            break;
+          }
+        }
+
+        if (filaMatchAsig !== -1) {
+          // [0]ID_PU, [1]ID_Bk, [2]Remitente, [3]Dir, [4]CP, [5]H_Apertura, [6]H_Cierre, [7]Chofer,
+          // [8]Estatus_PU, [9]Pzs_Est, [10]Pzs_Real, [11]Firma, [12]Foto, [13]Motivo, [14]GPS, [15]Timestamp
+          hojaAsig.getRange(filaMatchAsig, 9).setValue(estatus);
+          hojaAsig.getRange(filaMatchAsig, 11).setValue(pzsReales);
+          if (firmaUrl) hojaAsig.getRange(filaMatchAsig, 12).setValue(firmaUrl);
+          if (evidenciaUrl) hojaAsig.getRange(filaMatchAsig, 13).setValue(evidenciaUrl);
+          if (motivo) hojaAsig.getRange(filaMatchAsig, 14).setValue(motivo);
+          if (gps) hojaAsig.getRange(filaMatchAsig, 15).setValue(gps);
+          hojaAsig.getRange(filaMatchAsig, 16).setValue(horaServidor);
+          Logger.log("✅ RECOLECCIONES_ASIGNADAS actualizada en fila " + filaMatchAsig + " para PU " + idPU);
+        } else {
+          // Si no existía previa asignación (pickup al vuelo), insertar fila completa
+          hojaAsig.appendRow([
+            idPU, idBooking, remitente, direccion, cp, "08:00", "17:00",
+            chofer, estatus, pzsEstimadas, pzsReales, firmaUrl, evidenciaUrl,
+            motivo, gps, horaServidor
+          ]);
+        }
+      }
+    }
+  } catch(eAsig) {
+    Logger.log("⚠️ Error sincronizando en RECOLECCIONES_ASIGNADAS de BD_APP_RUTA_2025: " + eAsig.message);
+  }
+
   // Reflejo directo en OLLIN_OPERACIONES_2026 (Pestaña RAMPA_PAINANI)
   try {
     var ID_OLLIN_OPERACIONES_2026 = "1njJIZBtYVqwtyNS-1SkeTMxDh7y6RctH2yoL0vXltbk";
@@ -3034,6 +3148,71 @@ function procesarRecoleccionPWA_(datos) {
     firma: firmaUrl,
     evidencia: evidenciaUrl
   };
+}
+
+/**
+ * 📦 CONSULTAR PICKUPS ASIGNADOS AL POCHTECA (BD_APP_RUTA_2025)
+ * Devuelve las recolecciones que el despachador inyectó desde la Consola Maestra
+ */
+function consultarPickupsAsignadosChofer_(correoChofer) {
+  try {
+    var ID_BD_APP_RUTA_2025 = "1Rj7Ce6jWIFTXTamfcgO2h-uhFKBuNhSB8m_tBY_g__w";
+    var ssRuta = SpreadsheetApp.openById(ID_BD_APP_RUTA_2025);
+    var hojaAsig = ssRuta.getSheetByName("RECOLECCIONES_ASIGNADAS");
+    if (!hojaAsig) {
+      return { exito: false, error: "Pestaña RECOLECCIONES_ASIGNADAS no encontrada", recolecciones: [] };
+    }
+
+    var lastRow = hojaAsig.getLastRow();
+    if (lastRow < 2) {
+      return { exito: true, total: 0, recolecciones: [] };
+    }
+
+    var choferClean = String(correoChofer || "").trim().toLowerCase();
+    var esSupervisor = (choferClean.indexOf("sidharta") !== -1 || choferClean.indexOf("irvin") !== -1 || choferClean === "" || choferClean === "todos");
+    
+    // Leer rango A2:P (16 columnas)
+    var datos = hojaAsig.getRange(2, 1, lastRow - 1, 16).getValues();
+    var recolecciones = [];
+
+    for (var i = 0; i < datos.length; i++) {
+      var row = datos[i];
+      var chofAsig = String(row[7] || "").trim().toLowerCase();
+      var estatusPU = String(row[8] || "PRE_ASIGNADO").trim().toUpperCase();
+
+      // Filtrar por chofer (a menos que sea supervisor)
+      var pertenece = esSupervisor || (chofAsig === choferClean) || (chofAsig.indexOf(choferClean.split("@")[0]) !== -1);
+      if (!pertenece) continue;
+
+      // Devolver solo las que no estén completadas o devueltas en el turno (o las del día)
+      recolecciones.push({
+        id_pu: String(row[0] || "").trim(),
+        id_booking: String(row[1] || "").trim(),
+        remitente: String(row[2] || "").trim(),
+        direccion: String(row[3] || "").trim(),
+        cp: String(row[4] || "").trim(),
+        horario_apertura: String(row[5] || "08:00").trim(),
+        horario_cierre: String(row[6] || "17:00").trim(),
+        chofer: String(row[7] || "").trim(),
+        estatus: estatusPU,
+        piezas_estimadas: parseInt(row[9]) || 1,
+        piezas_reales: parseInt(row[10]) || 0,
+        motivo: String(row[13] || "").trim(),
+        check_in_gps: String(row[14] || "").trim(),
+        timestamp_pu: String(row[15] || "").trim()
+      });
+    }
+
+    return {
+      exito: true,
+      total: recolecciones.length,
+      pendientes: recolecciones.filter(function(r) { return r.estatus === "PRE_ASIGNADO" || r.estatus === "PENDIENTE"; }).length,
+      recolecciones: recolecciones
+    };
+  } catch(err) {
+    Logger.log("❌ Error en consultarPickupsAsignadosChofer_: " + err.message);
+    return { exito: false, error: err.message, recolecciones: [] };
+  }
 }
 
 /**
