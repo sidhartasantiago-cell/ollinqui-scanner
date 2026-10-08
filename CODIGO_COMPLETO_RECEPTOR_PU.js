@@ -3245,7 +3245,8 @@ function consultarPickupsAsignadosChofer_(correoChofer) {
     }
 
     var choferClean = String(correoChofer || "").trim().toLowerCase();
-    var esSupervisor = (choferClean.indexOf("sidharta") !== -1 || choferClean.indexOf("irvin") !== -1 || choferClean === "" || choferClean === "todos");
+    // Candado Poka-Yoke: Solo "todos" o vacío es modo supervisor global de consola. En PWA todo chofer filtra estrictamente.
+    var esConsolaGlobal = (choferClean === "" || choferClean === "todos");
     
     // Leer rango A2:P (16 columnas)
     var datos = hojaAsig.getRange(2, 1, lastRow - 1, 16).getValues();
@@ -3256,8 +3257,8 @@ function consultarPickupsAsignadosChofer_(correoChofer) {
       var chofAsig = String(row[7] || "").trim().toLowerCase();
       var estatusPU = String(row[8] || "PRE_ASIGNADO").trim().toUpperCase();
 
-      // Filtrar por chofer (a menos que sea supervisor)
-      var pertenece = esSupervisor || (chofAsig === choferClean) || (chofAsig.indexOf(choferClean.split("@")[0]) !== -1);
+      // POKA-YOKE ESTRICTO: En la PWA, cada Pochteca recibe EXCLUSIVAMENTE sus recolecciones asignadas
+      var pertenece = esConsolaGlobal || (chofAsig === choferClean) || (chofAsig.indexOf(choferClean.split("@")[0]) !== -1 && chofAsig.indexOf("@") === -1);
       if (!pertenece) continue;
 
       // Devolver solo las que no estén completadas o devueltas en el turno (o las del día)
@@ -3471,6 +3472,7 @@ function consultarPidsAsignadosChofer_(choferEmail) {
           pids.push({
             pid: pidSan,
             hwb: hwbRef,
+            chofer: choferFinal,
             estatus_pid: estatusPid,
             escaneo_validacion: escVal,
             a_bordo: escVal === "A_BORDO",

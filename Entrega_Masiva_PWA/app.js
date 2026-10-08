@@ -148,48 +148,144 @@ function showToast(text, icon = '⚡') {
 // ====================================================================
 async function cargarManifiestoOperativo(forzarRecarga = false) {
   try {
-    if (!forzarRecarga) {
+    // 1. Cargar caché previo si existe (0ms de latencia de arranque)
+    if (!forzarRecarga && !MANIFIESTO_GLOBAL) {
       const cached = localStorage.getItem('ollin_manifiesto_global');
       if (cached) {
-        MANIFIESTO_GLOBAL = JSON.parse(cached);
-        actualizarManifiestoChoferActual();
+        try {
+          MANIFIESTO_GLOBAL = JSON.parse(cached);
+          actualizarManifiestoChoferActual();
+        } catch(e) {}
       }
     }
 
-    const res = await fetch(`manifiesto_activo.json?_t=${Date.now()}`);
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.pids_lookup) {
-        MANIFIESTO_GLOBAL = data;
-        try {
-          localStorage.setItem('ollin_manifiesto_global', JSON.stringify(data));
-        } catch(e) {}
-        actualizarManifiestoChoferActual();
-        console.log('✅ Manifiesto operativo cargado:', data.total_pids, 'piezas activas');
+    // 2. Si hay conexión, sincronizar en vivo la asignación oficial desde Google Sheets (BD_APP_RUTA_2025)
+    if (navigator.onLine) {
+      try {
+        const respLive = await fetch(`${WEBHOOK_URL}?accion=consultar_pids_asignados_chofer&chofer=todos`);
+        if (respLive.ok) {
+          const liveData = await respLive.json();
+          if (liveData && liveData.exito && Array.isArray(liveData.pids) && liveData.pids.length > 0) {
+            const pidsLookup = {};
+            const choferesMap = {};
+
+            liveData.pids.forEach(item => {
+              const pidSan = String(item.pid || '').trim();
+              const hwb = String(item.hwb || '').trim();
+              const chofer = String(item.chofer || '').trim().toLowerCase();
+
+              const objItem = {
+                pid: pidSan,
+                pid_raw: pidSan.startsWith('JD') ? ('JJD' + pidSan.substring(2)) : pidSan,
+                hwb: hwb,
+                chofer: chofer,
+                destinatario: item.destinatario || '',
+                direccion: item.direccion || '',
+                estatus_pid: item.estatus_pid || 'PRE_ASIGNADO',
+                escaneo_validacion: item.escaneo_validacion || 'SIN_CARGAR',
+                a_bordo: Boolean(item.a_bordo || item.escaneo_validacion === 'A_BORDO')
+              };
+
+              // Indexar por PID canónico (JD...)
+              if (pidSan) {
+                pidsLookup[pidSan] = objItem;
+                if (pidSan.startsWith('JD')) {
+                  pidsLookup['JJD' + pidSan.substring(2)] = objItem;
+                }
+              }
+
+              // Indexar por Guía Madre (HWB 10 dígitos) - Poka-Yoke escaneo de etiqueta DHL
+              if (hwb) {
+                pidsLookup[hwb] = objItem;
+                pidsLookup['HWB_' + hwb] = objItem;
+              }
+
+              // Agrupar por chofer
+              if (chofer) {
+                if (!choferesMap[chofer]) choferesMap[chofer] = [];
+                choferesMap[chofer].push(objItem);
+              }
+            });
+
+            MANIFIESTO_GLOBAL = {
+              version: '3.6_SHEETS_LIVE',
+              total_pids: liveData.pids.length,
+              choferes: choferesMap,
+              pids_lookup: pidsLookup
+            };
+
+            try {
+              localStorage.setItem('ollin_manifiesto_global', JSON.stringify(MANIFIESTO_GLOBAL));
+            } catch(e) {}
+
+            actualizarManifiestoChoferActual();
+            console.log(`✅ Manifiesto operativo en vivo sincronizado desde Sheets: ${liveData.pids.length} bultos.`);
+            return;
+          }
+        }
+      } catch(netErr) {
+        console.warn('⚠️ No se pudo consultar Sheets en vivo, usando respaldo local/estático:', netErr);
+      }
+    }
+
+    // 3. Respaldo estático si no hay MANIFIESTO_GLOBAL
+    if (!MANIFIESTO_GLOBAL) {
+      const res = await fetch(`manifiesto_activo.json?_t=${Date.now()}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.pids_lookup) {
+          MANIFIESTO_GLOBAL = data;
+          try {
+            localStorage.setItem('ollin_manifiesto_global', JSON.stringify(data));
+          } catch(e) {}
+          actualizarManifiestoChoferActual();
+          console.log('✅ Manifiesto de respaldo estático cargado:', data.total_pids);
+        }
       }
     }
   } catch (err) {
-    console.warn('⚠️ No se pudo descargar manifiesto fresco, usando datos locales:', err);
+    console.warn('⚠️ Error en cargarManifiestoOperativo:', err);
   }
 }
 
 function actualizarManifiestoChoferActual() {
   if (!MANIFIESTO_GLOBAL || !CURRENT_USER) return;
   const cleanEmail = CURRENT_USER.trim().toLowerCase();
+  const userAlias = cleanEmail.split('@')[0];
   const esSupervisor = (userRol === 'TLAYACANQUI' || cleanEmail.includes('sidharta') || cleanEmail.includes('irvin'));
 
-  const choferKey = Object.keys(MANIFIESTO_GLOBAL.choferes || {}).find(k => {
-    return k === cleanEmail || cleanEmail.includes(k) || k.includes(cleanEmail.split('@')[0]);
-  });
+  let bultos = [];
+  if (MANIFIESTO_GLOBAL.choferes) {
+    const choferKey = Object.keys(MANIFIESTO_GLOBAL.choferes).find(k => {
+      const kClean = k.toLowerCase().trim();
+      return kClean === cleanEmail || kClean.includes(userAlias) || userAlias.includes(kClean.split('@')[0]);
+    });
+    if (choferKey) {
+      bultos = MANIFIESTO_GLOBAL.choferes[choferKey] || [];
+    }
+  }
 
-  MANIFIESTO_CHOFER = choferKey ? (MANIFIESTO_GLOBAL.choferes[choferKey] || []) : [];
+  // Búsqueda complementaria si choferesMap no agrupó por key exacta
+  if (bultos.length === 0 && MANIFIESTO_GLOBAL.pids_lookup) {
+    const uniquePids = new Set();
+    Object.values(MANIFIESTO_GLOBAL.pids_lookup).forEach(p => {
+      if (!p || !p.pid || uniquePids.has(p.pid)) return;
+      const c = String(p.chofer || '').toLowerCase().trim();
+      if (c && (c === cleanEmail || c.includes(userAlias) || userAlias.includes(c.split('@')[0]))) {
+        uniquePids.add(p.pid);
+        bultos.push(p);
+      }
+    });
+  }
+
+  MANIFIESTO_CHOFER = bultos;
 
   const countAsig = MANIFIESTO_CHOFER.length;
   const countBordo = MANIFIESTO_CHOFER.filter(p => p.a_bordo || p.escaneo_validacion === 'A_BORDO').length;
 
   const lblAsigSub = document.getElementById('kpi-a-bordo-sub');
   if (lblAsigSub) {
-    lblAsigSub.textContent = esSupervisor ? `Modo Supervisor (${MANIFIESTO_GLOBAL.total_pids} bultos en sistema)` : `${countAsig} bultos asignados a tu ruta hoy`;
+    lblAsigSub.textContent = esSupervisor ? `Modo Supervisor (${MANIFIESTO_GLOBAL.total_pids || 0} bultos en sistema)` : `${countAsig} bultos asignados a tu ruta hoy`;
   }
 
   const badgeBordo = document.getElementById('badge-a-bordo-count');
@@ -261,6 +357,7 @@ function setAuthenticatedUser(email) {
   if (badge7CA) badge7CA.style.display = userTiene7CA ? 'inline-flex' : 'none';
 
   actualizarManifiestoChoferActual();
+  cargarManifiestoOperativo(true);
   consultarPickupsAsignadosServidor(false);
 
   const overlay = document.getElementById('login-overlay');
@@ -1096,26 +1193,31 @@ function procesarCodigoCargaBordo(rawCode) {
     return;
   }
 
-  // Prevenir duplicado en la carga
-  const yaEsta = bultosABordo.find(b => b.pid === clean);
-  if (yaEsta) {
-    playBeep('incidencia');
-    showToast(`Bulto ya registrado A Bordo (${clean})`, 'ℹ️');
-    return;
-  }
-
   const cleanEmail = CURRENT_USER.trim().toLowerCase();
   const esSupervisor = (userRol === 'TLAYACANQUI' || cleanEmail.includes('sidharta') || cleanEmail.includes('irvin'));
 
   // 🛡️ CANDADO POKA-YOKE: CONTROL DE ASIGNACIÓN POR USUARIO
   let infoBulto = null;
   if (MANIFIESTO_GLOBAL && MANIFIESTO_GLOBAL.pids_lookup) {
-    infoBulto = MANIFIESTO_GLOBAL.pids_lookup[clean] || MANIFIESTO_GLOBAL.pids_lookup[rawCode.trim().toUpperCase()];
+    infoBulto = MANIFIESTO_GLOBAL.pids_lookup[clean] || 
+                MANIFIESTO_GLOBAL.pids_lookup[rawCode.trim().toUpperCase()] ||
+                MANIFIESTO_GLOBAL.pids_lookup[rawCode.trim()];
+  }
+
+  const pidFinal = (infoBulto && infoBulto.pid) ? infoBulto.pid : clean;
+  const hwbFinal = (infoBulto && infoBulto.hwb) ? infoBulto.hwb : (clean.length === 10 && /^\d+$/.test(clean) ? clean : '');
+
+  // Prevenir duplicado en la carga
+  const yaEsta = bultosABordo.find(b => b.pid === clean || b.pid === pidFinal || b.raw === rawCode.trim() || (hwbFinal && b.hwb === hwbFinal && b.pid === pidFinal));
+  if (yaEsta) {
+    playBeep('incidencia');
+    showToast(`Bulto ya registrado A Bordo (${pidFinal})`, 'ℹ️');
+    return;
   }
 
   if (!esSupervisor && infoBulto) {
     const choferAsignado = String(infoBulto.chofer || '').trim().toLowerCase();
-    const coincideChofer = choferAsignado && (
+    const coincideChofer = !choferAsignado || (
       choferAsignado === cleanEmail ||
       choferAsignado.includes(cleanEmail.split('@')[0]) ||
       cleanEmail.includes(choferAsignado.split('@')[0])
@@ -1125,8 +1227,8 @@ function procesarCodigoCargaBordo(rawCode) {
       const choferNombre = DIRECTORIO_POCHTECAS[choferAsignado] ? DIRECTORIO_POCHTECAS[choferAsignado].nombre : choferAsignado;
       mostrarModalBloqueo({
         titulo: '⛔ ACCESO DENEGADO (GUÍA AJENA)',
-        pid: clean,
-        hwb: infoBulto.hwb || 'N/A',
+        pid: pidFinal,
+        hwb: hwbFinal || 'N/A',
         chofer: choferNombre || 'Otro Operador',
         motivo: 'Este bulto NO pertenece a tu ruta asignada. Por seguridad operativa del andén, no puedes subirlo a bordo.'
       });
@@ -1134,7 +1236,7 @@ function procesarCodigoCargaBordo(rawCode) {
     }
   }
 
-  // Si no figura en el manifiesto y el operador es Pochteca
+  // Si no figura en el manifiesto y el operador es Pochteca/Tlachixqui
   if (!esSupervisor && MANIFIESTO_CHOFER.length > 0 && !infoBulto) {
     mostrarModalBloqueo({
       titulo: '⚠️ BULTO NO RECONOCIDO',
@@ -1148,11 +1250,11 @@ function procesarCodigoCargaBordo(rawCode) {
 
   const horaLocal = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const nuevoBulto = {
-    pid: clean,
+    pid: pidFinal,
     raw: rawCode.trim(),
     estatus: 'A_BORDO',
     hora: horaLocal,
-    hwb: infoBulto ? infoBulto.hwb : '',
+    hwb: hwbFinal,
     destinatario: infoBulto ? infoBulto.destinatario : '',
     direccion: infoBulto ? infoBulto.direccion : ''
   };
@@ -1164,7 +1266,7 @@ function procesarCodigoCargaBordo(rawCode) {
 
   // Actualizar Ficha de Último Bulto Abordado (Instantáneo con Guía Madre)
   const viewPid = document.getElementById('bordo-last-pid');
-  if (viewPid) viewPid.textContent = clean;
+  if (viewPid) viewPid.textContent = pidFinal;
 
   const viewHwb = document.getElementById('bordo-last-hwb');
   if (viewHwb) {
@@ -1179,10 +1281,10 @@ function procesarCodigoCargaBordo(rawCode) {
 
   actualizarUIBordo();
   playBeep('ok');
-  showToast(`✅ A Bordo: ${clean}`, '📦');
+  showToast(`✅ A Bordo: ${pidFinal}`, '📦');
 
   // Enriquecer datos asíncronamente o fallback
-  consultarInfoBordoAsync(clean);
+  consultarInfoBordoAsync(pidFinal);
 }
 
 async function consultarInfoBordoAsync(cleanPid) {
@@ -1404,12 +1506,17 @@ function procesarCodigoEscaneado(rawCode) {
   // 🛡️ CANDADO POKA-YOKE: CONTROL DE ACCESO EN ENTREGA (CALLE)
   let infoBulto = null;
   if (MANIFIESTO_GLOBAL && MANIFIESTO_GLOBAL.pids_lookup) {
-    infoBulto = MANIFIESTO_GLOBAL.pids_lookup[clean] || MANIFIESTO_GLOBAL.pids_lookup[rawCode.trim().toUpperCase()];
+    infoBulto = MANIFIESTO_GLOBAL.pids_lookup[clean] || 
+                MANIFIESTO_GLOBAL.pids_lookup[rawCode.trim().toUpperCase()] ||
+                MANIFIESTO_GLOBAL.pids_lookup[rawCode.trim()];
   }
+
+  const pidFinal = (infoBulto && infoBulto.pid) ? infoBulto.pid : clean;
+  const hwbFinal = (infoBulto && infoBulto.hwb) ? infoBulto.hwb : (clean.length === 10 && /^\d+$/.test(clean) ? clean : '');
 
   if (!esSupervisor && infoBulto) {
     const choferAsignado = String(infoBulto.chofer || '').trim().toLowerCase();
-    const coincideChofer = choferAsignado && (
+    const coincideChofer = !choferAsignado || (
       choferAsignado === cleanEmail ||
       choferAsignado.includes(cleanEmail.split('@')[0]) ||
       cleanEmail.includes(choferAsignado.split('@')[0])
@@ -1419,8 +1526,8 @@ function procesarCodigoEscaneado(rawCode) {
       const choferNombre = DIRECTORIO_POCHTECAS[choferAsignado] ? DIRECTORIO_POCHTECAS[choferAsignado].nombre : choferAsignado;
       mostrarModalBloqueo({
         titulo: '⛔ GUÍA NO ASIGNADA A TU PERFIL',
-        pid: clean,
-        hwb: infoBulto.hwb || 'N/A',
+        pid: pidFinal,
+        hwb: hwbFinal || 'N/A',
         chofer: choferNombre || 'Otro Operador',
         motivo: 'Este paquete no corresponde a tu ruta asignada. Por seguridad de trazabilidad, no puedes registrar entregas ajenas.'
       });
@@ -1428,7 +1535,7 @@ function procesarCodigoEscaneado(rawCode) {
     }
   }
 
-  // Si no figura en el manifiesto y el operador es Pochteca
+  // Si no figura en el manifiesto y el operador es Pochteca/Tlachixqui
   if (!esSupervisor && MANIFIESTO_CHOFER.length > 0 && !infoBulto) {
     mostrarModalBloqueo({
       titulo: '⚠️ BULTO NO RECONOCIDO EN RUTA',
@@ -1442,7 +1549,7 @@ function procesarCodigoEscaneado(rawCode) {
 
   // 🛡️ CANDADO INVIOLABLE DE RAMPA: OBLIGATORIO HABER MUTADO DE PRE_ASIGNADO A 'A_BORDO'
   const estaABordo = (
-    bultosABordo.some(b => b.pid === clean || b.raw === rawCode.trim() || b.raw === clean) ||
+    bultosABordo.some(b => b.pid === clean || b.pid === pidFinal || b.raw === rawCode.trim() || b.raw === clean || (hwbFinal && b.hwb === hwbFinal)) ||
     (infoBulto && (infoBulto.a_bordo === true || infoBulto.escaneo_validacion === 'A_BORDO'))
   );
 
@@ -3482,7 +3589,7 @@ window.addEventListener('load', () => {
   }, 240000);
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js?v=3.8')
+    navigator.serviceWorker.register('./sw.js?v=3.9')
       .then((reg) => {
         console.log('[PWA] Service Worker registrado exitosamente');
         try { reg.update(); } catch(eU) {}
