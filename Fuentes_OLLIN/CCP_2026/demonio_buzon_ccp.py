@@ -253,10 +253,9 @@ def generar_excel_lote(advice_info, catalogo_facturas, template_path, lote_nombr
     wb = openpyxl.load_workbook(template_path)
     ws = wb["DetallePagos"]
 
-    # Limpiar filas existentes a partir del renglón 4
-    for r_idx in range(4, ws.max_row + 1):
-        for c_idx in range(1, ws.max_column + 1):
-            ws.cell(r_idx, c_idx, None)
+    # Eliminar físicamente filas existentes a partir del renglón 4
+    if ws.max_row >= 4:
+        ws.delete_rows(4, ws.max_row - 3 + 10)
 
     # Fila 2: Cabecera DetallePago
     fecha_pago = f"{advice_info['date']} 12:00:00"

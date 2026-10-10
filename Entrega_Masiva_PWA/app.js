@@ -72,6 +72,8 @@ let isRecording = false;
 // Instancia de Cámara
 let html5QrCode = null;
 let isCameraRunning = false;
+let isCameraStarting = false;
+let cameraLifecycleId = 0;
 
 // Historial en Memoria del Turno (Bitácora)
 let historialTurno = [];
@@ -79,6 +81,10 @@ let historialTurno = [];
 // Manifiesto Operativo Global y Local (Poka-Yoke RBAC y Búsqueda 0ms)
 let MANIFIESTO_GLOBAL = null;
 let MANIFIESTO_CHOFER = [];
+const MANIFEST_PIDS_BY_HWB_CACHE = new WeakMap();
+let manifiestoLoadPromise = null;
+let manifiestoLoadIsForced = false;
+const memoriaDomicilioRequests = new Map();
 
 // ====================================================================
 // 3. MOTOR SENSORIAL (AUDIO SINTÉTICO & HÁPTICO)
@@ -146,7 +152,36 @@ function showToast(text, icon = '⚡') {
 // ====================================================================
 // GESTIÓN DEL MANIFIESTO OPERATIVO Y CANDADOS DE RUTA (POKA-YOKE)
 // ====================================================================
-async function cargarManifiestoOperativo(forzarRecarga = false) {
+function cargarManifiestoOperativo(forzarRecarga = false) {
+  if (manifiestoLoadPromise) {
+    if (!forzarRecarga || manifiestoLoadIsForced) return manifiestoLoadPromise;
+    const queuedRefresh = manifiestoLoadPromise.then(() => cargarManifiestoOperativoCore(true));
+    let trackedRefresh;
+    trackedRefresh = queuedRefresh.finally(() => {
+      if (manifiestoLoadPromise === trackedRefresh) {
+        manifiestoLoadPromise = null;
+        manifiestoLoadIsForced = false;
+      }
+    });
+    manifiestoLoadPromise = trackedRefresh;
+    manifiestoLoadIsForced = true;
+    return trackedRefresh;
+  }
+
+  manifiestoLoadIsForced = forzarRecarga;
+  const initialLoad = cargarManifiestoOperativoCore(forzarRecarga);
+  let trackedLoad;
+  trackedLoad = initialLoad.finally(() => {
+    if (manifiestoLoadPromise === trackedLoad) {
+      manifiestoLoadPromise = null;
+      manifiestoLoadIsForced = false;
+    }
+  });
+  manifiestoLoadPromise = trackedLoad;
+  return trackedLoad;
+}
+
+async function cargarManifiestoOperativoCore(forzarRecarga = false) {
   try {
     // 1. Cargar caché previo si existe (0ms de latencia de arranque)
     if (!forzarRecarga && !MANIFIESTO_GLOBAL) {
@@ -230,7 +265,7 @@ async function cargarManifiestoOperativo(forzarRecarga = false) {
 
     // 3. Respaldo estático si no hay MANIFIESTO_GLOBAL
     if (!MANIFIESTO_GLOBAL) {
-      const res = await fetch(`manifiesto_activo.json?_t=${Date.now()}`);
+      const res = await fetch('manifiesto_activo.json');
       if (res.ok) {
         const data = await res.json();
         if (data && data.pids_lookup) {
@@ -246,6 +281,24 @@ async function cargarManifiestoOperativo(forzarRecarga = false) {
   } catch (err) {
     console.warn('⚠️ Error en cargarManifiestoOperativo:', err);
   }
+}
+
+function obtenerPidsDeGuiaMadre(manifest, hwb) {
+  if (!manifest || !manifest.pids_lookup || !hwb) return [];
+  let index = MANIFEST_PIDS_BY_HWB_CACHE.get(manifest);
+  if (!index) {
+    index = new Map();
+    const seenPids = new Set();
+    Object.values(manifest.pids_lookup).forEach((item) => {
+      if (!item || !item.pid || !item.hwb || seenPids.has(item.pid)) return;
+      seenPids.add(item.pid);
+      const guide = String(item.hwb).trim();
+      if (!index.has(guide)) index.set(guide, []);
+      index.get(guide).push(item.pid);
+    });
+    MANIFEST_PIDS_BY_HWB_CACHE.set(manifest, index);
+  }
+  return index.get(String(hwb).trim()) || [];
 }
 
 function actualizarManifiestoChoferActual() {
@@ -400,7 +453,16 @@ function repoblarSelectUsuarios(usuariosArray) {
   }
 }
 
-async function sincronizarCatalogoUsuariosDesdeSheet() {
+let sincronizacionCatalogoUsuariosPromise = null;
+
+function sincronizarCatalogoUsuariosDesdeSheet() {
+  if (sincronizacionCatalogoUsuariosPromise) return sincronizacionCatalogoUsuariosPromise;
+  sincronizacionCatalogoUsuariosPromise = sincronizarCatalogoUsuariosDesdeSheetCore()
+    .finally(() => { sincronizacionCatalogoUsuariosPromise = null; });
+  return sincronizacionCatalogoUsuariosPromise;
+}
+
+async function sincronizarCatalogoUsuariosDesdeSheetCore() {
   // 1. Cargar primero de caché local si existe
   try {
     const cached = localStorage.getItem('ollin_cat_usuarios');
@@ -903,6 +965,108 @@ function sanitizarPID(raw) {
 // ====================================================================
 // 7. CÁMARA NATIVA CONTROLADA POR UN TOQUE (SIN PANTALLA NEGRA)
 // ====================================================================
+const CAMERA_SCAN_FPS = 10;
+const CAMERA_DUPLICATE_WINDOW_MS = 900;
+const CAMERA_SUPPORTED_FORMAT_NAMES = [
+  'CODE_128', 'CODE_39', 'CODE_93', 'EAN_13', 'EAN_8', 'ITF',
+  'UPC_A', 'UPC_E', 'QR_CODE'
+];
+
+function crearCallbackEscaneoCamara(procesarCodigo, now = Date.now) {
+  let lastCode = '';
+  let lastAt = 0;
+  return (decodedText) => {
+    const code = String(decodedText || '').trim();
+    const currentTime = now();
+    if (!code || (code === lastCode && currentTime - lastAt < CAMERA_DUPLICATE_WINDOW_MS)) return;
+    lastCode = code;
+    lastAt = currentTime;
+    procesarCodigo(code);
+  };
+}
+
+function crearConfiguracionEscaner() {
+  const formats = typeof Html5QrcodeSupportedFormats === 'undefined'
+    ? []
+    : CAMERA_SUPPORTED_FORMAT_NAMES
+      .map((name) => Html5QrcodeSupportedFormats[name])
+      .filter((format) => typeof format === 'number');
+
+  return {
+    fps: CAMERA_SCAN_FPS,
+    qrbox: (width, height) => ({
+      width: Math.min(240, Math.floor(width * 0.75)),
+      height: Math.min(120, Math.floor(height * 0.65))
+    }),
+    aspectRatio: 1.777778,
+    disableFlip: true,
+    useBarCodeDetectorIfSupported: true,
+    ...(formats.length ? { formatsToSupport: formats } : {})
+  };
+}
+
+async function iniciarEscanerEnContenedor(scanner, containerId, procesarCodigo, logLabel) {
+  const container = document.getElementById(containerId);
+  if (!container) throw new Error(`No se encontró el contenedor de cámara "${containerId}".`);
+  container.innerHTML = '';
+
+  const config = crearConfiguracionEscaner();
+  const onDecoded = crearCallbackEscaneoCamara(procesarCodigo);
+  const onDecodeError = () => {};
+  try {
+    await scanner.start({ facingMode: 'environment' }, config, onDecoded, onDecodeError);
+  } catch (environmentError) {
+    if (typeof Html5Qrcode.getCameras !== 'function') throw environmentError;
+    const devices = await Html5Qrcode.getCameras();
+    if (!devices || devices.length === 0) throw new Error('No se encontraron cámaras disponibles.');
+    const rear = devices.find((device) => /back|rear|trasera|environment/i.test(device.label)) || devices[devices.length - 1];
+    await scanner.start(rear.id, config, onDecoded, onDecodeError);
+  }
+
+  const video = container.querySelector('video');
+  if (video) {
+    video.setAttribute('playsinline', 'true');
+    video.setAttribute('webkit-playsinline', 'true');
+    video.muted = true;
+    video.style.width = '100%';
+    video.style.height = '100%';
+    video.style.objectFit = 'cover';
+    video.play().catch((error) => console.warn(`${logLabel} video play warning:`, error));
+  }
+}
+
+async function liberarRecursosEscaner(scanner, containerId) {
+  const container = document.getElementById(containerId);
+  const video = container && container.querySelector('video');
+  const stream = video && video.srcObject;
+
+  if (scanner && scanner.isScanning) {
+    try {
+      await scanner.stop();
+    } catch (error) {
+      console.warn(`No se pudo detener limpiamente el escáner "${containerId}":`, error);
+    }
+  }
+  if (stream && typeof stream.getTracks === 'function') {
+    stream.getTracks().forEach((track) => {
+      try {
+        track.stop();
+      } catch (error) {
+        console.warn(`No se pudo liberar una pista de cámara en "${containerId}":`, error);
+      }
+    });
+    video.srcObject = null;
+  }
+  if (scanner) {
+    try {
+      await scanner.clear();
+    } catch (error) {
+      console.warn(`No se pudo limpiar el escáner "${containerId}":`, error);
+    }
+  }
+  if (container) container.innerHTML = '';
+}
+
 window.toggleCamaraPorToque = async function() {
   initAudio();
   if (navigator.vibrate) navigator.vibrate(40);
@@ -924,6 +1088,10 @@ async function iniciarCamaraNativa() {
   const txtTrigger = document.getElementById('cam-trigger-text');
   const iconTrigger = document.getElementById('cam-trigger-icon');
 
+  if (isCameraStarting || isCameraRunning) return;
+  isCameraStarting = true;
+  const startLifecycleId = ++cameraLifecycleId;
+
   if (frameWrap) frameWrap.style.display = 'flex';
   if (txtTrigger) txtTrigger.textContent = 'Desactivar Cámara';
   if (iconTrigger) iconTrigger.textContent = '⏸️';
@@ -934,70 +1102,18 @@ async function iniciarCamaraNativa() {
       await detenerCamaraBordo();
     }
 
-    const container = document.getElementById('camera-reader');
-    if (!container) return;
-
-    // Detener instancia previa si existiera
     if (html5QrCode) {
-      try {
-        if (html5QrCode.isScanning) await html5QrCode.stop();
-        await html5QrCode.clear();
-      } catch (eStop) {}
+      await liberarRecursosEscaner(html5QrCode, 'camera-reader');
       html5QrCode = null;
     }
 
-    container.innerHTML = '';
-    html5QrCode = new Html5Qrcode("camera-reader");
-
-    const qrConfig = {
-      fps: 20,
-      qrbox: function(w, h) {
-        return {
-          width: Math.min(280, Math.floor(w * 0.85)),
-          height: Math.min(150, Math.floor(h * 0.8))
-        };
-      },
-      aspectRatio: 1.777778
-    };
-
-    // Intento 1: facingMode environment (estándar para cámaras traseras móviles)
-    try {
-      await html5QrCode.start(
-        { facingMode: "environment" },
-        qrConfig,
-        (decodedText) => { procesarCodigoEscaneado(decodedText); },
-        () => {}
-      );
-    } catch (eEnv) {
-      console.warn("Fallo facingMode environment directo, buscando lista de dispositivos:", eEnv);
-      if (typeof Html5Qrcode.getCameras === 'function') {
-        const devices = await Html5Qrcode.getCameras();
-        if (devices && devices.length > 0) {
-          const rear = devices.find(d => /back|rear|trasera|environment/i.test(d.label)) || devices[devices.length - 1];
-          await html5QrCode.start(
-            rear.id,
-            qrConfig,
-            (decodedText) => { procesarCodigoEscaneado(decodedText); },
-            () => {}
-          );
-        } else {
-          throw new Error("No se encontraron dispositivos de cámara");
-        }
-      } else {
-        throw eEnv;
-      }
-    }
-
-    // Asegurar render y reproducción móvil
-    const videoEl = container.querySelector('video');
-    if (videoEl) {
-      videoEl.setAttribute('playsinline', 'true');
-      videoEl.setAttribute('webkit-playsinline', 'true');
-      videoEl.muted = true;
-      videoEl.style.width = '100%';
-      videoEl.style.height = '100%';
-      videoEl.style.objectFit = 'cover';
-      videoEl.play().catch(e => console.warn("Video nativa play warning:", e));
+    const scanner = new Html5Qrcode("camera-reader");
+    html5QrCode = scanner;
+    await iniciarEscanerEnContenedor(scanner, 'camera-reader', procesarCodigoEscaneado, 'Camera');
+    if (startLifecycleId !== cameraLifecycleId) {
+      await liberarRecursosEscaner(scanner, 'camera-reader');
+      if (html5QrCode === scanner) html5QrCode = null;
+      return;
     }
 
     isCameraRunning = true;
@@ -1008,22 +1124,20 @@ async function iniciarCamaraNativa() {
     console.error("Camera start error:", err);
     await detenerCamara();
     showToast('No se pudo acceder a la cámara del celular', '⚠️');
+  } finally {
+    isCameraStarting = false;
   }
 }
 
 async function detenerCamara() {
+  cameraLifecycleId += 1;
   const frameWrap = document.getElementById('camera-frame-wrap');
   const btnTrigger = document.getElementById('btn-trigger-cam');
   const txtTrigger = document.getElementById('cam-trigger-text');
   const iconTrigger = document.getElementById('cam-trigger-icon');
 
   if (html5QrCode) {
-    try {
-      if (html5QrCode.isScanning) {
-        await html5QrCode.stop();
-      }
-      await html5QrCode.clear();
-    } catch (e) {}
+    await liberarRecursosEscaner(html5QrCode, 'camera-reader');
     html5QrCode = null;
   }
   isCameraRunning = false;
@@ -1032,6 +1146,17 @@ async function detenerCamara() {
   if (iconTrigger) iconTrigger.textContent = '📷';
   if (btnTrigger) btnTrigger.classList.remove('active-cam');
 }
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    detenerCamara();
+    detenerCamaraBordo();
+  }
+});
+window.addEventListener('pagehide', () => {
+  detenerCamara();
+  detenerCamaraBordo();
+});
 
 // ====================================================================
 // 7.1 CÁMARA Y CONTROL DE CARGA A BORDO (RAMPA A UNIDAD — MUTAR A_BORDO)
@@ -1044,6 +1169,8 @@ try {
 
 let html5QrCodeBordo = null;
 let isCameraRunningBordo = false;
+let isCameraStartingBordo = false;
+let cameraBordoLifecycleId = 0;
 
 window.toggleCamaraBordoPorToque = async function() {
   initAudio();
@@ -1066,6 +1193,10 @@ async function iniciarCamaraBordo() {
   const txtTrigger = document.getElementById('cam-bordo-trigger-text');
   const iconTrigger = document.getElementById('cam-bordo-trigger-icon');
 
+  if (isCameraStartingBordo || isCameraRunningBordo) return;
+  isCameraStartingBordo = true;
+  const startLifecycleId = ++cameraBordoLifecycleId;
+
   if (frameWrap) frameWrap.style.display = 'flex';
   if (txtTrigger) txtTrigger.textContent = 'Desactivar Cámara';
   if (iconTrigger) iconTrigger.textContent = '⏸️';
@@ -1077,67 +1208,18 @@ async function iniciarCamaraBordo() {
       await detenerCamara();
     }
 
-    const container = document.getElementById('camera-reader-bordo');
-    if (!container) return;
-
     if (html5QrCodeBordo) {
-      try {
-        if (html5QrCodeBordo.isScanning) await html5QrCodeBordo.stop();
-        await html5QrCodeBordo.clear();
-      } catch(eStop) {}
+      await liberarRecursosEscaner(html5QrCodeBordo, 'camera-reader-bordo');
       html5QrCodeBordo = null;
     }
 
-    container.innerHTML = '';
-    html5QrCodeBordo = new Html5Qrcode("camera-reader-bordo");
-
-    const qrConfig = {
-      fps: 20,
-      qrbox: function(w, h) {
-        return {
-          width: Math.min(280, Math.floor(w * 0.85)),
-          height: Math.min(150, Math.floor(h * 0.8))
-        };
-      },
-      aspectRatio: 1.777778
-    };
-
-    try {
-      await html5QrCodeBordo.start(
-        { facingMode: "environment" },
-        qrConfig,
-        (decodedText) => { procesarCodigoCargaBordo(decodedText); },
-        () => {}
-      );
-    } catch(eEnv) {
-      if (typeof Html5Qrcode.getCameras === 'function') {
-        const devices = await Html5Qrcode.getCameras();
-        if (devices && devices.length > 0) {
-          const rear = devices.find(d => /back|rear|trasera|environment/i.test(d.label)) || devices[devices.length - 1];
-          await html5QrCodeBordo.start(
-            rear.id,
-            qrConfig,
-            (decodedText) => { procesarCodigoCargaBordo(decodedText); },
-            () => {}
-          );
-        } else {
-          throw new Error("No hay cámaras disponibles");
-        }
-      } else {
-        throw eEnv;
-      }
-    }
-
-    // Forzar activación, atributos y reproducción en navegadores móviles (Chrome/Android/iOS)
-    const videoEl = container.querySelector('video');
-    if (videoEl) {
-      videoEl.setAttribute('playsinline', 'true');
-      videoEl.setAttribute('webkit-playsinline', 'true');
-      videoEl.muted = true;
-      videoEl.style.width = '100%';
-      videoEl.style.height = '100%';
-      videoEl.style.objectFit = 'cover';
-      videoEl.play().catch(e => console.warn("Video bordo play warning:", e));
+    const scanner = new Html5Qrcode("camera-reader-bordo");
+    html5QrCodeBordo = scanner;
+    await iniciarEscanerEnContenedor(scanner, 'camera-reader-bordo', procesarCodigoCargaBordo, 'Camera bordo');
+    if (startLifecycleId !== cameraBordoLifecycleId) {
+      await liberarRecursosEscaner(scanner, 'camera-reader-bordo');
+      if (html5QrCodeBordo === scanner) html5QrCodeBordo = null;
+      return;
     }
 
     isCameraRunningBordo = true;
@@ -1148,34 +1230,21 @@ async function iniciarCamaraBordo() {
     console.error("Camera bordo start error:", err);
     await detenerCamaraBordo();
     showToast('No se pudo acceder a la cámara del celular', '⚠️');
+  } finally {
+    isCameraStartingBordo = false;
   }
 }
 
 async function detenerCamaraBordo() {
+  cameraBordoLifecycleId += 1;
   const frameWrap = document.getElementById('camera-frame-wrap-bordo');
   const btnTrigger = document.getElementById('btn-trigger-cam-bordo');
   const txtTrigger = document.getElementById('cam-bordo-trigger-text');
   const iconTrigger = document.getElementById('cam-bordo-trigger-icon');
 
   if (html5QrCodeBordo) {
-    try {
-      if (html5QrCodeBordo.isScanning) await html5QrCodeBordo.stop();
-      await html5QrCodeBordo.clear();
-    } catch(e) {}
+    await liberarRecursosEscaner(html5QrCodeBordo, 'camera-reader-bordo');
     html5QrCodeBordo = null;
-  }
-
-  // Liberar cualquier pista activa de hardware restante
-  const container = document.getElementById('camera-reader-bordo');
-  if (container) {
-    const v = container.querySelector('video');
-    if (v && v.srcObject) {
-      try {
-        v.srcObject.getTracks().forEach(t => t.stop());
-      } catch(eTrack) {}
-      v.srcObject = null;
-    }
-    container.innerHTML = '';
   }
 
   isCameraRunningBordo = false;
@@ -1287,26 +1356,32 @@ function procesarCodigoCargaBordo(rawCode) {
   consultarInfoBordoAsync(pidFinal);
 }
 
+function consultarMemoriaDomicilioRemota(cleanPid) {
+  if (memoriaDomicilioRequests.has(cleanPid)) return memoriaDomicilioRequests.get(cleanPid);
+  const request = fetch(`${WEBHOOK_URL}?accion=consultar_memoria_domicilio&pid=${encodeURIComponent(cleanPid)}`)
+    .then((response) => response.ok ? response.json() : null)
+    .finally(() => memoriaDomicilioRequests.delete(cleanPid));
+  memoriaDomicilioRequests.set(cleanPid, request);
+  return request;
+}
+
 async function consultarInfoBordoAsync(cleanPid) {
   try {
-    const res = await fetch(`${WEBHOOK_URL}?accion=consultar_memoria_domicilio&pid=${encodeURIComponent(cleanPid)}`);
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.encontrada) {
-        const item = bultosABordo.find(b => b.pid === cleanPid);
-        if (item) {
-          item.hwb = data.hwb || '';
-          item.destinatario = data.destinatario_habitual || '';
-          localStorage.setItem('ollin_bultos_a_bordo', JSON.stringify(bultosABordo));
-          
-          const viewHwb = document.getElementById('bordo-last-hwb');
-          if (viewHwb && item.hwb) viewHwb.textContent = `HWB: ${item.hwb}`;
-          
-          const viewDest = document.getElementById('bordo-last-dest');
-          if (viewDest && item.destinatario) viewDest.textContent = item.destinatario;
-          
-          actualizarUIBordo();
-        }
+    const data = await consultarMemoriaDomicilioRemota(cleanPid);
+    if (data && data.encontrada) {
+      const item = bultosABordo.find(b => b.pid === cleanPid);
+      if (item) {
+        item.hwb = data.hwb || '';
+        item.destinatario = data.destinatario_habitual || '';
+        localStorage.setItem('ollin_bultos_a_bordo', JSON.stringify(bultosABordo));
+
+        const viewHwb = document.getElementById('bordo-last-hwb');
+        if (viewHwb && item.hwb) viewHwb.textContent = `HWB: ${item.hwb}`;
+
+        const viewDest = document.getElementById('bordo-last-dest');
+        if (viewDest && item.destinatario) viewDest.textContent = item.destinatario;
+
+        actualizarUIBordo();
       }
     }
   } catch(e) {}
@@ -1597,13 +1672,7 @@ function procesarCodigoEscaneado(rawCode) {
 
     // Desplegar Bulto X de Y y Multibulto Chips
     const totalPzas = infoBulto.total_piezas || 1;
-    let pidsHermanos = [clean];
-    if (MANIFIESTO_GLOBAL && MANIFIESTO_GLOBAL.pids_lookup) {
-      pidsHermanos = Object.values(MANIFIESTO_GLOBAL.pids_lookup)
-        .filter(p => p.hwb === infoBulto.hwb)
-        .map(p => p.pid);
-    }
-    const pidsUnicos = [...new Set(pidsHermanos)];
+    const pidsUnicos = obtenerPidsDeGuiaMadre(MANIFIESTO_GLOBAL, infoBulto.hwb);
     currentPidsGuia = pidsUnicos.length > 0 ? pidsUnicos : [clean];
 
     const badgeRatio = document.getElementById('badge-piece-ratio');
@@ -1660,13 +1729,9 @@ function actualizarContadoresUI() {
 // Consulta de Guía Madre, Multibulto y Memoria Previa
 async function consultarMemoriaDomicilioAsync(cleanPid) {
   try {
-    const url = `${WEBHOOK_URL}?accion=consultar_memoria_domicilio&pid=${encodeURIComponent(cleanPid)}`;
-    const resp = await fetch(url, { method: 'GET' });
-    if (resp.ok) {
-      const data = await resp.json();
-      if (data && (data.hwb || data.pids_asociados || data.encontrada)) {
-        renderGuiaMadreMultibulto(data, cleanPid);
-      }
+    const data = await consultarMemoriaDomicilioRemota(cleanPid);
+    if (data && (data.hwb || data.pids_asociados || data.encontrada)) {
+      renderGuiaMadreMultibulto(data, cleanPid);
     }
   } catch (err) {
     console.warn('Consulta memoria en segundo plano silente:', err);
@@ -2546,11 +2611,16 @@ function openDatabase() {
       }
     };
     req.onsuccess = (e) => {
-      dbInstance = e.target.result;
-      resolve(dbInstance);
-      checkPendingRecords();
+      const database = e.target.result;
+      dbInstance = database;
+      database.onversionchange = () => {
+        database.close();
+        if (dbInstance === database) dbInstance = null;
+      };
+      resolve(database);
     };
-    req.onerror = (e) => reject(e);
+    req.onerror = () => reject(req.error || new Error('No se pudo abrir IndexedDB.'));
+    req.onblocked = () => reject(new Error('La actualización de IndexedDB está bloqueada por otra pestaña.'));
   });
 }
 
@@ -2586,95 +2656,167 @@ async function savePickupOffline(puData) {
   });
 }
 
-async function deletePendingRecord(storeName, localId) {
+async function deletePendingRecord(storeName, localId, refreshStatus = true) {
   const db = await openDatabase();
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const tx = db.transaction([storeName], 'readwrite');
     tx.objectStore(storeName).delete(localId);
     tx.oncomplete = () => {
-      checkPendingRecords();
+      if (refreshStatus) checkPendingRecords();
       resolve();
     };
+    tx.onerror = () => reject(tx.error || new Error('No se pudo eliminar el registro sincronizado.'));
+    tx.onabort = () => reject(tx.error || new Error('Se canceló la eliminación del registro sincronizado.'));
+  });
+}
+
+function contarRegistrosPendientes(db) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction([STORE_ENTREGAS, STORE_PICKUPS], 'readonly');
+    const reqE = tx.objectStore(STORE_ENTREGAS).count();
+    const reqP = tx.objectStore(STORE_PICKUPS).count();
+    tx.oncomplete = () => {
+      resolve({
+        entregas: reqE.result || 0,
+        pickups: reqP.result || 0
+      });
+    };
+    tx.onerror = () => reject(tx.error || new Error('No se pudo consultar el total de la cola offline.'));
+    tx.onabort = () => reject(tx.error || new Error('Se canceló el conteo de la cola offline.'));
   });
 }
 
 async function checkPendingRecords() {
   try {
     const db = await openDatabase();
-    const tx = db.transaction([STORE_ENTREGAS, STORE_PICKUPS], 'readonly');
-    const reqE = tx.objectStore(STORE_ENTREGAS).count();
-    const reqP = tx.objectStore(STORE_PICKUPS).count();
-
-    tx.oncomplete = () => {
-      const total = (reqE.result || 0) + (reqP.result || 0);
-      const text = document.getElementById('net-status-text');
-      if (text && navigator.onLine) {
-        text.textContent = total > 0 ? `● EN LÍNEA (${total} pend. sync)` : '● EN LÍNEA / OFFLINE READY';
-      }
-    };
+    const counts = await contarRegistrosPendientes(db);
+    const total = counts.entregas + counts.pickups;
+    const text = document.getElementById('net-status-text');
+    if (text && navigator.onLine) {
+      text.textContent = total > 0 ? `● EN LÍNEA (${total} pend. sync)` : '● EN LÍNEA / OFFLINE READY';
+    }
   } catch (e) {
     console.warn('Pending records check error:', e);
   }
 }
 
+async function respuestaSincronizacionConfirmada(resp) {
+  if (!resp || resp.status !== 200) return false;
+
+  try {
+    const data = await resp.json();
+    return data !== null && data.exito === true;
+  } catch (err) {
+    console.warn('Respuesta de sincronización inválida; el registro seguirá pendiente:', err);
+    return false;
+  }
+}
+
+const OFFLINE_SYNC_BATCH_SIZE = 25;
+let offlineSyncPromise = null;
+
+function leerLotePendiente(db, storeName, afterKey) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction([storeName], 'readonly');
+    const store = tx.objectStore(storeName);
+    const range = afterKey === null ? undefined : IDBKeyRange.lowerBound(afterKey, true);
+    const request = store.openCursor(range);
+    const records = [];
+    let lastKey = afterKey;
+    let hasMore = false;
+
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor) return;
+      if (records.length === OFFLINE_SYNC_BATCH_SIZE) {
+        hasMore = true;
+        return;
+      }
+      records.push(cursor.value);
+      lastKey = cursor.key;
+      cursor.continue();
+    };
+    request.onerror = () => reject(request.error || new Error(`No se pudo leer la cola "${storeName}".`));
+    tx.oncomplete = () => resolve({ records, lastKey, hasMore });
+    tx.onerror = () => reject(tx.error || new Error(`Error al leer la cola "${storeName}".`));
+    tx.onabort = () => reject(tx.error || new Error(`Se canceló la lectura de la cola "${storeName}".`));
+  });
+}
+
+async function sincronizarColaPorLotes(db, storeName, enviarRegistro) {
+  let afterKey = null;
+  let hasMore = true;
+  let synchronized = 0;
+
+  while (hasMore && navigator.onLine) {
+    const batch = await leerLotePendiente(db, storeName, afterKey);
+    if (batch.records.length === 0) break;
+
+    for (const record of batch.records) {
+      if (!navigator.onLine) break;
+      try {
+        if (await enviarRegistro(record)) {
+          await deletePendingRecord(storeName, record.localId, false);
+          synchronized += 1;
+        } else {
+          console.warn(`Registro no confirmado en "${storeName}"; se conserva para reintentar.`);
+        }
+      } catch (error) {
+        console.warn(`Error sincronizando registro en "${storeName}":`, error);
+      }
+    }
+    if (!navigator.onLine) break;
+
+    afterKey = batch.lastKey;
+    hasMore = batch.hasMore;
+    if (hasMore) await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+  return synchronized;
+}
+
+function syncOfflineData() {
+  if (!navigator.onLine) return Promise.resolve();
+  if (offlineSyncPromise) return offlineSyncPromise;
+  offlineSyncPromise = syncOfflineDataCore().finally(() => { offlineSyncPromise = null; });
+  return offlineSyncPromise;
+}
+
 // Sincronización Automática al Reconectar
-async function syncOfflineData() {
+async function syncOfflineDataCore() {
   if (!navigator.onLine) return;
   try {
     const db = await openDatabase();
-    const tx = db.transaction([STORE_ENTREGAS, STORE_PICKUPS], 'readonly');
-    const reqE = tx.objectStore(STORE_ENTREGAS).getAll();
-    const reqP = tx.objectStore(STORE_PICKUPS).getAll();
+    const counts = await contarRegistrosPendientes(db);
+    const total = counts.entregas + counts.pickups;
+    if (!total) return;
 
-    tx.oncomplete = async () => {
-      const entregas = reqE.result || [];
-      const pickups = reqP.result || [];
-      if (entregas.length === 0 && pickups.length === 0) return;
-
-      showToast(`Sincronizando ${entregas.length + pickups.length} registro(s)...`, '⏳');
-      let sincronizados = 0;
-
-      for (const lote of entregas) {
-        try {
-          const resp = await fetch(WEBHOOK_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({
-              action: 'sincronizar_entrega_masiva_offline',
-              lote: lote
-            })
-          });
-          if (resp.ok) {
-            await deletePendingRecord(STORE_ENTREGAS, lote.localId);
-            sincronizados++;
-          }
-        } catch (err) {
-          console.warn('Error sincronizando entrega:', err);
-        }
-      }
-
-      for (const pu of pickups) {
-        try {
-          const resp = await fetch(WEBHOOK_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify(pu)
-          });
-          if (resp.ok) {
-            await deletePendingRecord(STORE_PICKUPS, pu.localId);
-            sincronizados++;
-          }
-        } catch (err) {
-          console.warn('Error sincronizando pickup:', err);
-        }
-      }
-
-      if (sincronizados > 0) {
-        playBeep('ok');
-        showToast(`✅ ${sincronizados} registro(s) sincronizado(s)`, '🎉');
-        actualizarKPIsDashboard();
-      }
+    showToast(`Sincronizando ${total} registro(s)...`, '⏳');
+    const sendDelivery = async (lote) => {
+      const resp = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'sincronizar_entrega_masiva_offline', lote })
+      });
+      return respuestaSincronizacionConfirmada(resp);
     };
+    const sendPickup = async (pickup) => {
+      const resp = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(pickup)
+      });
+      return respuestaSincronizacionConfirmada(resp);
+    };
+
+    const entregasSync = await sincronizarColaPorLotes(db, STORE_ENTREGAS, sendDelivery);
+    const pickupsSync = await sincronizarColaPorLotes(db, STORE_PICKUPS, sendPickup);
+    const sincronizados = entregasSync + pickupsSync;
+    if (sincronizados > 0) {
+      await checkPendingRecords();
+      playBeep('ok');
+      showToast(`✅ ${sincronizados} registro(s) sincronizado(s)`, '🎉');
+      actualizarKPIsDashboard();
+    }
   } catch (e) {
     console.warn('Sync offline data error:', e);
   }
@@ -3427,7 +3569,7 @@ window.guardarRecoleccionPU = async function() {
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(puPayload)
       });
-      if (resp.ok) {
+      if (await respuestaSincronizacionConfirmada(resp)) {
         await deletePendingRecord(STORE_PICKUPS, puPayload.localId);
         playBeep('ok');
         showToast('✅ ¡Recolección registrada en Bóveda!', '🎉');
@@ -3575,7 +3717,9 @@ if (btnCloseModal) {
 // 17. ARRANQUE DEL CICLO DE VIDA (PWA NATIVA)
 // ====================================================================
 window.addEventListener('load', () => {
-  openDatabase();
+  openDatabase()
+    .then(checkPendingRecords)
+    .catch((error) => console.warn('No se pudo inicializar la cola offline:', error));
   initSession();
   cargarManifiestoOperativo();
   consultarPickupsAsignadosServidor(false);
@@ -3644,7 +3788,7 @@ async function despacharSincronizacionLoteSegundoPlano(lotePayload) {
       })
     });
 
-    if (resp.ok) {
+    if (await respuestaSincronizacionConfirmada(resp)) {
       if (lotePayload.localId) {
         await deletePendingRecord(STORE_ENTREGAS, lotePayload.localId);
       }
@@ -4325,4 +4469,3 @@ window.filtrarHojaDeRuta = function(filtro) {
   if (activo) activo.classList.add('active');
   renderHojaDeRutaAsistida();
 };
-

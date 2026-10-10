@@ -3872,3 +3872,60 @@ Antes de proponer o ejecutar cualquier script, comando de Clasp o creación de h
 - **Captura Fotográfica Asistida:** Al capturar la fotografía de fachada o incidencia, la PWA transita automáticamente a los 650ms hacia la ventana de **Audio-Evidencia Teoyolotl**.
 - **Canalización Poka-Yoke sin Foto:** Si el operador no captura fotografía y pulsa *"✅ Listo / Aplicar Evidencia"*, la PWA lo transfiere a la captura de **Audio-Evidencia**, alertando amigablemente que el testimonio de voz se encuentra pendiente.
 - **Ventana Dedicada de Audio-Evidencia:** Interfaz táctil con botón central de 84px para grabación de hasta 13 segundos, temporizador en tiempo real, frases sugeridas para IA y botón final para proceder al envío del lote.
+
+
+---
+
+# 🏛️ MEMORIA TÉCNICA AMOXCALLI: FIRMA CORPORATIVA MINIMALISTA DHL — IRVIN REYES (2026)
+
+**Ecosistema OLLIN — Arauto Express (Mesa de Control / Andén QRO)**  
+**Titular:** Irvin Reyes (`irvin.reyes@arauto.express`)  
+**Autor:** Antigravity (Google DeepMind) & Sidharta Santiago (Tlayacanqui)  
+**Fecha:** 8 de Octubre de 2026  
+**Estatus:** ✅ DESPLEGADO Y CERTIFICADO EN PRODUCCIÓN  
+
+---
+
+## 1. Diseño y Estructura Espejo (Canon Tlayacanqui)
+1. **Identidad Visual:** Logo oficial v5 Arauto Express con leyenda 'SOPORTE LOGÍSTICO' en Oro Metálico (`#D4AF37`) y Verde Esmeralda (`#054A29`), alojado en CDN público de Google Drive (`1DtMXX2yFS3DijTZH9oMEfz1Ba5hJvBrK`).
+2. **Divisor:** Línea vertical de 1px en Oro Metálico (`#D4AF37`).
+3. **Ficha Operativa:**
+   - **Nombre:** Irvin Reyes (Bold 13px, Verde Esmeralda `#054A29`).
+   - **Cargo:** Supervisión Operativa & Mesa de Control | Arauto Express (11px, Oro Metálico y Pizarra).
+   - **Correo Institucional:** `irvin.reyes@arauto.express` (Bold 11px, Verde Esmeralda `#054A29`).
+   - **Privacidad Operativa:** Cero teléfono y cero dirección territorial física, protegiendo al personal contra desvíos no autorizados.
+   - **Blindaje Legal ZDR:** Disclaimer de Zero Data Retention en una sola línea (9px, `#777777`) codificado con entidades HTML seguras (`&oacute;`, `&iacute;`, `&mdash;`) para erradicar cualquier fallo de caracteres o diamantes.
+4. **Artefactos y Accesos:**
+   - **Google Doc:** [Firma_Corporativa_DHL_Minimalista_Irvin](https://docs.google.com/document/d/14yfPGGyPznoCxgv7wvzU_BMIDvvNROIgfYbn_EJyIWs/edit?usp=drivesdk)
+   - **HTML Local:** `Firma_Corporativa_DHL_Minimalista_Irvin.html`
+   - **Portapapeles:** Copiado directo en memoria Windows (`CF_HTML`) para inserción inmediata en Gmail.
+
+
+---
+
+# 🏛️ MEMORIA TÉCNICA AMOXCALLI: DELEGACIÓN DE DOMINIO GOOGLE WORKSPACE Y DESPLIEGUE DIRECTO DE FIRMA GMAIL — IRVIN REYES (2026)
+
+**Ecosistema OLLIN — Arauto Express (Mesa de Control / Gobernanza IT)**  
+**Titular:** Irvin Reyes (irvin.reyes@arauto.express)  
+**Autor:** Antigravity (Google DeepMind) & Sidharta Santiago (Tlayacanqui)  
+**Fecha:** 9 de Octubre de 2026  
+**Estatus:** ✅ DESPLEGADO Y CERTIFICADO EN PRODUCCIÓN DIRECTA  
+
+---
+
+## 1. Contexto y Arquitectura de Delegación en Todo el Dominio
+- **Causa Raíz de Bloqueo Previos:** Por políticas de privacidad de Google Workspace, una cuenta de usuario (incluso Super Administrador) no puede invocar users/{email}/settings/sendAs sobre otro buzón con un token de usuario estándar (arrojando error 403 Delegation Denied).
+- **Solución Canónica:** Se dio de alta una Cuenta de Servicio (ollin-firmas-admin@ecosistema-ollin-prudencia.iam.gserviceaccount.com) con Client ID 112398016214369564893 autorizada en Google Workspace Admin Console (dmin.google.com/ac/owl/domainwidedelegation) con los alcances gmail.settings.basic y gmail.settings.sharing.
+- **Credenciales Seguras:** Archivo de llave resguardado en .agents/workspace_service_account.json.
+
+## 2. Inyección y Sanitización de Firma en Caliente
+- **Buzón Afectado:** irvin.reyes@arauto.express (Primary SendAs).
+- **Firma Anterior Erradicada:** Se eliminó la firma previa no estándar (tipografía Comic Sans, color verde fosforescente #00ff00, y teléfono celular personal expuesto).
+- **Nueva Firma Ejecutiva Minimalista:**
+  - Logo corporativo oficial v5 (1DtMXX2yFS3DijTZH9oMEfz1Ba5hJvBrK) con leyenda en español *SOPORTE LOGÍSTICO*.
+  - Divisor vertical fino en Oro Metálico (#D4AF37).
+  - Nombre: **Irvin Reyes** (Bold, Verde Esmeralda #054A29).
+  - Cargo: **Supervisión Operativa & Mesa de Control** | **Arauto Express** (Oro Metálico / Pizarra).
+  - Correo institucional oficial sin teléfono ni dirección física para blindaje operativo.
+  - Disclaimer legal ZDR en una sola línea sanitizado con entidades HTML seguras.
+- **Resultado de API:** Petición PATCH a gmail.googleapis.com/gmail/v1/users/irvin.reyes@arauto.express/settings/sendAs/irvin.reyes@arauto.express exitosa (HTTP 200 OK). La firma se encuentra activa inmediatamente para cualquier correo nuevo o respuesta de Irvin.
