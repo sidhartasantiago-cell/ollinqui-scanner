@@ -1215,7 +1215,7 @@
           const base64Image = event.target.result.split(',')[1]; // Remover el header
           const mimeType = file.type;
           
-          google.script.run.withSuccessHandler(onImageAnalyzed).withFailureHandler(onError).analizarImagenGCA7ConIA(base64Image, mimeType);
+          crearRunnerAppsScript().withSuccessHandler(onImageAnalyzed).withFailureHandler(onError).analizarImagenGCA7ConIA(base64Image, mimeType);
         };
         reader.readAsDataURL(file);
       }
@@ -1235,7 +1235,7 @@
         const trId = "row-" + Date.now();
         addTableRow(trId, data.guia_o_pid, data.telefono, "Inyectando...");
 
-        google.script.run.withSuccessHandler(function(res) {
+        crearRunnerAppsScript().withSuccessHandler(function(res) {
           updateTableRow(trId, res.exito ? "ÉXITO" : "ERROR", res.exito ? res.mensaje : res.error);
         }).withFailureHandler(function(err) {
           updateTableRow(trId, "ERROR", err.toString());
@@ -1310,6 +1310,16 @@
       "xichudaniel@gmail.com": { pin: "5625", role: "daniel", nombre: "Daniel Juárez" }
     };
     const CONSOLE_MASTER_PIN = "2026";
+    const RPC_TIMEOUT_MS = 20000;
+    const RETRYABLE_READ_METHODS = new Set([
+      'obtenerConsolaSierra',
+      'obtenerAuditoriasTeoyolotl',
+      'obtenerChoferesQRO',
+      'obtenerPickupsActivosQRO',
+      'obtenerEntregasActivasQRO',
+      'buscarCorreosBatchQRO'
+    ]);
+    const tableRenderVersions = new WeakMap();
 
     // Teclado PIN Obsidian
     function consPressKey(digit) {
@@ -1374,26 +1384,138 @@
       if (lblName) lblName.innerText = nombre || email;
       if (lblRole) lblRole.innerText = (role || 'SUPERVISOR').toUpperCase();
 
-      if (role === 'daniel') {
-        switchTab('sierra');
-        cargarDatosSierra();
-      } else {
-        cargarChoferes();
-        cargarPickupsActivos();
-        cargarEntregasYMonitoreo();
-        cargarBuzonGmail();
-        cargarDatosSierra();
-      }
+      switchTab(role === 'daniel' ? 'sierra' : 'rampa');
     }
 
-    // BANCO DE DATOS COGNITIVO / FALLBACK EN CALIENTE
-    const DB_RESPALDO_INCIDENCIAS = [
-      { guia: "7612540913", pid: "JJD014600012640962864", cp: "37900", bultos: 1, destinatario: "N/A", checkpoint: "FD", comentarios: "Domicilio incorrecto", operador: "edgar.rodriguez.arauto@gmail.com", fecha_ingreso: "14/05/2026" },
-      { guia: "3782667755", pid: "JJD014600012607515869", cp: "37917", bultos: 1, destinatario: "PABLO YANEZ", checkpoint: "FD", comentarios: "No se localiza el domicilio", operador: "edgar.rodriguez.arauto@gmail.com", fecha_ingreso: "14/05/2026" },
-      { guia: "2722064365", pid: "JJD014600012639159900", cp: "37967", bultos: 2, destinatario: "PARTICULAR", checkpoint: "FD", comentarios: "Rechazo", operador: "oscher1016@gmail.com", fecha_ingreso: "14/05/2026" },
-      { guia: "2722065220", pid: "JJD014600012639159994", cp: "37967", bultos: 1, destinatario: "PARTICULAR", checkpoint: "FD", comentarios: "Rechazo", operador: "oscher1016@gmail.com", fecha_ingreso: "14/05/2026" },
-      { guia: "2976152443", pid: "JJD0081104262976152443", cp: "37967", bultos: 1, destinatario: "ANGEL OLVERA ELIAS", checkpoint: "FD", comentarios: "No se encontró el domicilio y no respondió", operador: "oscher1016@gmail.com", fecha_ingreso: "14/05/2026" }
-    ];
+    function mostrarToastConsola(mensaje, tipo = 'error') {
+      let region = document.getElementById('console-toast-region');
+      if (!region) {
+        region = document.createElement('div');
+        region.id = 'console-toast-region';
+        region.className = 'fixed top-4 right-4 z-[100] space-y-2';
+        region.setAttribute('aria-live', 'polite');
+        document.body.appendChild(region);
+      }
+
+      const toast = document.createElement('div');
+      toast.className = tipo === 'warn'
+        ? 'max-w-sm rounded-xl border border-amber-500/40 bg-slate-900 px-4 py-3 text-xs font-semibold text-amber-300 shadow-xl'
+        : 'max-w-sm rounded-xl border border-red-500/40 bg-slate-900 px-4 py-3 text-xs font-semibold text-red-300 shadow-xl';
+      toast.textContent = mensaje;
+      region.appendChild(toast);
+      setTimeout(() => toast.remove(), 6500);
+    }
+
+    function llamarAppsScript(metodo, argumentos = [], opciones = {}) {
+      const reintentos = Object.prototype.hasOwnProperty.call(opciones, 'reintentos')
+        ? opciones.reintentos
+        : (RETRYABLE_READ_METHODS.has(metodo) ? 1 : 0);
+      const timeoutMs = opciones.timeoutMs || RPC_TIMEOUT_MS;
+
+      return new Promise((resolve, reject) => {
+        if (typeof google === 'undefined' || !google.script || !google.script.run) {
+          const error = new Error('La conexión con Apps Script no está disponible.');
+          mostrarToastConsola(error.message);
+          reject(error);
+          return;
+        }
+
+        let intento = 0;
+        let finalizado = false;
+        const ejecutar = () => {
+          intento++;
+          let intentoFinalizado = false;
+          let temporizador;
+          const cerrarIntento = (callback, valor) => {
+            if (intentoFinalizado || finalizado) return;
+            intentoFinalizado = true;
+            clearTimeout(temporizador);
+            callback(valor);
+          };
+          const fallar = error => {
+            if (intento < reintentos + 1) {
+              setTimeout(ejecutar, 250 * intento);
+              return;
+            }
+            finalizado = true;
+            const errorNormalizado = error instanceof Error
+              ? error
+              : new Error(error && error.message ? error.message : String(error));
+            mostrarToastConsola(`No se pudo completar ${metodo}: ${errorNormalizado.message}`);
+            reject(errorNormalizado);
+          };
+
+          temporizador = setTimeout(() => {
+            cerrarIntento(fallar, new Error(`Tiempo de espera agotado (${timeoutMs / 1000} s).`));
+          }, timeoutMs);
+
+          try {
+            const runner = google.script.run
+              .withSuccessHandler(resultado => cerrarIntento(resolveFinal, resultado))
+              .withFailureHandler(error => cerrarIntento(fallar, error || new Error('Error de Apps Script.')));
+            runner[metodo].apply(runner, argumentos);
+          } catch (error) {
+            cerrarIntento(fallar, error);
+          }
+        };
+        const resolveFinal = resultado => {
+          finalizado = true;
+          resolve(resultado);
+        };
+
+        ejecutar();
+      });
+    }
+
+    function crearRunnerAppsScript(iniciales = {}, opciones = {}) {
+      const handlers = { success: iniciales.success || null, failure: iniciales.failure || null };
+      return new Proxy({}, {
+        get: function(_target, propiedad) {
+          if (propiedad === 'withSuccessHandler') {
+            return callback => crearRunnerAppsScript(Object.assign({}, handlers, { success: callback }), opciones);
+          }
+          if (propiedad === 'withFailureHandler') {
+            return callback => crearRunnerAppsScript(Object.assign({}, handlers, { failure: callback }), opciones);
+          }
+          if (typeof propiedad !== 'string') return undefined;
+          return (...argumentos) => llamarAppsScript(propiedad, argumentos, opciones).then(
+            resultado => { if (handlers.success) handlers.success(resultado); },
+            error => { if (handlers.failure) handlers.failure(error); }
+          );
+        }
+      });
+    }
+
+    function renderizarFilasEnLotes(contenedor, filas, htmlVacio, tamanoLote = 40) {
+      const version = (tableRenderVersions.get(contenedor) || 0) + 1;
+      tableRenderVersions.set(contenedor, version);
+      contenedor.innerHTML = '';
+
+      if (!filas.length) {
+        contenedor.innerHTML = htmlVacio;
+        return Promise.resolve(true);
+      }
+
+      return new Promise(resolve => {
+        let cursor = 0;
+        const renderizarLote = () => {
+          if (tableRenderVersions.get(contenedor) !== version) {
+            resolve(false);
+            return;
+          }
+          const siguiente = Math.min(cursor + tamanoLote, filas.length);
+          contenedor.insertAdjacentHTML('beforeend', filas.slice(cursor, siguiente).join(''));
+          cursor = siguiente;
+          if (cursor < filas.length) {
+            if (window.requestAnimationFrame) window.requestAnimationFrame(renderizarLote);
+            else setTimeout(renderizarLote, 0);
+          } else {
+            resolve(true);
+          }
+        };
+        renderizarLote();
+      });
+    }
 
     // Variables de Estado Global
     let activeTab = 'rampa';
@@ -1429,13 +1551,67 @@
       }
     };
 
-    // 2. CONMUTADOR DE PESTAÑAS (5 TABS UNIFICADOS)
+    // 2. CONMUTADOR DE PESTAÑAS (5 TABS IMPLEMENTADOS)
     const ALL_TABS = ['rampa', 'auditoria', 'sierra', 'teoyolotl', 'pickups'];
+    const sharedTabLoads = {};
+    const TAB_LOADERS = {
+      rampa: [cargarChoferes, () => cargarDatoCompartido('pickups', cargarPickupsActivos), cargarBuzonGmail],
+      auditoria: [cargarEntregasYMonitoreo, () => cargarDatoCompartido('pickups', cargarPickupsActivos)],
+      sierra: [cargarDatosSierra],
+      teoyolotl: [cargarAuditoriasTeoyolotl],
+      pickups: [() => cargarDatoCompartido('pickups', cargarPickupsActivos)]
+    };
+    const tabLoadStates = Object.fromEntries(ALL_TABS.map(tab => [tab, { status: 'idle', promise: null }]));
     let cacheSierraData = [];
     let cacheTeoyolotlData = [];
     let activeTeoyolotlRecord = null;
 
+    function cargarDatoCompartido(clave, cargar) {
+      const estado = sharedTabLoads[clave] || (sharedTabLoads[clave] = { status: 'idle', promise: null });
+      if (estado.status === 'loaded') return Promise.resolve(true);
+      if (estado.status === 'loading') return estado.promise;
+
+      estado.status = 'loading';
+      estado.promise = Promise.resolve(cargar())
+        .then(resultado => {
+          estado.status = resultado === true ? 'loaded' : 'idle';
+          return resultado === true;
+        })
+        .catch(error => {
+          estado.status = 'idle';
+          throw error;
+        })
+        .finally(() => {
+          estado.promise = null;
+        });
+      return estado.promise;
+    }
+
+    function cargarDatosDePestana(tab) {
+      const estado = tabLoadStates[tab];
+      if (!estado || estado.status === 'loaded') return Promise.resolve(true);
+      if (estado.status === 'loading') return estado.promise;
+
+      estado.status = 'loading';
+      estado.promise = Promise.all(TAB_LOADERS[tab].map(cargar => cargar()))
+        .then(resultados => {
+          estado.status = resultados.every(resultado => resultado === true) ? 'loaded' : 'error';
+          return estado.status === 'loaded';
+        })
+        .catch(error => {
+          estado.status = 'error';
+          mostrarToastConsola(`No se pudieron cargar los datos de la pestaña ${tab}: ${error.message || error}`);
+          return false;
+        })
+        .finally(() => {
+          estado.promise = null;
+        });
+      return estado.promise;
+    }
+
     function switchTab(tab) {
+      if (!ALL_TABS.includes(tab)) return false;
+      if (!document.getElementById('tab-' + tab + '-btn') || !document.getElementById('tab-' + tab + '-content')) return false;
       activeTab = tab;
 
       ALL_TABS.forEach(t => {
@@ -1452,17 +1628,9 @@
         }
       });
 
-      if (tab === 'sierra') {
-        if (cacheSierraData.length === 0) cargarDatosSierra();
-      } else if (tab === 'teoyolotl') {
-        if (cacheTeoyolotlData.length === 0) cargarAuditoriasTeoyolotl();
-      } else if (tab === 'pickups') {
-        cargarPickupsActivos();
-      } else if (tab === 'auditoria') {
-        cargarEntregasYMonitoreo();
-      }
-
+      cargarDatosDePestana(tab);
       if (window.lucide) lucide.createIcons();
+      return true;
     }
 
     // ==========================================
@@ -1490,9 +1658,8 @@
       const userEmail = localStorage.getItem('ollin_console_user') || (CURRENT_ROLE === 'daniel' ? 'xichudaniel@gmail.com' : 'irvin.reyes@arauto.express');
       const userRole = localStorage.getItem('ollin_console_role') || (CURRENT_ROLE === 'daniel' ? 'daniel' : 'irvin');
 
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(function(res) {
+      return llamarAppsScript('obtenerConsolaSierra', [userEmail, userRole])
+        .then(function(res) {
             if (syncIcon) syncIcon.classList.remove('animate-spin');
             if (res.exito) {
               cacheSierraData = res.guias || [];
@@ -1511,16 +1678,17 @@
               poblarSelectoresSierraTab();
               renderizarTablaSierraTab();
               addLog("✅ Sierra Gorda sincronizada: " + estadoSierraTab.guias.length + " guías cargadas de BD Central.", 'success');
+              return true;
             } else {
               addLog("❌ Error al consultar Sierra Gorda: " + res.error, 'error');
+              return false;
             }
           })
-          .withFailureHandler(function(err) {
+          .catch(function(err) {
             if (syncIcon) syncIcon.classList.remove('animate-spin');
             addLog("❌ Error de red en Sierra Gorda: " + err.message, 'error');
-          })
-          .obtenerConsolaSierra(userEmail, userRole);
-      }
+            return false;
+          });
     }
 
     function actualizarKPISierraTab() {
@@ -1739,7 +1907,7 @@
       const userRole = localStorage.getItem('ollin_console_role') || 'daniel';
 
       if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
+        crearRunnerAppsScript()
           .withSuccessHandler(function(res) {
             if (res.exito) {
               addLog(`✅ ${res.mensaje}`, 'success');
@@ -1763,7 +1931,7 @@
       if (!alerta) return;
 
       if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
+        crearRunnerAppsScript()
           .withSuccessHandler(function(res) {
             addLog(`📲 Alerta despachada a Calpixqui: ${alerta.pochteca}`, 'success');
             alert("Alerta enviada a Google Chat y registrada para Calpixqui.");
@@ -1981,7 +2149,7 @@
       addLog(`⏳ Transfiriendo ruta en BD Central de ${origen} a ${destino}...`, 'warn');
 
       if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
+        crearRunnerAppsScript()
           .withSuccessHandler(function(res) {
             if (res.exito) {
               addLog(`✅ ${res.mensaje}`, 'success');
@@ -2026,7 +2194,7 @@
       addLog(`⏳ Reasignando ${tipo} ${valor} a ${destino} en BD Central...`, 'warn');
 
       if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
+        crearRunnerAppsScript()
           .withSuccessHandler(function(res) {
             if (res.exito) {
               addLog(`✅ ${res.mensaje}`, 'success');
@@ -2050,43 +2218,49 @@
       if (syncIcon) syncIcon.classList.add('animate-spin');
       addLog("🎙️ Consultando testimonios de audio y evidencias en Teoyolotl...", 'warn');
 
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(function(res) {
+      if (typeof google === 'undefined' || !google.script || !google.script.run) {
+        return new Promise(resolve => setTimeout(() => {
+          if (syncIcon) syncIcon.classList.remove('animate-spin');
+          addLog("🏁 Simulación Teoyolotl cargada.", 'success');
+          resolve(true);
+        }, 1000));
+      }
+
+      return llamarAppsScript('obtenerAuditoriasTeoyolotl')
+        .then(function(res) {
             if (syncIcon) syncIcon.classList.remove('animate-spin');
             if (res.exito) {
               cacheTeoyolotlData = res.datos || [];
-              renderizarTablaTeoyolotl(res.datos || []);
-              addLog("✅ " + (res.datos ? res.datos.length : 0) + " auditorías de voz y fachada cargadas.", 'success');
+              return renderizarTablaTeoyolotl(res.datos || []).then(() => {
+                addLog("✅ " + (res.datos ? res.datos.length : 0) + " auditorías de voz y fachada cargadas.", 'success');
+                return true;
+              });
             } else {
               addLog("❌ Error al cargar Teoyolotl: " + res.error, 'error');
+              return false;
             }
           })
-          .withFailureHandler(function(err) {
+          .catch(function(err) {
             if (syncIcon) syncIcon.classList.remove('animate-spin');
             addLog("❌ Error de red en Teoyolotl: " + err.message, 'error');
+            return false;
           })
-          .obtenerAuditoriasTeoyolotl();
-      } else {
-        setTimeout(() => {
-          if (syncIcon) syncIcon.classList.remove('animate-spin');
-          addLog("🏁 Simulación Teoyolotl cargada.", 'success');
-        }, 1000);
-      }
+          .finally(() => {
+            if (syncIcon) syncIcon.classList.remove('animate-spin');
+          });
     }
 
     function renderizarTablaTeoyolotl(lista) {
       const tbody = document.getElementById('teoyolotl-cuerpo-tabla');
       const contador = document.getElementById('teoyolotl-conteo-registros');
-      if (!tbody) return;
+      if (!tbody) return Promise.resolve(false);
       if (contador) contador.innerText = lista.length + " registros";
 
       if (!lista || lista.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-10 text-slate-600">No hay excepciones con audio o foto pendientes</td></tr>`;
-        return;
+        return renderizarFilasEnLotes(tbody, [], `<tr><td colspan="8" class="text-center py-10 text-slate-600">No hay excepciones con audio o foto pendientes</td></tr>`);
       }
 
-      tbody.innerHTML = "";
+      const filas = [];
       lista.forEach(item => {
         let statusTag = "bg-amber-950 text-amber-400 border border-amber-500/20";
         if (item.checkpoint === "OK") statusTag = "bg-emerald-950 text-emerald-400 border border-emerald-500/20";
@@ -2100,7 +2274,7 @@
           `<img src="${item.fotoUrl}" onclick="window.open(this.src, '_blank')" class="w-7 h-7 rounded object-cover mx-auto border border-slate-700 cursor-pointer hover:scale-110 transition-transform">` :
           `<span class="text-slate-600 text-[10px]">Sin foto</span>`;
 
-        tbody.innerHTML += `
+        filas.push(`
           <tr class="hover:bg-slate-800/30 transition-colors">
             <td class="px-4 py-2.5 font-mono font-bold text-slate-200">${item.guia}</td>
             <td class="px-4 py-2.5 text-slate-300 font-semibold">${item.operador.split('@')[0]}</td>
@@ -2112,9 +2286,10 @@
             <td class="px-4 py-2.5 text-center">
               <button onclick="seleccionarAuditoriaTeoyolotl('${item.guia}', '${item.operador}', '${item.checkpoint}', '${commentsClean}', '${item.audioUrl}', '${item.fotoUrl}')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold uppercase">Auditar</button>
             </td>
-          </tr>`;
+          </tr>`);
       });
-      lucide.createIcons();
+      return renderizarFilasEnLotes(tbody, filas, `<tr><td colspan="8" class="text-center py-10 text-slate-600">No hay excepciones con audio o foto pendientes</td></tr>`)
+        .then(() => lucide.createIcons());
     }
 
     function seleccionarAuditoriaTeoyolotl(guia, chofer, checkpoint, comentarios, audioUrl, fotoUrl) {
@@ -2201,7 +2376,7 @@
       addLog("⚠️ Iniciando Puente Temporal de Dispersión a RUTA...", 'warn');
 
       if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
+        crearRunnerAppsScript()
           .withSuccessHandler(function(res) {
             btn.disabled = false;
             btn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -2243,7 +2418,7 @@
       addLog("🚀 [v81.2 PROD] Enviando comando unificado al Cerebro Asíncrono OLLIN...", 'warn');
 
       if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
+        crearRunnerAppsScript()
           .withSuccessHandler(function(res) {
             btn.disabled = false;
             btn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -2396,21 +2571,20 @@
     // B. CARGAR CATÁLOGO DE CHOFERES
     function cargarChoferes() {
       const select = document.getElementById('form-chofer');
-      if (!select) return;
+      if (!select) return Promise.resolve(false);
       
       if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(function(lista) {
+        return llamarAppsScript('obtenerChoferesQRO')
+          .then(function(lista) {
             catalogoChoferes = lista;
-            select.innerHTML = '<option value="sin_asignar@arauto.express">Sin Asignar</option>';
-            lista.forEach(ch => {
-              select.innerHTML += `<option value="${ch.correo}">${ch.nombre} (${ch.correo.split('@')[0]})</option>`;
-            });
+            select.innerHTML = '<option value="sin_asignar@arauto.express">Sin Asignar</option>' +
+              lista.map(ch => `<option value="${ch.correo}">${ch.nombre} (${ch.correo.split('@')[0]})</option>`).join('');
+            return true;
           })
-          .withFailureHandler(function(err) {
+          .catch(function(err) {
             addLog("❌ Falló carga de catálogo de choferes: " + err.message, 'error');
-          })
-          .obtenerChoferesQRO();
+            return false;
+          });
       } else {
         catalogoChoferes = [
           { nombre: "Edgar Rodríguez", correo: "edgar.rodriguez.arauto@gmail.com" },
@@ -2424,52 +2598,56 @@
         catalogoChoferes.forEach(ch => {
           select.innerHTML += `<option value="${ch.correo}">${ch.nombre}</option>`;
         });
+        return Promise.resolve(true);
       }
     }
 
     // C. CARGAR MONITOR RAMPA EN VIVO (Hoy)
     function cargarPickupsActivos() {
       const tbody = document.getElementById('pickups-table-body');
-      if (!tbody) return;
+      if (!tbody) return Promise.resolve(false);
       
       if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(function(lista) {
-            inyectarPickupsEnTabla(lista, tbody);
+        return llamarAppsScript('obtenerPickupsActivosQRO')
+          .then(function(lista) {
+            return inyectarPickupsEnTabla(lista, tbody).then(() => true);
           })
-          .withFailureHandler(function(err) {
+          .catch(function(err) {
             console.error("Error al cargar pickups: " + err.message);
-          })
-          .obtenerPickupsActivosQRO();
+            return false;
+          });
       } else {
         // Datos simulados idénticos a tus hojas
         const listaSimulada = [
           { id_pu: "PU-AX38F9", id_booking: "988240191", remitente: "XIMENA GUADALUPE CRUZ", direccion: "juan jose torres landa 33, OJO DE AGUA DEL REFUGIO", cp: "76178", chofer: "victor18amadorm@gmail.com", estatus: "PENDIENTE" },
           { id_pu: "PU-O8V7W1", id_booking: "983130532", remitente: "ISIDRO CRUZ GONZALEZ", direccion: "ZARAGOZA ESQ 5 DE MAYO, MERCADO MUNICIPAL LOCAL 10", cp: "76178", chofer: "xichudaniel@gmail.com", estatus: "PENDIENTE" }
         ];
-        inyectarPickupsEnTabla(listaSimulada, tbody);
+        return inyectarPickupsEnTabla(listaSimulada, tbody).then(() => true);
       }
     }
 
     function inyectarPickupsEnTabla(lista, tbody) {
       if (!lista || lista.length === 0) {
-        tbody.innerHTML = `
+        const emptyRow = `
           <tr>
             <td colspan="7" class="px-4 py-12 text-center text-slate-500">
               <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 text-slate-600"></i>
               No hay recolecciones registradas para hoy en rampa.
             </td>
           </tr>`;
-        lucide.createIcons();
-        return;
+        const tbodyTab5 = document.getElementById('pickups-tab-table-body');
+        const countTab5 = document.getElementById('pickups-tab-conteo');
+        if (countTab5) countTab5.innerText = '0 pickups';
+        const renderizaciones = [renderizarFilasEnLotes(tbody, [], emptyRow)];
+        if (tbodyTab5) renderizaciones.push(renderizarFilasEnLotes(tbodyTab5, [], emptyRow));
+        return Promise.all(renderizaciones).then(() => lucide.createIcons());
       }
 
-      tbody.innerHTML = "";
       const tbodyTab5 = document.getElementById('pickups-tab-table-body');
       const countTab5 = document.getElementById('pickups-tab-conteo');
-      if (tbodyTab5) tbodyTab5.innerHTML = "";
       if (countTab5) countTab5.innerText = lista.length + " pickups";
 
+      const filas = [];
       lista.forEach(item => {
         let labelColor = "bg-slate-800 text-slate-400";
         if (item.estatus === "OK") labelColor = "bg-emerald-950 text-emerald-400 border border-emerald-500/20";
@@ -2488,10 +2666,11 @@
               <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${labelColor}">${item.estatus}</span>
             </td>
           </tr>`;
-        tbody.innerHTML += rowHtml;
-        if (tbodyTab5) tbodyTab5.innerHTML += rowHtml;
+        filas.push(rowHtml);
       });
-      lucide.createIcons();
+      const renderizaciones = [renderizarFilasEnLotes(tbody, filas, '')];
+      if (tbodyTab5) renderizaciones.push(renderizarFilasEnLotes(tbodyTab5, filas, ''));
+      return Promise.all(renderizaciones).then(() => lucide.createIcons());
     }
 
     // D. CARGAR MONITOR CALLE EN VIVO (ÚLTIMOS 150 REGISTROS DE VALIDACIÓN)
@@ -2499,16 +2678,18 @@
       const tbody = document.getElementById('entregas-table-body');
       
       if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(function(lista) {
+        return llamarAppsScript('obtenerEntregasActivasQRO')
+          .then(function(lista) {
             cacheEntregasLocales = lista;
-            inyectarEntregasEnTabla(lista);
+            return inyectarEntregasEnTabla(lista).then(() => {
             recalcularMétricasAuditores();
+              return true;
+            });
           })
-          .withFailureHandler(function(err) {
+          .catch(function(err) {
             console.error("Error al cargar entregas: " + err.message);
-          })
-          .obtenerEntregasActivasQRO();
+            return false;
+          });
       } else {
         // Banco de pruebas de rampa (simulación en navegador)
         cacheEntregasLocales = [
@@ -2520,6 +2701,7 @@
         ];
         inyectarEntregasEnTabla(cacheEntregasLocales);
         recalcularMétricasAuditores();
+        return Promise.resolve(true);
       }
     }
 
@@ -2528,18 +2710,17 @@
       if (!tbody) return;
 
       if (!lista || lista.length === 0) {
-        tbody.innerHTML = `
+        const emptyRow = `
           <tr>
             <td colspan="10" class="px-4 py-12 text-center text-slate-500">
               <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 text-slate-600"></i>
               No hay reportes de calle registrados.
             </td>
           </tr>`;
-        lucide.createIcons();
-        return;
+        return renderizarFilasEnLotes(tbody, [], emptyRow).then(() => lucide.createIcons());
       }
 
-      tbody.innerHTML = "";
+      const filas = [];
       lista.forEach(item => {
         let labelColor = "bg-slate-800 text-slate-400";
         if (item.checkpoint === "OK") labelColor = "bg-emerald-950 text-emerald-400 border border-emerald-500/20";
@@ -2559,7 +2740,7 @@
           `<span class="text-slate-300 font-medium">${item.fecha_en_ruta.split(' ')[0]}</span>` : 
           `<span class="text-slate-500 italic">No validado</span>`;
 
-        tbody.innerHTML += `
+        filas.push(`
           <tr class="hover:bg-slate-800/40 transition-colors">
             <td class="px-4 py-3 font-mono font-bold text-slate-400">${item.guia}</td>
             <td class="px-4 py-3 font-mono text-[10px] truncate max-w-[120px]" title="${item.pid}">${item.pid}</td>
@@ -2598,9 +2779,9 @@
             <td class="px-4 py-3 text-center">${enRuta}</td>
             <td class="px-4 py-3 text-center">${tieneImagen}</td>
             <td class="px-4 py-3 text-center">${tieneFirma}</td>
-          </tr>`;
+          </tr>`);
       });
-      lucide.createIcons();
+      return renderizarFilasEnLotes(tbody, filas, '').then(() => lucide.createIcons());
     }
 
     // FILTRADO MANUAL DESDE LA TABLA COMPLETA (IRVIN)
@@ -2668,61 +2849,6 @@
         if (cardInt) cardInt.innerText = data.inter || 0;
       });
 
-      // Actualizar scores en sierra (Daniel)
-      if (CURRENT_ROLE === 'daniel') {
-        const d_ok = document.getElementById('score-sierra-daniel-ok');
-        const d_inc = document.getElementById('score-sierra-daniel-inc');
-        const d_data = conteos['xichudaniel@gmail.com'] || { ok: 0, inc: 0 };
-        if (d_ok) d_ok.innerText = d_data.ok;
-        if (d_inc) d_inc.innerText = d_data.inc;
-
-        const o_ok = document.getElementById('score-sierra-oscher-ok');
-        const o_inc = document.getElementById('score-sierra-oscher-inc');
-        const o_data = conteos['oscher1016@gmail.com'] || { ok: 0, inc: 0 };
-        if (o_ok) o_ok.innerText = o_data.ok;
-        if (o_inc) o_inc.innerText = o_data.inc;
-
-        const j_ok = document.getElementById('score-sierra-jesus-ok');
-        const j_inc = document.getElementById('score-sierra-jesus-inc');
-        const j_data = conteos['jesusivargonzalez@gmail.com'] || { ok: 0, inc: 0 };
-        if (j_ok) j_ok.innerText = j_data.ok;
-        if (j_inc) j_inc.innerText = j_data.inc;
-
-        // Actualizar KPIs globales para Daniel
-        let totalSierra = 0;
-        let okSierra = 0;
-        let incSierra = 0;
-        let loadedSierra = 0;
-
-        cacheEntregasLocales.forEach(item => {
-          if (OPERADORES_DANIEL.includes(item.operador)) {
-            totalSierra++;
-            if (item.checkpoint === "OK") okSierra++;
-            if (item.checkpoint === "NH" || item.checkpoint === "BA" || item.checkpoint === "FD") incSierra++;
-            if (item.fecha_en_ruta && item.fecha_en_ruta !== "") loadedSierra++;
-          }
-        });
-
-        document.getElementById('sierra-kpi-custodia').innerText = totalSierra;
-        document.getElementById('sierra-kpi-validados').innerText = `${loadedSierra} / ${totalSierra}`;
-        
-        const totalEvaluados = okSierra + incSierra;
-        const slaSierra = totalEvaluados > 0 ? Math.round((okSierra / totalEvaluados) * 100) : 100;
-        document.getElementById('sierra-kpi-sla').innerText = `${slaSierra}%`;
-        
-        const statusSla = document.getElementById('sierra-kpi-sla-status');
-        if (slaSierra >= 85) {
-          statusSla.innerText = "SLA Dentro de Parámetro ✅";
-          statusSla.className = "text-[10px] text-emerald-400 font-semibold";
-        } else {
-          statusSla.innerText = "Bajo el estándar DHL ⚠️";
-          statusSla.className = "text-[10px] text-red-400 font-semibold";
-        }
-
-        const barProgress = document.getElementById('sierra-validados-progress');
-        const pctProgress = totalSierra > 0 ? Math.round((loadedSierra / totalSierra) * 100) : 0;
-        barProgress.style.width = `${pctProgress}%`;
-      }
     }
 
     // CONFIGURAR Y ABRIR AUDITORÍA AVANZADA EN CALIENTE (POCHTECA SELECCIONADO)
@@ -2753,7 +2879,7 @@
         };
 
         // Recargar entregas
-        google.script.run
+        crearRunnerAppsScript()
           .withSuccessHandler(function(lista) {
             cacheEntregasLocales = lista;
             inyectarEntregasEnTabla(lista);
@@ -2767,7 +2893,7 @@
           .obtenerEntregasActivasQRO();
 
         // Recargar pickups (Recolecciones)
-        google.script.run
+        crearRunnerAppsScript()
           .withSuccessHandler(function(lista) {
             cachePickupsLocales = lista;
             checkCompletion();
@@ -3140,7 +3266,7 @@
       addLog("🧠 Enviando imagen a Gemini 3.6 Flash. Extrayendo datos de logística...", 'warn');
 
       if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
+        crearRunnerAppsScript()
           .withSuccessHandler(function(res) {
             btn.disabled = false;
             btn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -3158,7 +3284,7 @@
               
               // Intentar pre-asignar Pochteca
               if (res.cp) {
-                google.script.run
+                crearRunnerAppsScript()
                   .withSuccessHandler(function(choferCorreo) {
                     document.getElementById('form-chofer').value = choferCorreo;
                     addLog(`👤 Auto-asignación exitosa: ${choferCorreo.split('@')[0]}`, 'success');
@@ -3218,7 +3344,7 @@
       addLog(`⏳ Iniciando protocolo Neltiliztli: Despachando booking ${data.id_booking}...`, 'warn');
 
       if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
+        crearRunnerAppsScript()
           .withSuccessHandler(function(res) {
             btn.disabled = false;
             btn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -3262,89 +3388,13 @@
       document.getElementById('form-telefono').value = "";
       document.getElementById('form-chofer').value = "sin_asignar@arauto.express";
     }
-
-
-    // ==========================================
-    // 🏔️ SECCIÓN TAB 2: SIERRA GORDA (DANIEL)
-    // ==========================================
-
-    function cargarIncidenciasSierra() {
-      const tbody = document.getElementById('incidencias-table-body');
-      if (!tbody) return;
-
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="8" class="px-4 py-8 text-center text-slate-500">
-            <div class="inline-block animate-spin rounded-full h-4.5 w-4.5 border-2 border-t-transparent border-blue-400 mb-2"></div>
-            <p class="text-[11px] font-semibold tracking-wide">Leyendo incidencias de MONITOR_INCIDENCIAS_AE...</p>
-          </td>
-        </tr>`;
-
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(function(registros) {
-            inyectarIncidenciasSierraTabla(registros, tbody);
-          })
-          .withFailureHandler(function(err) {
-            console.error("Error al cargar incidencias de sierra: " + err.message);
-          })
-          .obtenerIncidenciasSierraQRO();
-      } else {
-        // Simulación de lectura filtrada por operadores de Daniel
-        setTimeout(() => {
-          inyectarIncidenciasSierraTabla(DB_RESPALDO_INCIDENCIAS, tbody);
-        }, 800);
-      }
-    }
-
-    function inyectarIncidenciasSierraTabla(registros, tbody) {
-      tbody.innerHTML = "";
-      let totalFiltradas = 0;
-
-      registros.forEach(item => {
-        // Filtrado en caliente: Daniel, Jesús Ivar u Oscher
-        const esOperadorDaniel = OPERADORES_DANIEL.includes(item.operador);
-        if (esOperadorDaniel) {
-          totalFiltradas++;
-
-          let badgeClass = "bg-red-950 text-red-400 border border-red-500/20";
-          if (item.checkpoint === "OK") badgeClass = "bg-emerald-950 text-emerald-400 border border-[#1e3f20]";
-
-          tbody.innerHTML += `
-            <tr class="hover:bg-slate-800/40 transition-colors">
-              <td class="px-4 py-3 font-mono font-bold text-slate-400">${item.guia}</td>
-              <td class="px-4 py-3 font-mono text-[10px] truncate max-w-[120px]" title="${item.pid}">${item.pid}</td>
-              <td class="px-4 py-3 text-center font-mono font-bold text-slate-300">${item.cp}</td>
-              <td class="px-4 py-3 truncate max-w-[130px] font-medium" title="${item.destinatario}">${item.destinatario}</td>
-              <td class="px-4 py-3 text-center">
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${badgeClass}">${item.checkpoint}</span>
-              </td>
-              <td class="px-4 py-3 max-w-[180px] truncate text-slate-300" title="${item.comentarios}">${item.comentarios || "-"}</td>
-              <td class="px-4 py-3 font-semibold text-slate-400 text-[10px]">${item.operador.split('@')[0]}</td>
-              <td class="px-4 py-3 text-center text-slate-400">${item.fecha_ingreso || "Hoy"}</td>
-            </tr>`;
-        }
-      });
-
-      if (totalFiltradas === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="8" class="px-4 py-8 text-center text-slate-500">
-              No hay incidencias activas en el monitor de control para la Sierra Gorda.
-            </td>
-          </tr>`;
-      }
-      lucide.createIcons();
-    }
-
-  
     // ==========================================
     // 📬 SECCIÓN BUZÓN GMAIL MONITORING (CONTROL)
     // ==========================================
 
     function cargarBuzonGmail() {
       const inboxList = document.getElementById('gmail-inbox-list');
-      if (!inboxList) return;
+      if (!inboxList) return Promise.resolve(false);
       inboxList.innerHTML = `
         <div class="text-center py-6 text-slate-500 text-xs">
           <div class="inline-block animate-spin rounded-full h-3.5 w-3.5 border-2 border-t-transparent border-emerald-400 mr-2"></div>
@@ -3352,14 +3402,15 @@
         </div>`;
       
       if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(function(lista) {
+        return llamarAppsScript('buscarCorreosBatchQRO')
+          .then(function(lista) {
             inyectarCorreosEnBuzon(lista, inboxList);
+            return true;
           })
-          .withFailureHandler(function(err) {
+          .catch(function(err) {
             inboxList.innerHTML = `<div class="text-center py-4 text-red-400 text-[10px]">Error al leer buzón: ${err.message}</div>`;
-          })
-          .buscarCorreosBatchQRO();
+            return false;
+          });
       } else {
         // Simulación offline
         const listaSimulada = [
@@ -3369,6 +3420,7 @@
         setTimeout(() => {
           inyectarCorreosEnBuzon(listaSimulada, inboxList);
         }, 600);
+        return Promise.resolve(true);
       }
     }
 
@@ -3383,13 +3435,13 @@
         return;
       }
       
-      inboxList.innerHTML = "";
+      const cards = [];
       lista.forEach(msg => {
         let badgeColor = msg.tipo === "REPORTE" ? "bg-emerald-950 text-emerald-400 border border-emerald-500/20" : "bg-amber-950 text-amber-400 border border-amber-500/20";
         let fontStyle = msg.isUnread ? "font-bold text-slate-100" : "text-slate-400";
         let unreadDot = msg.isUnread ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 block"></span>' : '';
         
-        inboxList.innerHTML += `
+        cards.push(`
           <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80 hover:border-slate-700 transition-colors flex items-center justify-between gap-3 text-[11px]">
             <div class="space-y-1 truncate flex-grow">
               <div class="flex items-center gap-1.5">
@@ -3401,8 +3453,9 @@
             <div class="flex-shrink-0">
               ${unreadDot}
             </div>
-          </div>`;
+          </div>`);
       });
+      inboxList.innerHTML = cards.join('');
       lucide.createIcons();
     }
 
