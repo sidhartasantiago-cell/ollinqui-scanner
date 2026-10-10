@@ -6744,7 +6744,7 @@
       textoFichaPericial('ficha-360-texto-dhl', ticket.textoOriginalDhl || ticket.detalleDhl, 'Sin texto original disponible');
 
       const mapsUrl = ticket.gps
-        ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(String(ticket.gps).trim())
+        ? 'https:' + '\x2F\x2F' + 'www.google.com/maps/search/?api=1&query=' + encodeURIComponent(String(ticket.gps).trim())
         : '';
       mostrarEnlaceFichaPericial('ficha-360-maps', mapsUrl);
 
@@ -6752,7 +6752,7 @@
       mostrarEnlaceFichaPericial('ficha-360-llamar', phoneDigits.length >= 10 && phoneDigits.length <= 15 ? 'tel:+' + phoneDigits : '', true);
       let whatsappNumber = phoneDigits;
       if (whatsappNumber.length === 10) whatsappNumber = '52' + whatsappNumber;
-      mostrarEnlaceFichaPericial('ficha-360-whatsapp', whatsappNumber.length >= 10 && whatsappNumber.length <= 15 ? 'https://wa.me/' + whatsappNumber : '');
+      mostrarEnlaceFichaPericial('ficha-360-whatsapp', whatsappNumber.length >= 10 && whatsappNumber.length <= 15 ? 'https:' + '\x2F\x2F' + 'wa.me/' + whatsappNumber : '');
 
       mostrarImagenFichaPericial('foto', ticket.fotoFachada);
       mostrarImagenFichaPericial('firma', ticket.firma);
