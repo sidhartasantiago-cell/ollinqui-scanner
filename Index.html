@@ -142,8 +142,8 @@
         <div>
           <h1 class="text-sm font-black tracking-wider uppercase flex items-center gap-1.5 text-slate-100">
             CONSOLA MAESTRA QRO
-            <span class="text-[9px] bg-emerald-950 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded font-bold uppercase font-mono tracking-normal">
-              V84.5 PROD
+            <span class="text-[9px] bg-amber-950 text-[#D4AF37] border border-amber-500/30 px-1.5 py-0.5 rounded font-bold uppercase font-mono tracking-normal shadow-sm">
+              V86.2 PROD
             </span>
           </h1>
           <p class="text-[9px] text-[#D4AF37] font-bold uppercase tracking-wider">Centro de Mando Operativo Megapulpo</p>
@@ -249,7 +249,7 @@
             <div class="space-y-2 text-center md:text-left">
               <h2 class="text-lg font-extrabold text-[#D4AF37] tracking-wider uppercase flex items-center justify-center md:justify-start gap-2">
                 <i data-lucide="shield-alert" class="w-5 h-5 text-emerald-400"></i>
-                Procesamiento Unificado v84.5 PROD
+                Procesamiento Unificado v86.2 PROD
               </h2>
               <p class="text-xs text-slate-300 max-w-xl font-medium leading-relaxed">
                 Ejecuta de forma secuencial y en memoria asíncrona la descarga del Excel de DHL, la extracción limpia de números telefónicos de Gmail y el enraizamiento en bases de rampa.
@@ -463,7 +463,7 @@
                   ETIQUETA: 04_EDD_QRO
                 </span>
                 <span class="text-[10px] font-mono bg-emerald-950 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-bold">
-                  POKA-YOKE V84.5
+                  POKA-YOKE V86.2
                 </span>
               </div>
               <h3 class="text-lg md:text-xl font-extrabold text-slate-100 uppercase tracking-wide flex items-center gap-2">
@@ -6365,6 +6365,7 @@
               <div class="flex items-center gap-1.5 mt-0.5">
                 <span class="text-[10px] text-slate-500 font-mono">${ticketIdHtml}</span>
                 ${t.cp ? `<span class="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-mono">CP: ${escaparHtmlAclaraciones(t.cp)}</span>` : ''}
+                ${(t.colonia || t.municipio) ? `<span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-950/60 text-amber-300 border border-amber-500/20 truncate max-w-[150px]" title="${escaparHtmlAclaraciones([t.colonia, t.municipio].filter(Boolean).join(', '))}">📍 ${escaparHtmlAclaraciones([t.colonia, t.municipio].filter(Boolean).join(', '))}</span>` : ''}
                 ${t.checkpoint || t.checkpointRuta ? `<span class="text-[9px] px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-400 border border-emerald-500/30 font-mono font-bold">${escaparHtmlAclaraciones(t.checkpoint || t.checkpointRuta)}</span>` : ''}
                 ${origenBadge}
               </div>
@@ -6400,8 +6401,9 @@
             </td>
             <td class="px-4 py-3">
               <div class="flex items-center justify-center gap-1.5">
-                <button onclick="abrirFichaPericial360(${ticketIdArg})" title="Abrir Ficha Pericial 360°" class="px-2 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-[10px] font-bold border border-indigo-400/40 shadow">
-                  <span class="inline-flex items-center gap-1"><i data-lucide="shield" class="w-3.5 h-3.5"></i> Ficha 360°</span>
+                <button onclick="abrirFichaPericial360(${ticketIdArg})" title="Abrir Ficha Pericial 360°" class="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-400 via-[#D4AF37] to-amber-500 hover:from-amber-300 hover:to-amber-400 active:scale-95 text-slate-950 font-black text-[10px] uppercase tracking-wider border border-amber-300 shadow-md shadow-amber-500/30 flex items-center gap-1.5">
+                  <i data-lucide="shield-check" class="w-3.5 h-3.5 text-slate-950"></i>
+                  <span>Ficha 360°</span>
                 </button>
                 <button onclick="abrirModalMacros(${ticketIdArg})" title="Ver las 4 macros periciales para DHL" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-400 border border-amber-500/30">
                   <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
