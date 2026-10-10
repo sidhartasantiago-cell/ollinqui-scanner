@@ -2320,6 +2320,149 @@
             </button>
           </div>
         </div>
+    </div>
+
+    <!-- 🛡️ FICHA PERICIAL 360° DEL ENVÍO (CANÓNICA GLOBAL) -->
+    <div id="modal-ficha-pericial-360" class="fixed inset-0 z-[9998] bg-slate-950/85 backdrop-blur-md hidden items-center justify-center p-3 md:p-6" role="dialog" aria-modal="true" aria-labelledby="ficha-360-titulo">
+      <div class="bg-slate-900 border border-amber-500/30 rounded-3xl w-full max-w-6xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
+        <div class="px-5 md:px-7 py-4 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between gap-4">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-10 h-10 shrink-0 rounded-xl bg-amber-500/15 border border-amber-400/30 flex items-center justify-center text-amber-300">
+              <i data-lucide="shield-check" class="w-5 h-5"></i>
+            </div>
+            <div class="min-w-0">
+              <h3 id="ficha-360-titulo" class="text-sm md:text-base font-extrabold text-white uppercase tracking-wide flex items-center gap-2">
+                Ficha Pericial 360°
+                <span class="text-[9px] bg-amber-500/20 text-[#D4AF37] border border-amber-500/30 px-2 py-0.5 rounded font-mono font-bold">EXPEDIENTE COMPLETO</span>
+              </h3>
+              <p id="ficha-360-subtitulo" class="text-xs text-slate-400 truncate">Guía: -- | PID: --</p>
+            </div>
+          </div>
+          <button onclick="cerrarFichaPericial360()" aria-label="Cerrar ficha" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <div class="p-4 md:p-6 overflow-y-auto custom-scrollbar">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <section class="rounded-2xl border border-blue-500/20 bg-slate-950/70 p-4 space-y-3">
+              <h4 class="text-xs font-extrabold uppercase tracking-wider text-blue-300 flex items-center gap-2">
+                <i data-lucide="map-pin" class="w-4 h-4"></i> Geografía &amp; Destino
+              </h4>
+              <div>
+                <div class="text-[10px] uppercase text-slate-500 font-bold">Dirección</div>
+                <div id="ficha-360-direccion" class="text-sm text-slate-200 break-words font-medium">No registrada</div>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <div class="text-[10px] uppercase text-slate-500 font-bold">Código Postal</div>
+                  <div id="ficha-360-cp" class="text-sm font-mono text-slate-200 font-bold">No registrado</div>
+                </div>
+                <div>
+                  <div class="text-[10px] uppercase text-slate-500 font-bold">Comunidad / Municipio</div>
+                  <div id="ficha-360-comunidad" class="text-sm text-slate-200 font-semibold">No identificado</div>
+                </div>
+              </div>
+              <div>
+                <div class="text-[10px] uppercase text-slate-500 font-bold">Teléfono de contacto del destinatario</div>
+                <div id="ficha-360-tel-contacto" class="text-sm font-mono text-emerald-400 font-bold">No registrado</div>
+              </div>
+              <div>
+                <div class="text-[10px] uppercase text-slate-500 font-bold">Coordenadas GPS</div>
+                <div id="ficha-360-gps" class="text-xs font-mono text-slate-300 break-all">No registrado</div>
+              </div>
+              <a id="ficha-360-maps" href="#" target="_blank" rel="noopener noreferrer" class="hidden inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 px-3 py-2 text-xs font-bold text-white shadow">
+                <i data-lucide="map" class="w-4 h-4"></i> Ver en Google Maps
+              </a>
+            </section>
+
+            <section class="rounded-2xl border border-emerald-500/20 bg-slate-950/70 p-4 space-y-3">
+              <h4 class="text-xs font-extrabold uppercase tracking-wider text-emerald-300 flex items-center gap-2">
+                <i data-lucide="user-round" class="w-4 h-4"></i> Pochteca &amp; Operación
+              </h4>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <div class="text-[10px] uppercase text-slate-500 font-bold">Chofer asignado</div>
+                  <div id="ficha-360-chofer" class="text-sm font-bold text-slate-100">Sin asignar</div>
+                </div>
+                <div>
+                  <div class="text-[10px] uppercase text-slate-500 font-bold">Supervisor</div>
+                  <div id="ficha-360-supervisor" class="text-sm text-slate-200 font-semibold">No registrado</div>
+                </div>
+              </div>
+              <div>
+                <div class="text-[10px] uppercase text-slate-500 font-bold">Teléfono registrado del chofer</div>
+                <div id="ficha-360-tel-chofer" class="text-sm font-mono text-slate-300">No registrado</div>
+              </div>
+              <div class="flex flex-wrap gap-2 pt-1">
+                <a id="ficha-360-llamar" href="#" class="hidden rounded-xl bg-emerald-700 hover:bg-emerald-600 px-3 py-2 text-xs font-bold text-white shadow">
+                  📞 Llamar al Chofer
+                </a>
+                <a id="ficha-360-whatsapp" href="#" target="_blank" rel="noopener noreferrer" class="hidden rounded-xl bg-green-600 hover:bg-green-500 px-3 py-2 text-xs font-bold text-white shadow">
+                  💬 WhatsApp Chofer
+                </a>
+              </div>
+            </section>
+
+            <section class="rounded-2xl border border-violet-500/20 bg-slate-950/70 p-4 space-y-3">
+              <h4 class="text-xs font-extrabold uppercase tracking-wider text-violet-300 flex items-center gap-2">
+                <i data-lucide="images" class="w-4 h-4"></i> Evidencias POD
+              </h4>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="space-y-1">
+                  <div class="text-[10px] uppercase text-slate-500 font-bold">Fachada (clic para ampliar)</div>
+                  <a id="ficha-360-foto-link" class="hidden" target="_blank" rel="noopener noreferrer">
+                    <img id="ficha-360-foto" alt="Evidencia de fachada" class="max-h-48 w-full object-contain rounded-xl border border-slate-700 bg-slate-900">
+                  </a>
+                  <p id="ficha-360-foto-vacia" class="text-xs text-slate-500 py-8 text-center border border-dashed border-slate-700 rounded-xl">Sin foto registrada</p>
+                </div>
+                <div class="space-y-1">
+                  <div class="text-[10px] uppercase text-slate-500 font-bold">Firma (clic para ampliar)</div>
+                  <a id="ficha-360-firma-link" class="hidden" target="_blank" rel="noopener noreferrer">
+                    <img id="ficha-360-firma" alt="Firma digital de entrega" class="max-h-48 w-full object-contain rounded-xl border border-slate-700 bg-slate-900">
+                  </a>
+                  <p id="ficha-360-firma-vacia" class="text-xs text-slate-500 py-8 text-center border border-dashed border-slate-700 rounded-xl">Sin firma registrada</p>
+                </div>
+              </div>
+              <div>
+                <div class="text-[10px] uppercase text-slate-500 mb-1 font-bold">Audio Teoyolotl</div>
+                <audio id="ficha-360-audio" class="hidden w-full" controls preload="none"></audio>
+                <a id="ficha-360-audio-link" class="hidden text-xs text-blue-300 underline mt-1 inline-block" target="_blank" rel="noopener noreferrer">Abrir audio en otra pestaña</a>
+                <span id="ficha-360-audio-vacio" class="text-xs text-slate-500">Sin audio registrado</span>
+              </div>
+              <div>
+                <div class="text-[10px] uppercase text-slate-500 font-bold">Comentarios POD</div>
+                <div id="ficha-360-comentarios" class="text-sm text-slate-300 whitespace-pre-wrap break-words bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">Sin comentarios</div>
+              </div>
+            </section>
+
+            <section class="rounded-2xl border border-amber-500/20 bg-slate-950/70 p-4 space-y-3">
+              <h4 class="text-xs font-extrabold uppercase tracking-wider text-amber-300 flex items-center gap-2">
+                <i data-lucide="mail" class="w-4 h-4"></i> Expediente DHL
+              </h4>
+              <div>
+                <div class="text-[10px] uppercase text-slate-500 font-bold">Asunto del reclamo</div>
+                <div id="ficha-360-asunto" class="text-sm font-semibold text-slate-100 break-words">Sin asunto</div>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <div class="text-[10px] uppercase text-slate-500 font-bold">Fecha de solicitud</div>
+                  <div id="ficha-360-fecha" class="text-xs font-mono text-slate-300">No registrada</div>
+                </div>
+                <div>
+                  <div class="text-[10px] uppercase text-slate-500 font-bold">Checkpoint</div>
+                  <div id="ficha-360-checkpoint" class="text-xs font-mono font-bold text-emerald-300">No registrado</div>
+                </div>
+              </div>
+              <div>
+                <div class="text-[10px] uppercase text-slate-500 mb-1 font-bold">Texto original de DHL</div>
+                <div id="ficha-360-texto-dhl" class="max-h-44 overflow-y-auto rounded-xl border border-slate-800 bg-slate-900 p-3 text-xs text-slate-300 whitespace-pre-wrap break-words custom-scrollbar">Sin texto original disponible</div>
+              </div>
+              <button onclick="abrirMacrosDesdeFicha()" class="inline-flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 px-3 py-2 text-xs font-extrabold text-slate-950 shadow">
+                <i data-lucide="copy" class="w-4 h-4"></i> Ver 4 respuestas y copiar dictamen
+              </button>
+            </section>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -6857,72 +7000,7 @@
             <div class="flex items-center justify-between">
               <div>
                 <div class="font-bold text-xs text-slate-200">${p.nombre}</div>
-                <div class="text-[10px] text-slate-400 font-mono">${rutaNombre}                </div>
-              </div>
-
-              <!-- FICHA PERICIAL 360° DEL ENVÍO -->
-              <div id="modal-ficha-pericial-360" class="fixed inset-0 z-[9998] bg-slate-950/85 backdrop-blur-md hidden items-center justify-center p-3 md:p-6" role="dialog" aria-modal="true" aria-labelledby="ficha-360-titulo">
-                <div class="bg-slate-900 border border-indigo-500/30 rounded-3xl w-full max-w-6xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
-                  <div class="px-5 md:px-7 py-4 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between gap-4">
-                    <div class="flex items-center gap-3 min-w-0">
-                      <div class="w-10 h-10 shrink-0 rounded-xl bg-indigo-500/15 border border-indigo-400/30 flex items-center justify-center text-indigo-300"><i data-lucide="scan-eye" class="w-5 h-5"></i></div>
-                      <div class="min-w-0">
-                        <h3 id="ficha-360-titulo" class="text-sm md:text-base font-extrabold text-white uppercase tracking-wide">Ficha Pericial 360°</h3>
-                        <p id="ficha-360-subtitulo" class="text-xs text-slate-400 truncate">Guía: -- | PID: --</p>
-                      </div>
-                    </div>
-                    <button onclick="cerrarFichaPericial360()" aria-label="Cerrar ficha" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300"><i data-lucide="x" class="w-4 h-4"></i></button>
-                  </div>
-                  <div class="p-4 md:p-6 overflow-y-auto custom-scrollbar">
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      <section class="rounded-2xl border border-blue-500/20 bg-slate-950/70 p-4 space-y-3">
-                        <h4 class="text-xs font-extrabold uppercase tracking-wider text-blue-300 flex items-center gap-2"><i data-lucide="map-pin" class="w-4 h-4"></i> Geografía &amp; Destino</h4>
-                        <div><div class="text-[10px] uppercase text-slate-500">Dirección</div><div id="ficha-360-direccion" class="text-sm text-slate-200 break-words">No registrada</div></div>
-                        <div class="grid grid-cols-2 gap-3">
-                          <div><div class="text-[10px] uppercase text-slate-500">Código Postal</div><div id="ficha-360-cp" class="text-sm font-mono text-slate-200">No registrado</div></div>
-                          <div><div class="text-[10px] uppercase text-slate-500">Comunidad / Municipio</div><div id="ficha-360-comunidad" class="text-sm text-slate-200">No identificado</div></div>
-                        </div>
-                        <div><div class="text-[10px] uppercase text-slate-500">Teléfono de contacto del destinatario</div><div id="ficha-360-tel-contacto" class="text-sm font-mono text-slate-300">No registrado</div></div>
-                        <div><div class="text-[10px] uppercase text-slate-500">GPS</div><div id="ficha-360-gps" class="text-xs font-mono text-slate-300 break-all">No registrado</div></div>
-                        <a id="ficha-360-maps" href="#" target="_blank" rel="noopener noreferrer" class="hidden inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 px-3 py-2 text-xs font-bold text-white"><i data-lucide="map" class="w-4 h-4"></i> Ver en Google Maps</a>
-                      </section>
-
-                      <section class="rounded-2xl border border-emerald-500/20 bg-slate-950/70 p-4 space-y-3">
-                        <h4 class="text-xs font-extrabold uppercase tracking-wider text-emerald-300 flex items-center gap-2"><i data-lucide="user-round" class="w-4 h-4"></i> Pochteca &amp; Operación</h4>
-                        <div class="grid grid-cols-2 gap-3">
-                          <div><div class="text-[10px] uppercase text-slate-500">Chofer asignado</div><div id="ficha-360-chofer" class="text-sm font-bold text-slate-100">Sin asignar</div></div>
-                          <div><div class="text-[10px] uppercase text-slate-500">Supervisor</div><div id="ficha-360-supervisor" class="text-sm text-slate-200">No registrado</div></div>
-                        </div>
-                        <div><div class="text-[10px] uppercase text-slate-500">Teléfono registrado del chofer</div><div id="ficha-360-tel-chofer" class="text-sm font-mono text-slate-300">No registrado</div></div>
-                        <div class="flex flex-wrap gap-2">
-                          <a id="ficha-360-llamar" href="#" class="hidden rounded-xl bg-emerald-700 hover:bg-emerald-600 px-3 py-2 text-xs font-bold text-white">📞 Llamar al Chofer</a>
-                          <a id="ficha-360-whatsapp" href="#" target="_blank" rel="noopener noreferrer" class="hidden rounded-xl bg-green-600 hover:bg-green-500 px-3 py-2 text-xs font-bold text-white">💬 WhatsApp Chofer</a>
-                        </div>
-                      </section>
-
-                      <section class="rounded-2xl border border-violet-500/20 bg-slate-950/70 p-4 space-y-3">
-                        <h4 class="text-xs font-extrabold uppercase tracking-wider text-violet-300 flex items-center gap-2"><i data-lucide="images" class="w-4 h-4"></i> Evidencias POD</h4>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div class="space-y-1"><div class="text-[10px] uppercase text-slate-500">Fachada (clic para ampliar)</div><a id="ficha-360-foto-link" class="hidden" target="_blank" rel="noopener noreferrer"><img id="ficha-360-foto" alt="Evidencia de fachada" class="max-h-48 w-full object-contain rounded-xl border border-slate-700 bg-slate-900"></a><p id="ficha-360-foto-vacia" class="text-xs text-slate-500 py-8 text-center border border-dashed border-slate-700 rounded-xl">Sin foto registrada</p></div>
-                          <div class="space-y-1"><div class="text-[10px] uppercase text-slate-500">Firma (clic para ampliar)</div><a id="ficha-360-firma-link" class="hidden" target="_blank" rel="noopener noreferrer"><img id="ficha-360-firma" alt="Firma digital de entrega" class="max-h-48 w-full object-contain rounded-xl border border-slate-700 bg-slate-900"></a><p id="ficha-360-firma-vacia" class="text-xs text-slate-500 py-8 text-center border border-dashed border-slate-700 rounded-xl">Sin firma registrada</p></div>
-                        </div>
-                        <div><div class="text-[10px] uppercase text-slate-500 mb-1">Audio Teoyolotl</div><audio id="ficha-360-audio" class="hidden w-full" controls preload="none"></audio><a id="ficha-360-audio-link" class="hidden text-xs text-blue-300 underline" target="_blank" rel="noopener noreferrer">Abrir audio en otra pestaña</a><span id="ficha-360-audio-vacio" class="text-xs text-slate-500">Sin audio registrado</span></div>
-                        <div><div class="text-[10px] uppercase text-slate-500">Comentarios POD</div><div id="ficha-360-comentarios" class="text-sm text-slate-300 whitespace-pre-wrap break-words">Sin comentarios</div></div>
-                      </section>
-
-                      <section class="rounded-2xl border border-amber-500/20 bg-slate-950/70 p-4 space-y-3">
-                        <h4 class="text-xs font-extrabold uppercase tracking-wider text-amber-300 flex items-center gap-2"><i data-lucide="mail" class="w-4 h-4"></i> Expediente DHL</h4>
-                        <div><div class="text-[10px] uppercase text-slate-500">Asunto del reclamo</div><div id="ficha-360-asunto" class="text-sm font-semibold text-slate-100 break-words">Sin asunto</div></div>
-                        <div class="grid grid-cols-2 gap-3">
-                          <div><div class="text-[10px] uppercase text-slate-500">Fecha de solicitud</div><div id="ficha-360-fecha" class="text-xs font-mono text-slate-300">No registrada</div></div>
-                          <div><div class="text-[10px] uppercase text-slate-500">Checkpoint</div><div id="ficha-360-checkpoint" class="text-xs font-mono font-bold text-emerald-300">No registrado</div></div>
-                        </div>
-                        <div><div class="text-[10px] uppercase text-slate-500 mb-1">Texto original de DHL</div><div id="ficha-360-texto-dhl" class="max-h-44 overflow-y-auto rounded-xl border border-slate-800 bg-slate-900 p-3 text-xs text-slate-300 whitespace-pre-wrap break-words">Sin texto original disponible</div></div>
-                        <button onclick="abrirMacrosDesdeFicha()" class="inline-flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 px-3 py-2 text-xs font-extrabold text-slate-950"><i data-lucide="copy" class="w-4 h-4"></i> Ver 4 respuestas y copiar dictamen</button>
-                      </section>
-                    </div>
-                  </div>
-                </div>
+                <div class="text-[10px] text-slate-400 font-mono">${rutaNombre}</div>
               </div>
               <span class="text-[9px] px-2 py-0.5 rounded font-mono font-bold ${isOllin ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/30' : isHibrido ? 'bg-amber-950 text-amber-400 border border-amber-500/30' : 'bg-blue-950 text-blue-400 border border-blue-500/30'}">
                 ${modo}
