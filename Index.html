@@ -45,6 +45,970 @@
       background: #334155;
     }
   </style>
+
+  <!-- 🔮 OLLIN THINKING ORBS v1.0.0 (Canvas 2D Industrial & Web Component) -->
+  <script>
+/**
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║                      OLLIN THINKING ORBS v1.0.0                           ║
+ * ║           Ecosistema OLLIN (Consola Maestra, Painani, Ollinqui PWA)       ║
+ * ║   Motor Matemático 2D Canvas de Orbes Cognitivos para Interfaces Agénticas║
+ * ║         Inspirado en Jakub Antalik (jakubantalik/thinking-orbs)           ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
+ *
+ * Características Industriales & Poka-Yoke:
+ * - 100% Canvas 2D nativo (Cero WebGL, cero filtros CSS pesados, < 12 KB).
+ * - 9 Verbos Cognitivos: working, searching, solving, listening, connecting,
+ *   weaving, composing, breathing, shaping.
+ * - Paletas Sagradas OLLIN: 'gold' (#D4AF37), 'emerald' (#10B981),
+ *   'cyan' (#06B6D4), 'crimson' (#EF4444) y 'auto'/'monochrome'.
+ * - Eficiencia Energética de Batería:
+ *   * Auto-pausa por IntersectionObserver si está fuera de pantalla.
+ *   * Auto-pausa por document.hidden si la pestaña pasa a segundo plano.
+ *   * Soporte estático para prefers-reduced-motion.
+ * - Multiplataforma: Web Component <ollin-orb> y API JS OllinOrbs.
+ */
+
+(function (global) {
+  'use strict';
+
+  // -------------------------------------------------------------
+  // 1. UTILIDADES MATEMÁTICAS PURAS
+  // -------------------------------------------------------------
+  function lerp(a, b, t) {
+    return a + (b - a) * t;
+  }
+
+  function fract(n) {
+    return n - Math.floor(n);
+  }
+
+  function hash2D(n, s) {
+    const t = Math.sin(n * 12.9898 + s * 78.233) * 43758.5453;
+    return t - Math.floor(t);
+  }
+
+  function smoothNoise2D(n, s) {
+    const t = Math.floor(n), r = Math.floor(s);
+    let a = n - t, o = s - r;
+    a = a * a * (3 - 2 * a);
+    o = o * o * (3 - 2 * o);
+    const c = hash2D(t, r),
+      M = hash2D(t + 1, r),
+      h = hash2D(t, r + 1),
+      m = hash2D(t + 1, r + 1);
+    return c + (M - c) * a + (h - c) * o + (c - M - h + m) * a * o;
+  }
+
+  function fibonacciSphere(index, total) {
+    const phi = Math.PI * (3 - Math.sqrt(5));
+    const y = 1 - 2 * (index + 0.5) / total;
+    const radius = Math.sqrt(Math.max(0, 1 - y * y));
+    const theta = index * phi;
+    return [radius * Math.cos(theta), y, radius * Math.sin(theta)];
+  }
+
+  function angleDiff(a, b) {
+    return Math.atan2(Math.sin(a - b), Math.cos(a - b));
+  }
+
+  function makeProj(yaw, pitch, cx, cy, scale) {
+    const sinP = Math.sin(pitch), cosP = Math.cos(pitch);
+    const sinY = Math.sin(yaw), cosY = Math.cos(yaw);
+    return function (x, y, z) {
+      const rx = x * cosY + z * sinY;
+      const rz = -x * sinY + z * cosY;
+      const ry = y * cosP - rz * sinP;
+      const rw = y * sinP + rz * cosP;
+      return [cx + rx * scale, cy - ry * scale, rw];
+    };
+  }
+
+  function radiusScale(size, pow) {
+    return Math.pow(size / 300, pow);
+  }
+
+  function smoothStep(t) {
+    return t * t * (3 - 2 * t);
+  }
+
+  function finalizeFrame(dots, lines, minRadius = 0.3) {
+    const filteredDots = [];
+    for (let i = 0; i < dots.length; i++) {
+      const dot = dots[i];
+      if ((dot.a ?? 1) >= 0.02) {
+        dot.r = Math.max(minRadius, dot.r);
+        filteredDots.push(dot);
+      }
+    }
+    filteredDots.sort((a, b) => a.z - b.z);
+    const filteredLines = lines ? lines.filter(l => (l.a ?? 1) >= 0.02) : [];
+    return { dots: filteredDots, lines: filteredLines };
+  }
+
+  // -------------------------------------------------------------
+  // 2. PALETAS CROMÁTICAS OLLIN
+  // -------------------------------------------------------------
+  const COLOR_PALETTES = {
+    gold: {
+      // Oro Imperial Arauto
+      primary: [212, 175, 55],    // #D4AF37
+      highlight: [255, 245, 194],  // #FFF5C2
+      shadow: [146, 64, 14]       // #92400E
+    },
+    emerald: {
+      // Jade Esmeralda Checkpoint
+      primary: [16, 185, 129],   // #10B981
+      highlight: [167, 243, 208], // #A7F3D0
+      shadow: [6, 78, 59]         // #064E3B
+    },
+    cyan: {
+      // Cian Tlatoani IA / OCR
+      primary: [6, 182, 212],    // #06B6D4
+      highlight: [186, 230, 253], // #BAE6FD
+      shadow: [14, 116, 144]     // #0E7490
+    },
+    crimson: {
+      // Carmesí Teotl Alerta / Incidencia
+      primary: [239, 68, 68],    // #EF4444
+      highlight: [254, 202, 202], // #FECACA
+      shadow: [153, 27, 27]       // #991B1B
+    }
+  };
+
+  function resolveColorChannels(whiteRatio, isDark, paletteKey) {
+    const pal = COLOR_PALETTES[paletteKey];
+    if (pal) {
+      // Interpolación armónica de color según ratio de profundidad
+      const w = Math.min(1, Math.max(0, whiteRatio));
+      const r = Math.round(lerp(pal.shadow[0], pal.highlight[0], isDark ? w : (1 - w)));
+      const g = Math.round(lerp(pal.shadow[1], pal.highlight[1], isDark ? w : (1 - w)));
+      const b = Math.round(lerp(pal.shadow[2], pal.highlight[2], isDark ? w : (1 - w)));
+      return [r, g, b];
+    }
+    // Monocromo nativo estándar
+    const c = Math.min(1, Math.max(0, whiteRatio));
+    const mono = Math.round((isDark ? 1 - c : c) * 255);
+    return [mono, mono, mono];
+  }
+
+  function paintFrame(ctx, frame, isDark, paletteKey) {
+    // Líneas (si existen, p. ej. en 'connecting')
+    if (frame.lines && frame.lines.length) {
+      for (let i = 0; i < frame.lines.length; i++) {
+        const line = frame.lines[i];
+        const alpha = line.a ?? 1;
+        const [r, g, b] = resolveColorChannels(line.white ?? 0.5, isDark, paletteKey);
+        ctx.strokeStyle = `rgba(${r},${g},${b},${alpha})`;
+        ctx.lineWidth = line.w || 1;
+        ctx.beginPath();
+        ctx.moveTo(line.x1, line.y1);
+        ctx.lineTo(line.x2, line.y2);
+        ctx.stroke();
+      }
+    }
+
+    // Puntos (Dots)
+    for (let i = 0; i < frame.dots.length; i++) {
+      const dot = frame.dots[i];
+      const alpha = dot.a ?? 1;
+      const [r, g, b] = resolveColorChannels(dot.white ?? 0.5, isDark, paletteKey);
+      ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+      ctx.beginPath();
+      ctx.arc(dot.x, dot.y, dot.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // -------------------------------------------------------------
+  // 3. LOS 9 MODOS MATEMÁTICOS DE ANIMACIÓN (Jakub Antalik Specs)
+  // -------------------------------------------------------------
+
+  // 1) WORKING -> orbits
+  function frameOrbits(size, time, opts) {
+    const cx = size / 2, cy = size / 2, radius = size / 2 * 0.82;
+    const proj = makeProj(time * 0.12, 0.3, cx, cy, 1);
+    const rs = radiusScale(size, opts.rsPow ?? 0.6);
+    const dots = [];
+    const orbitN = opts.orbitN ?? 12;
+    const ghostN = opts.ghostN ?? 40;
+    const particles = opts.particles ?? 3;
+
+    for (let e = 0; e < orbitN; e++) {
+      const h1 = hash2D(e, 1.7), h2 = hash2D(e, 5.2), h3 = hash2D(e, 8.9);
+      const curRadius = radius * (0.45 + 0.52 * h1);
+      const angle = h1 * 2 * Math.PI;
+      const inc = Math.acos(2 * h2 - 1);
+      const nx = Math.sin(inc) * Math.cos(angle);
+      const ny = Math.cos(inc);
+      const nz = Math.sin(inc) * Math.sin(angle);
+
+      let ux = -ny, uy = nx;
+      const norm = Math.max(1e-6, Math.sqrt(ux * ux + uy * uy));
+      ux /= norm; uy /= norm;
+
+      const vx = ny * 0 - nz * uy;
+      const vy = nz * ux - nx * 0;
+      const vz = nx * uy - ny * ux;
+      const speed = (0.25 + 0.55 * h3) * (h3 > 0.5 ? 1 : -1);
+
+      for (let g = 0; g < ghostN; g++) {
+        const theta = g / ghostN * 2 * Math.PI;
+        const [px, py, pz] = proj(
+          (ux * Math.cos(theta) + vx * Math.sin(theta)) * curRadius,
+          (uy * Math.cos(theta) + vy * Math.sin(theta)) * curRadius,
+          (0 + vz * Math.sin(theta)) * curRadius
+        );
+        const depth = (pz / curRadius + 1) / 2;
+        dots.push({
+          x: px, y: py, z: pz,
+          r: (opts.ghostR ?? 0.9) * rs,
+          white: 0.72,
+          a: (opts.ghostA ?? 0.5) * (0.4 + 0.6 * depth)
+        });
+      }
+
+      for (let p = 0; p < particles; p++) {
+        const ptheta = time * speed + p / particles * 2 * Math.PI + h2 * 6;
+        const [px, py, pz] = proj(
+          (ux * Math.cos(ptheta) + vx * Math.sin(ptheta)) * curRadius,
+          (uy * Math.cos(ptheta) + vy * Math.sin(ptheta)) * curRadius,
+          (0 + vz * Math.sin(ptheta)) * curRadius
+        );
+        const depth = (pz / curRadius + 1) / 2;
+        dots.push({
+          x: px, y: py, z: pz,
+          r: ((opts.partR ?? 1.2) + (opts.partRDepth ?? 1.6) * depth) * rs,
+          white: 0.3 - 0.22 * depth
+        });
+      }
+    }
+    return finalizeFrame(dots, [], opts.rMin);
+  }
+
+  // 2) SEARCHING -> globe
+  function frameGlobe(size, time, opts) {
+    const cx = size / 2, cy = size / 2, radius = size / 2 * 0.82;
+    const pitch = 0.4 + 0.06 * Math.sin(time * 0.35);
+    const proj = makeProj(time * 0.5, pitch, cx, cy, radius);
+    const scanPos = time * (0.5 + (1.7 - 0.5) * (opts.scanMul ?? 1));
+    const rs = radiusScale(size, opts.rsPow ?? 0.6);
+    const dimBase = opts.dimBase ?? 1;
+    const dots = [];
+    const latRings = opts.latRings ?? 17;
+    const lonDensity = opts.lonDensity ?? 44;
+
+    for (let w = 0; w <= latRings; w++) {
+      const lat = -Math.PI / 2 + (w / latRings) * Math.PI;
+      const cosLat = Math.cos(lat), sinLat = Math.sin(lat);
+      const ringDots = Math.max(1, Math.round(Math.abs(cosLat) * lonDensity));
+      for (let f = 0; f < ringDots; f++) {
+        const lon = (f / ringDots) * 2 * Math.PI;
+        const [px, py, pz] = proj(cosLat * Math.cos(lon), sinLat, cosLat * Math.sin(lon));
+        const depth = (pz + 1) / 2;
+        const scanDiff = angleDiff(lon + time * 0.5, scanPos);
+        const scanGlow = Math.exp(-(scanDiff * scanDiff) / 0.18) * Math.max(0, pz);
+        dots.push({
+          x: px, y: py, z: pz,
+          r: ((opts.rBase ?? 0.6) + (opts.rDepth ?? 1.7) * depth + (opts.rBoost ?? 1) * scanGlow) * rs,
+          white: (opts.inkFar ?? 0.62) - (opts.inkSpan ?? 0.54) * depth,
+          a: dimBase + (1 - dimBase) * Math.min(1, scanGlow)
+        });
+      }
+    }
+    return finalizeFrame(dots, [], opts.rMin);
+  }
+
+  // 3) SOLVING -> rubik
+  function frameRubik(size, time, opts) {
+    const cx = size / 2, cy = size / 2, radius = size / 2 * 0.82;
+    const proj = makeProj(time * 0.55, 0.35 + 0.1 * Math.sin(time * 0.9), cx, cy, radius);
+    const rs = radiusScale(size, opts.rsPow ?? 0.6);
+    const moveCount = opts.moveCount ?? 14;
+
+    // Generar cortes pseudo-aleatorios estables
+    const cuts = [];
+    for (let i = 0; i < moveCount; i++) {
+      const axis = Math.min(2, Math.floor(hash2D(i, 2.3) * 3));
+      const lo = -1 + 0.5 * Math.min(3, Math.floor(hash2D(i, 5.9) * 4));
+      const dir = hash2D(i, 7.7) < 0.5 ? 1 : -1;
+      cuts.push({ axis, lo, hi: lo + 0.5, ang: dir * Math.PI / 2 });
+    }
+
+    // Progreso de movimiento
+    const cycleDur = 2 * moveCount * 0.42 + 1.2;
+    const cycleTime = time % cycleDur;
+    const amounts = new Array(moveCount).fill(0);
+    let activeIndex = -1;
+    if (cycleTime < 2 * moveCount * 0.42) {
+      const stepIdx = Math.floor(cycleTime / 0.42);
+      const frac = (cycleTime - stepIdx * 0.42) / 0.42;
+      const ease = 1 - Math.pow(1 - Math.min(1, frac / 0.7), 3);
+      if (stepIdx < moveCount) {
+        for (let e = 0; e < stepIdx; e++) amounts[e] = 1;
+        amounts[stepIdx] = ease;
+        activeIndex = stepIdx;
+      } else {
+        const revIdx = 2 * moveCount - 1 - stepIdx;
+        for (let l = 0; l < revIdx; l++) amounts[l] = 1;
+        amounts[revIdx] = 1 - ease;
+        activeIndex = revIdx;
+      }
+    }
+
+    const dots = [];
+    const latRings = opts.latRings ?? 15;
+    const lonDensity = opts.lonDensity ?? 40;
+
+    for (let r = 0; r <= latRings; r++) {
+      const lat = -Math.PI / 2 + (r / latRings) * Math.PI;
+      const cosLat = Math.cos(lat), sinLat = Math.sin(lat);
+      const ringDots = Math.max(1, Math.round(Math.abs(cosLat) * lonDensity));
+      for (let b = 0; b < ringDots; b++) {
+        const lon = (b / ringDots) * 2 * Math.PI;
+        let px0 = cosLat * Math.cos(lon), py0 = sinLat, pz0 = cosLat * Math.sin(lon);
+        let isActive = false;
+
+        for (let m = 0; m < cuts.length; m++) {
+          if (amounts[m] <= 0) continue;
+          const cut = cuts[m];
+          const val = cut.axis === 0 ? px0 : cut.axis === 1 ? py0 : pz0;
+          if (val < cut.lo || val >= cut.hi) continue;
+          if (m === activeIndex) isActive = true;
+          const rad = cut.ang * amounts[m];
+          const cosR = Math.cos(rad), sinR = Math.sin(rad);
+          if (cut.axis === 0) {
+            const ny = py0 * cosR - pz0 * sinR;
+            pz0 = py0 * sinR + pz0 * cosR;
+            py0 = ny;
+          } else if (cut.axis === 1) {
+            const nx = px0 * cosR + pz0 * sinR;
+            pz0 = -px0 * sinR + pz0 * cosR;
+            px0 = nx;
+          } else {
+            const nx = px0 * cosR - py0 * sinR;
+            py0 = px0 * sinR + py0 * cosR;
+            px0 = nx;
+          }
+        }
+
+        const [vx, vy, vz] = proj(px0, py0, pz0);
+        const depth = (vz + 1) / 2;
+        dots.push({
+          x: vx, y: vy, z: vz,
+          r: ((opts.rBase ?? 0.6) + (opts.rDepth ?? 1.7) * depth + (isActive ? (opts.rActive ?? 0.3) : 0)) * rs,
+          white: (opts.inkFar ?? 0.62) - (opts.inkSpan ?? 0.54) * depth - (isActive ? 0.14 : 0)
+        });
+      }
+    }
+    return finalizeFrame(dots, [], opts.rMin);
+  }
+
+  // 4) LISTENING -> wave
+  function frameWave(size, time, opts) {
+    const cx = size / 2, cy = size / 2, radius = size / 2 * 0.874;
+    const proj = makeProj(time * 0.18, 0.38, cx, cy, 1);
+    const rs = radiusScale(size, opts.rsPow ?? 0.6);
+    const dots = [];
+    const rings = opts.rings ?? 15;
+    const lonDensity = opts.lonDensity ?? 40;
+
+    for (let p = 0; p <= rings; p++) {
+      const lat = -Math.PI / 2 + (p / rings) * Math.PI;
+      const cosLat = Math.cos(lat), sinLat = Math.sin(lat);
+      const wave = 0.62 * Math.sin(time * 2.1 - p * 0.52) + 0.38 * Math.sin(time * 1.27 + p * 0.83);
+      const curRadius = radius * (0.88 + 0.105 * wave);
+      const ringDots = Math.max(1, Math.round(Math.abs(cosLat) * lonDensity));
+
+      for (let g = 0; g < ringDots; g++) {
+        const lon = (g / ringDots) * 2 * Math.PI;
+        const [px, py, pz] = proj(
+          cosLat * Math.cos(lon) * curRadius,
+          sinLat * curRadius,
+          cosLat * Math.sin(lon) * curRadius
+        );
+        const depth = (pz / radius + 1) / 2;
+        const waveAmp = Math.max(0, wave);
+        dots.push({
+          x: px, y: py, z: pz,
+          r: ((opts.rBase ?? 0.6) + (opts.rDepth ?? 1.7) * depth) * (1 + 0.4 * waveAmp) * rs,
+          white: 0.66 - 0.56 * depth - 0.1 * waveAmp
+        });
+      }
+    }
+    return finalizeFrame(dots, [], opts.rMin);
+  }
+
+  // 5) CONNECTING -> web
+  function frameWeb(size, time, opts) {
+    const cx = size / 2, cy = size / 2, radius = size / 2 * 0.8 * (opts.spread ?? 1);
+    const proj = makeProj(time * 0.12, 0.32, cx, cy, radius);
+    const rs = radiusScale(size, opts.rsPow ?? 0.6);
+    const nodeN = opts.nodeN ?? 30;
+    const threshold = opts.thr ?? 0.72;
+    const nodeR = opts.nodeR ?? 1.4;
+    const nodeRDepth = opts.nodeRDepth ?? 1.8;
+
+    const nodes = [];
+    for (let i = 0; i < nodeN; i++) {
+      const base = fibonacciSphere(i, nodeN);
+      const nx = base[0] + 0.3 * (smoothNoise2D(i * 0.31 + 9, time * 0.24) - 0.5) * 2;
+      const ny = base[1] + 0.3 * (smoothNoise2D(i * 0.53 + 27, time * 0.21) - 0.5) * 2;
+      const nz = base[2] + 0.3 * (smoothNoise2D(i * 0.77 + 55, time * 0.27) - 0.5) * 2;
+      const mag = Math.sqrt(nx * nx + ny * ny + nz * nz);
+      nodes.push([nx / mag, ny / mag, nz / mag]);
+    }
+
+    const lines = [];
+    const dots = [];
+
+    for (let i = 0; i < nodeN; i++) {
+      for (let u = i + 1; u < nodeN; u++) {
+        const dx = nodes[i][0] - nodes[u][0];
+        const dy = nodes[i][1] - nodes[u][1];
+        const dz = nodes[i][2] - nodes[u][2];
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (dist >= threshold) continue;
+        const [x1, y1, z1] = proj(nodes[i][0], nodes[i][1], nodes[i][2]);
+        const [x2, y2, z2] = proj(nodes[u][0], nodes[u][1], nodes[u][2]);
+        const depth = ((z1 + z2) / 2 + 1) / 2;
+        lines.push({
+          x1, y1, x2, y2,
+          white: 0.42,
+          a: (1 - dist / threshold) * (0.3 + 0.55 * depth),
+          w: Math.max(0.6, (opts.lineW ?? 0.8) * rs)
+        });
+      }
+    }
+
+    for (let i = 0; i < nodeN; i++) {
+      const [px, py, pz] = proj(nodes[i][0], nodes[i][1], nodes[i][2]);
+      const depth = (pz + 1) / 2;
+      const pulse = 1 + 0.25 * Math.sin(time * 1.4 + i * 2.7);
+      dots.push({
+        x: px, y: py, z: pz,
+        r: (nodeR + nodeRDepth * depth) * pulse * rs,
+        white: 0.55 - 0.45 * depth
+      });
+    }
+
+    const signals = opts.signals ?? 5;
+    for (let i = 0; i < signals; i++) {
+      const stepSeed = Math.floor(time * 0.55 + i * 7.31);
+      const srcIdx = Math.floor(hash2D(stepSeed, i * 3.1 + 1.7) * nodeN);
+      const dstIdx = Math.floor(hash2D(stepSeed, i * 5.7 + 4.2) * nodeN);
+      if (srcIdx === dstIdx) continue;
+      const frac = fract(time * 0.55 + i * 7.31);
+      const sx = lerp(nodes[srcIdx][0], nodes[dstIdx][0], frac);
+      const sy = lerp(nodes[srcIdx][1], nodes[dstIdx][1], frac);
+      const sz = lerp(nodes[srcIdx][2], nodes[dstIdx][2], frac);
+      const smag = Math.max(1e-6, Math.sqrt(sx * sx + sy * sy + sz * sz));
+      const [spx, spy, spz] = proj(sx / smag, sy / smag, sz / smag);
+      const depth = (spz + 1) / 2;
+      dots.push({
+        x: spx, y: spy, z: spz,
+        r: (nodeR * 1.5 + nodeRDepth * depth) * rs,
+        white: 0.05,
+        a: 0.5 + 0.5 * depth
+      });
+    }
+
+    return finalizeFrame(dots, lines, opts.rMin);
+  }
+
+  // 6) WEAVING -> braid
+  function frameBraid(size, time, opts) {
+    const cx = size / 2, cy = size / 2, radius = size / 2 * 0.76;
+    const proj = makeProj(time * 0.4, 0.3, cx, cy, 1);
+    const rs = radiusScale(size, opts.rsPow ?? 0.6);
+    const dots = [];
+    const ghostN = opts.ghostN ?? 150;
+
+    for (let e = 0; e < ghostN; e++) {
+      const pt = fibonacciSphere(e, ghostN);
+      const [px, py, pz] = proj(pt[0] * radius, pt[1] * radius, pt[2] * radius);
+      const depth = (pz / radius + 1) / 2;
+      dots.push({
+        x: px, y: py, z: pz,
+        r: 0.8 * rs,
+        white: 0.78,
+        a: 0.1 + 0.22 * depth
+      });
+    }
+
+    const strandN = opts.strandN ?? 52;
+    const turns = opts.turns ?? 3;
+    for (let e = 0; e < 3; e++) {
+      const strandOffset = (e / 3) * 2 * Math.PI;
+      for (let R = 0; R < strandN; R++) {
+        const normY = (fract(R / strandN + time * 0.045) * 2 - 1) * 0.96;
+        const normR = Math.sqrt(Math.max(0, 1 - normY * normY));
+        const fade = Math.min(1, (1 - Math.abs(normY)) / 0.1);
+        const theta = normY * Math.PI * turns + strandOffset;
+        const wobble = 1 + 0.075 * Math.sin(normY * Math.PI * turns * 2 + strandOffset * 2 + time * 0.8);
+        const curR = normR * radius * wobble;
+        const [px, py, pz] = proj(
+          Math.cos(theta) * curR,
+          normY * radius * wobble,
+          Math.sin(theta) * curR
+        );
+        const depth = (pz / radius + 1) / 2;
+        dots.push({
+          x: px, y: py, z: pz,
+          r: ((opts.rBase ?? 1.2) + (opts.rDepth ?? 1.8) * depth) * rs,
+          white: 0.55 - 0.45 * depth,
+          a: fade * (0.45 + 0.55 * depth)
+        });
+      }
+    }
+    return finalizeFrame(dots, [], opts.rMin);
+  }
+
+  // 7) COMPOSING / BREATHING -> ribbon / ring
+  function frameRibbonOrRing(size, time, opts) {
+    const cx = size / 2, cy = size / 2, radius = size / 2 * 0.78;
+    const spin = opts.spin ?? 1;
+    const proj = makeProj(time * 0.1 * spin, 0.3, cx, cy, 1);
+    const rs = radiusScale(size, opts.rsPow ?? 0.6);
+    const dots = [];
+    const ghostN = opts.ghostN ?? (opts.faceOn ? 0 : 150);
+
+    for (let z = 0; z < ghostN; z++) {
+      const pt = fibonacciSphere(z, ghostN);
+      const [px, py, pz] = proj(pt[0] * radius, pt[1] * radius, pt[2] * radius);
+      const depth = (pz / radius + 1) / 2;
+      dots.push({
+        x: px, y: py, z: pz,
+        r: 0.8 * rs,
+        white: 0.78,
+        a: 0.1 + 0.22 * depth
+      });
+    }
+
+    const tspin = time * 0.24 * spin;
+    const tilt = opts.faceOn ? -0.3 : 0.55 + 0.3 * Math.sin(time * 0.18) * spin;
+    const cosS = Math.cos(tspin), sinS = Math.sin(tspin);
+    const sinT = Math.sin(tilt), cosT = Math.cos(tilt);
+    const uy = -sinS * sinT, gy = cosT, by = cosS * sinT;
+    const fx = -sinS * cosT, px = sinS * uy - cosS * by, yx = cosS * cosT;
+    const wobbleAmp = 0.23 * (opts.wobMul ?? 1);
+    const effRadius = opts.faceOn ? radius / (1 + 0.85 * wobbleAmp) : radius;
+    const lanes = opts.lanes ?? 5;
+    const segs = opts.segs ?? 88;
+    const bandCount = Math.max(1, Math.round(lanes * (opts.bandMul ?? 1)));
+
+    for (let z = 0; z < bandCount; z++) {
+      const laneOffset = (z - (bandCount - 1) / 2) * 0.075;
+      const laneEdge = Math.abs(z - (bandCount - 1) / 2) / Math.max(1, (bandCount - 1) / 2);
+      for (let N = 0; N < segs; N++) {
+        const k = (N / segs) * 2 * Math.PI;
+        const wave = (0.16 * Math.sin(k * 3 - time * 1.7 + z * 0.22) + 0.07 * Math.sin(k * 5 + time * 1.1)) * (opts.wobMul ?? 1);
+        const radiusMod = opts.faceOn ? 1 + wave : 1;
+        const curOffset = opts.faceOn ? laneOffset : laneOffset + wave;
+
+        const vx = cosS * Math.cos(k) + uy * Math.sin(k) + fx * curOffset;
+        const vy = gy * Math.sin(k) + px * curOffset;
+        const vz = sinS * Math.cos(k) + by * Math.sin(k) + yx * curOffset;
+        const mag = Math.sqrt(vx * vx + vy * vy + vz * vz);
+        const targetRadius = effRadius * radiusMod;
+        const [hx, hy, hz] = proj((vx / mag) * targetRadius, (vy / mag) * targetRadius, (vz / mag) * targetRadius);
+        const depth = (hz / radius + 1) / 2;
+
+        dots.push({
+          x: hx, y: hy, z: hz,
+          r: ((opts.rBase ?? 1.1) + (opts.rDepth ?? 1.7) * depth) * (1 - 0.25 * laneEdge) * rs,
+          white: 0.52 - 0.44 * depth + 0.18 * laneEdge,
+          a: 0.4 + 0.6 * depth
+        });
+      }
+    }
+    return finalizeFrame(dots, [], opts.rMin);
+  }
+
+  // 8) SHAPING -> morph (Polígonos que mutan: Círculo -> Triángulo -> Cuadrado)
+  function createPolygonSampler(pts) {
+    const totalPts = pts.length;
+    const lens = [];
+    let perim = 0;
+    for (let i = 0; i < totalPts; i++) {
+      const cur = pts[i], next = pts[(i + 1) % totalPts];
+      const dist = Math.hypot(next[0] - cur[0], next[1] - cur[1]);
+      lens.push(dist);
+      perim += dist;
+    }
+    return function (frac) {
+      let target = frac * perim, idx = 0;
+      while (target > lens[idx] && idx < totalPts - 1) {
+        target -= lens[idx];
+        idx++;
+      }
+      const p1 = pts[idx], p2 = pts[(idx + 1) % totalPts];
+      const t = lens[idx] ? Math.min(1, target / lens[idx]) : 0;
+      return [p1[0] + (p2[0] - p1[0]) * t, p1[1] + (p2[1] - p1[1]) * t];
+    };
+  }
+
+  const shapeCircle = n => {
+    const a = -Math.PI / 2 + n * 2 * Math.PI;
+    return [Math.cos(a) * 0.24, Math.sin(a) * 0.24];
+  };
+  const shapeTriangle = createPolygonSampler([[0, -0.26], [0.24, 0.16], [-0.24, 0.16]]);
+  const shapeSquare = createPolygonSampler([[0, -0.2], [0.2, -0.2], [0.2, 0.2], [-0.2, 0.2], [-0.2, -0.2]]);
+  const SHAPES = [shapeCircle, shapeTriangle, shapeSquare];
+
+  function frameMorph(size, time, opts) {
+    const shapeCount = SHAPES.length;
+    const holdTime = 1.4, morphTime = 0.9, stepDur = holdTime + morphTime;
+    const cycleTime = time % (stepDur * shapeCount);
+    const shapeIdx = Math.floor(cycleTime / stepDur);
+    const localTime = cycleTime - shapeIdx * stepDur;
+    const morphProgress = localTime > holdTime ? smoothStep((localTime - holdTime) / morphTime) : 0;
+    const spread = opts.spread ?? 1;
+    const fromShape = SHAPES[shapeIdx];
+    const toShape = SHAPES[(shapeIdx + 1) % shapeCount];
+
+    const sampleCount = 160;
+    const perimeterPts = [];
+    for (let i = 0; i < sampleCount; i++) {
+      const t = i / sampleCount;
+      const p1 = fromShape(t), p2 = toShape(t);
+      perimeterPts.push([
+        (p1[0] + (p2[0] - p1[0]) * morphProgress) * spread,
+        (p1[1] + (p2[1] - p1[1]) * morphProgress) * spread
+      ]);
+    }
+
+    const lens = [];
+    let totalLen = 0;
+    for (let i = 0; i < sampleCount; i++) {
+      const c = perimeterPts[i], n = perimeterPts[(i + 1) % sampleCount];
+      const d = Math.hypot(n[0] - c[0], n[1] - c[1]);
+      lens.push(d);
+      totalLen += d;
+    }
+
+    const dotCount = Math.max(6, Math.round(34 * (opts.iconD ?? 1)));
+    const dotRadius = (opts.rDot ?? 0.021) * 1.35 * spread;
+    const breathing = 1 + 0.02 * Math.sin(localTime * 3.1);
+    const dots = [];
+    const center = size / 2;
+    let segIdx = 0, distAccum = 0;
+
+    for (let i = 0; i < dotCount; i++) {
+      const targetDist = (i / dotCount) * totalLen;
+      while (distAccum + lens[segIdx] < targetDist && segIdx < sampleCount - 1) {
+        distAccum += lens[segIdx];
+        segIdx++;
+      }
+      const p1 = perimeterPts[segIdx], p2 = perimeterPts[(segIdx + 1) % sampleCount];
+      const t = lens[segIdx] ? Math.min(1, (targetDist - distAccum) / lens[segIdx]) : 0;
+      const x = (p1[0] + (p2[0] - p1[0]) * t) * breathing;
+      const y = (p1[1] + (p2[1] - p1[1]) * t) * breathing;
+      dots.push({
+        x: center + x * size,
+        y: center + y * size,
+        z: 0,
+        r: Math.max(0.35, dotRadius * size),
+        white: 0.1
+      });
+    }
+    return finalizeFrame(dots, [], opts.rMin);
+  }
+
+  // -------------------------------------------------------------
+  // 4. MAPA DE ESTADOS A MOTORES (9 VERBOS)
+  // -------------------------------------------------------------
+  const STATE_TO_MODE = {
+    working: 'orbits',
+    searching: 'globe',
+    solving: 'rubik',
+    listening: 'wave',
+    connecting: 'web',
+    weaving: 'braid',
+    composing: 'ribbon',
+    breathing: 'ring',
+    shaping: 'morph'
+  };
+
+  const MODE_ENGINES = {
+    orbits: frameOrbits,
+    globe: frameGlobe,
+    rubik: frameRubik,
+    wave: frameWave,
+    web: frameWeb,
+    braid: frameBraid,
+    ribbon: frameRibbonOrRing,
+    ring: (size, time, opts) => frameRibbonOrRing(size, time, { ...opts, faceOn: 1 }),
+    morph: frameMorph
+  };
+
+  const PRESETS_64 = {
+    orbits: { speed: 1.885, ghostN: 40, particles: 3, rsPow: 0.6 },
+    globe: { speed: 2.015, scanMul: 4.08, dimBase: 0.45, latRings: 17, lonDensity: 44 },
+    rubik: { speed: 1.82, latRings: 15, lonDensity: 40, moveCount: 14 },
+    wave: { speed: 4.388, rings: 15, lonDensity: 40 },
+    web: { speed: 3.315, nodeN: 30, thr: 0.72, signals: 5 },
+    braid: { speed: 1.625, strandN: 52, turns: 3, ghostN: 150 },
+    ribbon: { speed: 2.34, spin: 0, bandMul: 3.9, wobMul: 1, lanes: 5, segs: 88 },
+    ring: { speed: 3.24, spin: 0, bandMul: 3.627, wobMul: 0.368, lanes: 5, segs: 88 },
+    morph: { speed: 2.405, spread: 1.45, iconD: 1 }
+  };
+
+  const PRESETS_20 = {
+    orbits: { speed: 3.9, ghostN: 12, particles: 2, rsPow: 0.6 },
+    globe: { speed: 2.665, scanMul: 4.335, dimBase: 0.45, latRings: 10, lonDensity: 24 },
+    rubik: { speed: 1.95, latRings: 8, lonDensity: 20, moveCount: 8 },
+    wave: { speed: 3.998, rings: 8, lonDensity: 20 },
+    web: { speed: 6.63, nodeN: 14, thr: 0.8, signals: 3 },
+    braid: { speed: 2.75, strandN: 24, turns: 3, ghostN: 40 },
+    ribbon: { speed: 3.12, spin: 0, bandMul: 4.94, wobMul: 1, lanes: 4, segs: 44 },
+    ring: { speed: 3.78, spin: 0, bandMul: 3.968, wobMul: 0.565, lanes: 4, segs: 44 },
+    morph: { speed: 2.08, spread: 1.45, iconD: 0.6 }
+  };
+
+  function resolvePreset(state, size) {
+    const mode = STATE_TO_MODE[state] || 'orbits';
+    const isSmall = size <= 32;
+    const baseOpts = isSmall ? PRESETS_20[mode] : PRESETS_64[mode];
+    return {
+      mode,
+      speed: baseOpts.speed,
+      opts: { ...baseOpts }
+    };
+  }
+
+  // -------------------------------------------------------------
+  // 5. CONTROLADOR CANVAS REACTIVO & EFICIENTE
+  // -------------------------------------------------------------
+  class OllinThinkingOrbInstance {
+    constructor(canvas, config = {}) {
+      this.canvas = canvas;
+      this.ctx = canvas.getContext('2d');
+      this.state = config.state || 'breathing';
+      this.size = config.size || 64;
+      this.color = config.color || 'gold';
+      this.speed = config.speed || 1;
+      this.paused = !!config.paused;
+      this.isDark = config.isDark !== undefined ? config.isDark : true;
+      this.reducedMotion = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      this.isVisible = true;
+      this.rafId = null;
+      this.startTime = performance.now();
+
+      this._initDpr();
+      this._setupObservers();
+      this.start();
+    }
+
+    _initDpr() {
+      const dpr = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
+      this.dpr = dpr;
+      this.canvas.width = Math.round(this.size * dpr);
+      this.canvas.height = Math.round(this.size * dpr);
+      this.canvas.style.width = this.size + 'px';
+      this.canvas.style.height = this.size + 'px';
+    }
+
+    _setupObservers() {
+      if (typeof IntersectionObserver !== 'undefined') {
+        this.observer = new IntersectionObserver((entries) => {
+          const entry = entries[0];
+          this.isVisible = entry ? entry.isIntersecting : true;
+          if (this.isVisible && !this.rafId && !this.paused) {
+            this.start();
+          }
+        }, { threshold: 0.05 });
+        this.observer.observe(this.canvas);
+      }
+
+      this._onVisibilityChange = () => {
+        if (document.hidden) {
+          this.stop();
+        } else if (this.isVisible && !this.paused) {
+          this.start();
+        }
+      };
+      if (typeof document !== 'undefined') {
+        document.addEventListener('visibilitychange', this._onVisibilityChange);
+      }
+    }
+
+    setState(newState) {
+      if (this.state !== newState) {
+        this.state = newState;
+        this.renderOnce();
+      }
+    }
+
+    setColor(newColor) {
+      if (this.color !== newColor) {
+        this.color = newColor;
+        this.renderOnce();
+      }
+    }
+
+    setSize(newSize) {
+      if (this.size !== newSize) {
+        this.size = newSize;
+        this._initDpr();
+        this.renderOnce();
+      }
+    }
+
+    render(time) {
+      const { mode, speed, opts } = resolvePreset(this.state, this.size);
+      const engine = MODE_ENGINES[mode] || MODE_ENGINES.orbits;
+      const t = (time * 0.001 * speed * this.speed);
+
+      // Renderizar frame matemático
+      const frame = engine(this.size, t, opts);
+
+      // Dibujar en canvas escalado por DPR
+      this.ctx.save();
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      this.ctx.scale(this.dpr, this.dpr);
+      paintFrame(this.ctx, frame, this.isDark, this.color);
+      this.ctx.restore();
+    }
+
+    renderOnce() {
+      this.render(this.reducedMotion ? 1000 : (performance.now() - this.startTime));
+    }
+
+    start() {
+      if (this.reducedMotion) {
+        this.renderOnce();
+        return;
+      }
+      if (this.rafId) return;
+
+      const loop = (now) => {
+        if (!this.isVisible || this.paused || (typeof document !== 'undefined' && document.hidden)) {
+          this.rafId = null;
+          return;
+        }
+        this.render(now - this.startTime);
+        this.rafId = requestAnimationFrame(loop);
+      };
+      this.rafId = requestAnimationFrame(loop);
+    }
+
+    stop() {
+      if (this.rafId) {
+        cancelAnimationFrame(this.rafId);
+        this.rafId = null;
+      }
+    }
+
+    destroy() {
+      this.stop();
+      if (this.observer) this.observer.disconnect();
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', this._onVisibilityChange);
+      }
+    }
+  }
+
+  // -------------------------------------------------------------
+  // 6. WEB COMPONENT: <ollin-orb>
+  // -------------------------------------------------------------
+  if (typeof customElements !== 'undefined' && !customElements.get('ollin-orb')) {
+    class OllinOrbElement extends HTMLElement {
+      static get observedAttributes() {
+        return ['state', 'size', 'color', 'speed', 'paused', 'dark'];
+      }
+
+      connectedCallback() {
+        if (this.instance) return;
+        this.style.display = 'inline-flex';
+        this.style.alignItems = 'center';
+        this.style.justifyContent = 'center';
+        this.style.lineHeight = '0';
+
+        const canvas = document.createElement('canvas');
+        canvas.style.display = 'block';
+        this.appendChild(canvas);
+
+        const state = this.getAttribute('state') || 'breathing';
+        const size = parseInt(this.getAttribute('size') || '24', 10);
+        const color = this.getAttribute('color') || 'gold';
+        const speed = parseFloat(this.getAttribute('speed') || '1');
+        const paused = this.hasAttribute('paused');
+        const isDark = this.getAttribute('dark') !== 'false';
+
+        this.instance = new OllinThinkingOrbInstance(canvas, {
+          state, size, color, speed, paused, isDark
+        });
+      }
+
+      disconnectedCallback() {
+        if (this.instance) {
+          this.instance.destroy();
+          this.instance = null;
+        }
+      }
+
+      attributeChangedCallback(name, oldVal, newVal) {
+        if (!this.instance || oldVal === newVal) return;
+        if (name === 'state') this.instance.setState(newVal);
+        if (name === 'color') this.instance.setColor(newVal);
+        if (name === 'size') this.instance.setSize(parseInt(newVal, 10));
+        if (name === 'speed') this.instance.speed = parseFloat(newVal);
+        if (name === 'paused') {
+          this.instance.paused = this.hasAttribute('paused');
+          if (this.instance.paused) this.instance.stop();
+          else this.instance.start();
+        }
+      }
+
+      // Propiedades JavaScript directas
+      get state() { return this.getAttribute('state') || 'breathing'; }
+      set state(val) { this.setAttribute('state', val); }
+
+      get color() { return this.getAttribute('color') || 'gold'; }
+      set color(val) { this.setAttribute('color', val); }
+
+      get size() { return parseInt(this.getAttribute('size') || '24', 10); }
+      set size(val) { this.setAttribute('size', String(val)); }
+    }
+
+    customElements.define('ollin-orb', OllinOrbElement);
+  }
+
+  // -------------------------------------------------------------
+  // 7. EXPOSICIÓN GLOBAL
+  // -------------------------------------------------------------
+  const OllinOrbs = {
+    mount: function (target, options = {}) {
+      const container = typeof target === 'string' ? document.querySelector(target) : target;
+      if (!container) return null;
+      const canvas = document.createElement('canvas');
+      container.appendChild(canvas);
+      return new OllinThinkingOrbInstance(canvas, options);
+    },
+    setState: function (idOrElement, state, color) {
+      const el = typeof idOrElement === 'string' ? document.getElementById(idOrElement) : idOrElement;
+      if (!el) return;
+      if (el.tagName && el.tagName.toLowerCase() === 'ollin-orb') {
+        if (state) el.setAttribute('state', state);
+        if (color) el.setAttribute('color', color);
+      } else if (el.instance) {
+        if (state) el.instance.setState(state);
+        if (color) el.instance.setColor(color);
+      }
+    },
+    COLOR_PALETTES,
+    STATE_TO_MODE
+  };
+
+  global.OllinOrbs = OllinOrbs;
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = OllinOrbs;
+  }
+})(typeof window !== 'undefined' ? window : globalThis);
+
+  </script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-emerald-500/30">
 
@@ -82,6 +1046,7 @@
         <select id="console-login-user" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-200 focus:outline-none focus:border-amber-500">
           <option value="sidharta.santiago@arauto.express" data-role="todos" data-name="Sidharta Santiago" selected>Sidharta Santiago [Tlayacanqui / Dir]</option>
           <option value="irvin.reyes@arauto.express" data-role="irvin" data-name="Irvin Reyes">Irvin Reyes [Tlachixqui / Rampa & Metrópoli]</option>
+          <option value="mizambra71086@gmail.com" data-role="zambrano" data-name="Ignacio Zambrano">Ignacio Zambrano [Tlachixqui / SVC León]</option>
           <option value="xichudaniel@gmail.com" data-role="daniel" data-name="Daniel Juárez">Daniel Juárez [Tlachixqui / Sierra Gorda]</option>
         </select>
       </div>
@@ -140,17 +1105,28 @@
         </div>
         <div>
           <h1 class="text-sm font-black tracking-wider uppercase flex items-center gap-1.5 text-slate-100">
-            CONSOLA MAESTRA QRO
+            <span id="header-plaza-titulo">CONSOLA MAESTRA QRO</span>
             <span class="text-[9px] bg-amber-950 text-[#D4AF37] border border-amber-500/30 px-1.5 py-0.5 rounded font-bold uppercase font-mono tracking-normal shadow-sm">
               V86.2 PROD
             </span>
+            <ollin-orb id="orb-header-status" state="breathing" size="20" color="gold" title="Consola en Línea"></ollin-orb>
           </h1>
-          <p class="text-[9px] text-[#D4AF37] font-bold uppercase tracking-wider">Centro de Mando Operativo Megapulpo</p>
+          <p class="text-[9px] text-[#D4AF37] font-bold uppercase tracking-wider" id="header-plaza-subtitulo">Centro de Mando Operativo Megapulpo</p>
         </div>
       </div>
 
       <!-- ROLE INDICATOR & ACTIONS -->
       <div class="flex items-center gap-2.5">
+        <!-- SELECTOR DE PLAZA OLLIN: [ 📍 QRO ] | [ 🦁 LEN ] -->
+        <div class="flex items-center bg-slate-950 p-0.5 rounded-xl border border-slate-700 shadow-inner">
+          <button id="btn-plaza-qro" onclick="seleccionarPlaza('QRO')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all bg-[#1e3f20] text-[#D4AF37] border border-[#D4AF37]/40 shadow-sm" title="Plaza Querétaro (QRO)">
+            <span>📍</span> QRO
+          </button>
+          <button id="btn-plaza-len" onclick="seleccionarPlaza('LEN')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all text-slate-400 hover:text-slate-200" title="Plaza León (LEN)">
+            <span>🦁</span> LEN
+          </button>
+        </div>
+
         <button id="btn-header-ejecutar-rutas" onclick="ejecutarProcesamientoUnificado()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-950/80 border border-emerald-500/40 text-[10px] font-bold text-emerald-400 hover:bg-emerald-900/80 transition-all uppercase tracking-wider shadow-sm">
           <i data-lucide="play" class="w-3.5 h-3.5 text-emerald-400"></i>
           Ejecutar Rutas
@@ -241,7 +1217,149 @@
 
       <!-- TAB 1 CONTENT: RAMPA Y DESPACHO -->
       <div id="tab-rampa-content" class="space-y-6">
-        
+
+        <!-- ========================================================================= -->
+        <!-- 🦁 PANEL DE RAMPA SVC LEÓN (LEN / BJX) - OLLIN v86.2 PROD -->
+        <!-- ========================================================================= -->
+        <div id="panel-rampa-len" class="hidden space-y-6">
+          
+          <!-- BANNER DE RESTRICCIÓN Y VERIFICACIÓN DE SUPERVISOR LEN -->
+          <div id="len-supervisor-badge-container">
+            <!-- Se inyecta dinámicamente según sesión activa (Zambrano, Irvin, Sidharta) -->
+          </div>
+
+          <!-- BATCH INTEGRATOR MASTER CARD (SVC LEÓN) -->
+          <div class="bg-gradient-to-r from-slate-900 via-[#1f1e14] to-slate-900 p-6 rounded-3xl border border-amber-500/30 shadow-2xl relative overflow-hidden">
+            <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div class="space-y-2 text-center md:text-left">
+                <div class="flex flex-wrap items-center justify-center md:justify-start gap-2">
+                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-950 text-amber-300 border border-amber-500/30">
+                    🦁 PLAZA LEÓN / BJX
+                  </span>
+                  <span class="text-[10px] font-mono text-slate-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                    LEN BD CENTRAL 2023 ⇋ OLLIN_CAJA_NEGRA_LEN
+                  </span>
+                </div>
+                <h2 class="text-lg md:text-xl font-extrabold text-[#D4AF37] tracking-wider uppercase flex items-center justify-center md:justify-start gap-2">
+                  <i data-lucide="truck" class="w-5 h-5 text-amber-400"></i>
+                  Ingesta Asíncrona de Rampa SVC LEN
+                </h2>
+                <p class="text-xs text-slate-300 max-w-xl font-medium leading-relaxed">
+                  DHL envía reportes separados por ruta antes de las 14:00 hrs con etiqueta <span class="text-amber-300 font-mono">02_REPORTE_LEN</span>. Asigna cada archivo a su Pochteca canónico e inyecta en caliente a <span class="text-emerald-400 font-mono">Ruta LEN</span> y <span class="text-blue-400 font-mono">Batch Piece LEN</span>.
+                </p>
+              </div>
+
+              <div class="flex flex-col gap-2.5 w-full md:w-auto flex-shrink-0">
+                <button id="btn-inyectar-len" onclick="ejecutarInyeccionLoteLEN()" class="w-full px-6 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 active:scale-95 font-extrabold text-xs uppercase tracking-widest text-slate-950 transition-all flex items-center justify-center gap-2.5 shadow-lg shadow-amber-950/60">
+                  <ollin-orb id="orb-inyectar-len" state="breathing" size="20" color="gold"></ollin-orb>
+                  <i data-lucide="refresh-cw" class="w-4 h-4 hidden animate-spin" id="icon-inyectar-len"></i>
+                  <span id="label-btn-inyectar-len">⚡ Inyectar Lote a Rampa LEN</span>
+                </button>
+                <button onclick="cargarReportesPendientesLEN()" class="w-full px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center gap-2 transition shadow">
+                  <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-amber-400" id="icon-refresh-reportes-len"></i>
+                  <span>🔄 Buscar Reportes Gmail ('02_REPORTE_LEN')</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TABLA / TARJETAS DE REPORTES PENDIENTES GMAIL -->
+          <div class="bg-slate-900/90 rounded-2xl border border-slate-800 overflow-hidden shadow-xl p-5 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-amber-950/80 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                  <i data-lucide="mail-search" class="w-4 h-4"></i>
+                </div>
+                <div>
+                  <h3 class="text-xs font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
+                    Reportes DHL Pendientes en Gmail
+                    <span id="len-reportes-count" class="px-2 py-0.2 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">0</span>
+                  </h3>
+                  <p class="text-[10px] text-slate-400">Selecciona el Pochteca responsable para cada reporte antes de detonar la inyección.</p>
+                </div>
+              </div>
+              <div class="text-[10px] text-slate-500 font-mono">
+                Cruce telefónico activo con <span class="text-emerald-400 font-bold">01_QUERY_LEN</span>
+              </div>
+            </div>
+
+            <!-- Contenedor dinámico de reportes -->
+            <div id="len-reportes-container" class="min-h-[140px]">
+              <div class="py-10 text-center text-slate-500 font-mono text-xs flex flex-col items-center gap-2">
+                <i data-lucide="loader-2" class="w-5 h-5 animate-spin text-amber-400"></i>
+                <span>Cargando reportes pendientes de León...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- HERRAMIENTA DE RELEVO: INTERCAMBIO ATÓMICO DE RUTAS POST-INGESTA -->
+          <div class="bg-gradient-to-r from-slate-900 via-[#182333] to-slate-900 p-6 rounded-3xl border border-blue-500/30 shadow-xl space-y-4">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-slate-800 pb-3">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-blue-950/80 border border-blue-500/40 flex items-center justify-center text-blue-400 flex-shrink-0">
+                  <i data-lucide="arrow-left-right" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <h3 class="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                    🔄 Relevo de Rampa: Intercambio Atómico de Rutas
+                    <span class="text-[9px] bg-blue-950 text-blue-300 border border-blue-500/30 px-1.5 py-0.5 rounded font-mono font-bold">RUTA LEN</span>
+                  </h3>
+                  <p class="text-xs text-slate-300 leading-relaxed">
+                    Intercambia inmediatamente todas las guías asignadas del día de hoy entre dos choferes en <strong class="text-blue-300">Ruta LEN</strong> (falla de unidad o ajuste operativo de rampa).
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end pt-1">
+              <div class="space-y-1">
+                <label class="block text-[10px] font-bold uppercase text-slate-400 tracking-wider">👤 Pochteca A (Origen/Traspaso):</label>
+                <select id="len-intercambio-pochteca-a" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-200 focus:outline-none focus:border-blue-500">
+                  <option value="">-- Selecciona Pochteca A --</option>
+                </select>
+              </div>
+
+              <div class="space-y-1">
+                <label class="block text-[10px] font-bold uppercase text-slate-400 tracking-wider">👤 Pochteca B (Destino/Receptor):</label>
+                <select id="len-intercambio-pochteca-b" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-200 focus:outline-none focus:border-blue-500">
+                  <option value="">-- Selecciona Pochteca B --</option>
+                </select>
+              </div>
+
+              <div>
+                <button id="btn-intercambiar-len" onclick="ejecutarIntercambioRutasLEN()" class="w-full px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-950/50">
+                  <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                  <span>🔄 Intercambiar Rutas</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- LIVE LOGS TERMINAL (AUDITORÍA LEN) -->
+          <div class="bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl flex flex-col">
+            <div class="px-5 py-3 border-b border-slate-800 bg-slate-900/60 flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+                <h3 class="text-xs font-bold text-slate-200 tracking-wider uppercase flex items-center gap-2">
+                  Consola del Motor en Vivo (Auditoría SVC LEN)
+                </h3>
+                <span class="text-[10px] font-mono bg-amber-950 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded font-bold">
+                  RAMPA LEN STREAM
+                </span>
+              </div>
+              <button onclick="document.getElementById('len-logs-console').innerHTML=''" class="text-[10px] text-slate-400 hover:text-slate-200 font-bold uppercase transition-colors px-2 py-1 rounded bg-slate-900 border border-slate-800 hover:border-slate-700">
+                Limpiar Consola
+              </button>
+            </div>
+            <div id="len-logs-console" class="p-4 h-[220px] overflow-y-auto custom-scrollbar font-mono text-[11px] text-amber-400 bg-slate-950 space-y-1.5 scroll-smooth">
+              <div class="text-slate-500">// Consola SVC León inicializada. Lista para escaneo e ingesta de rampa...</div>
+            </div>
+          </div>
+
+        </div>
+
+        <div id="panel-rampa-qro" class="space-y-6">
         <!-- BATCH INTEGRATOR MASTER CARD -->
         <div class="bg-gradient-to-r from-slate-900 via-[#132c14] to-slate-900 p-6 rounded-3xl border border-emerald-500/20 shadow-xl relative overflow-hidden">
           <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
@@ -256,8 +1374,9 @@
             </div>
             <div class="flex flex-col gap-3 w-full md:w-auto">
               <button id="btn-unificado" onclick="ejecutarProcesamientoUnificado()" class="w-full px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 font-bold text-xs uppercase tracking-widest text-white transition-all flex items-center justify-center gap-2.5 shadow-lg shadow-emerald-950/50">
-                <i data-lucide="refresh-cw" class="w-4 h-4" id="icon-unificado"></i>
-                Ejecutar Procesamiento Unificado QRO
+                <ollin-orb id="orb-unificado" state="breathing" size="20" color="emerald"></ollin-orb>
+                <i data-lucide="refresh-cw" class="w-4 h-4 hidden" id="icon-unificado"></i>
+                <span id="label-btn-unificado">Ejecutar Procesamiento Unificado QRO</span>
               </button>
               <button id="btn-puente-temporal" onclick="ejecutarPuenteTemporal()" class="w-full px-4 py-2 rounded-lg bg-orange-900/60 hover:bg-orange-800 border border-orange-500/50 active:scale-95 font-bold text-[10px] uppercase tracking-wider text-orange-200 transition-all flex items-center justify-center gap-2 shadow shadow-orange-900/50">
                 <i data-lucide="alert-triangle" class="w-3.5 h-3.5" id="icon-puente"></i>
@@ -408,6 +1527,7 @@
           </div>
 
         </div>
+        </div> <!-- Fin de #panel-rampa-qro -->
 
       </div>
 
@@ -2131,7 +3251,8 @@
         </div>
         <div class="flex items-center gap-3">
           <button onclick="cargarAclaracionesDHL()" class="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 font-bold text-xs uppercase tracking-wider text-slate-950 transition-all flex items-center gap-2 shadow-lg shadow-amber-950/50">
-            <i data-lucide="refresh-cw" class="w-4 h-4" id="icon-refresh-aclaraciones"></i>
+            <ollin-orb id="orb-refresh-aclaraciones" state="breathing" size="18" color="gold"></ollin-orb>
+            <i data-lucide="refresh-cw" class="w-4 h-4 hidden" id="icon-refresh-aclaraciones"></i>
             <span>Actualizar Bandeja</span>
           </button>
         </div>
@@ -2328,8 +3449,8 @@
       <div class="bg-slate-900 border border-amber-500/30 rounded-3xl w-full max-w-6xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
         <div class="px-5 md:px-7 py-4 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between gap-4">
           <div class="flex items-center gap-3 min-w-0">
-            <div class="w-10 h-10 shrink-0 rounded-xl bg-amber-500/15 border border-amber-400/30 flex items-center justify-center text-amber-300">
-              <i data-lucide="shield-check" class="w-5 h-5"></i>
+            <div class="w-11 h-11 shrink-0 rounded-xl bg-amber-500/15 border border-amber-400/30 flex items-center justify-center text-amber-300 overflow-hidden">
+              <ollin-orb id="orb-ficha-360" state="weaving" size="32" color="gold"></ollin-orb>
             </div>
             <div class="min-w-0">
               <h3 id="ficha-360-titulo" class="text-sm md:text-base font-extrabold text-white uppercase tracking-wide flex items-center gap-2">
@@ -2641,9 +3762,495 @@
     const CONSOLE_SUPERVISORS = {
       "sidharta.santiago@arauto.express": { pin: "5948", role: "todos", nombre: "Sidharta Santiago" },
       "irvin.reyes@arauto.express": { pin: "1708", role: "irvin", nombre: "Irvin Reyes" },
+      "mizambra71086@gmail.com": { pin: "7108", role: "zambrano", nombre: "Ignacio Zambrano" },
       "xichudaniel@gmail.com": { pin: "5625", role: "daniel", nombre: "Daniel Juárez" }
     };
     const CONSOLE_MASTER_PIN = "2026";
+
+    // =========================================================================
+    // 🦁 GESTOR DE PLAZA OLLIN & SVC LEÓN (QRO ⇋ LEN)
+    // =========================================================================
+    let plazaActiva = localStorage.getItem('ollin_plaza_activa') || 'QRO';
+
+    const SUPERVISORES_LEN_EMAILS = [
+      "mizambra71086@gmail.com",
+      "irvin.reyes@arauto.express",
+      "sidharta.santiago@arauto.express"
+    ];
+
+    let cacheReportesLEN = [];
+    let cachePochtecasLEN = [
+      { correo: "gerardotorresaviles5@gmail.com", nombre: "Gerardo Torres", zona: "Local Lagos/León" },
+      { correo: "Ignaciozambraldb@gmail.com", nombre: "Ignacio Zambrano", zona: "Foráneo Silao" },
+      { correo: "deliverypluszambrano@gmail.com", nombre: "DPZambrano", zona: "Foráneo GTO" },
+      { correo: "jesusnavas1989perez@gmail.com", nombre: "Jesús Nava", zona: "Foráneo GTO" }
+    ];
+
+    function seleccionarPlaza(plaza) {
+      plazaActiva = String(plaza).toUpperCase().trim();
+      localStorage.setItem('ollin_plaza_activa', plazaActiva);
+
+      const btnQro = document.getElementById('btn-plaza-qro');
+      const btnLen = document.getElementById('btn-plaza-len');
+      const tituloHeader = document.getElementById('header-plaza-titulo');
+      const subtituloHeader = document.getElementById('header-plaza-subtitulo');
+      const panelRampaQro = document.getElementById('panel-rampa-qro');
+      const panelRampaLen = document.getElementById('panel-rampa-len');
+      const btnEjecutarHeader = document.getElementById('btn-header-ejecutar-rutas');
+
+      if (plazaActiva === 'LEN') {
+        if (btnLen) {
+          btnLen.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all bg-[#1e3f20] text-[#D4AF37] border border-[#D4AF37]/40 shadow-sm";
+        }
+        if (btnQro) {
+          btnQro.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all text-slate-400 hover:text-slate-200";
+        }
+        if (tituloHeader) tituloHeader.innerText = "CONSOLA MAESTRA LEÓN (LEN)";
+        if (subtituloHeader) subtituloHeader.innerText = "Torre de Control de Rampa & Tránsito SVC LEN (BJX)";
+        if (panelRampaQro) panelRampaQro.classList.add('hidden');
+        if (panelRampaLen) panelRampaLen.classList.remove('hidden');
+        if (btnEjecutarHeader) {
+          btnEjecutarHeader.onclick = ejecutarInyeccionLoteLEN;
+          btnEjecutarHeader.innerHTML = '<i data-lucide="play" class="w-3.5 h-3.5 text-emerald-400"></i> Inyectar Lote LEN';
+        }
+
+        verificarPermisosSupervisorLEN();
+        cargarReportesPendientesLEN();
+        cargarPochtecasLEN();
+        cargarMatrizMigracion('LEN');
+      } else {
+        plazaActiva = 'QRO';
+        if (btnQro) {
+          btnQro.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all bg-[#1e3f20] text-[#D4AF37] border border-[#D4AF37]/40 shadow-sm";
+        }
+        if (btnLen) {
+          btnLen.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all text-slate-400 hover:text-slate-200";
+        }
+        if (tituloHeader) tituloHeader.innerText = "CONSOLA MAESTRA QRO";
+        if (subtituloHeader) subtituloHeader.innerText = "Centro de Mando Operativo Megapulpo";
+        if (panelRampaQro) panelRampaQro.classList.remove('hidden');
+        if (panelRampaLen) panelRampaLen.classList.add('hidden');
+        if (btnEjecutarHeader) {
+          btnEjecutarHeader.onclick = ejecutarProcesamientoUnificado;
+          btnEjecutarHeader.innerHTML = '<i data-lucide="play" class="w-3.5 h-3.5 text-emerald-400"></i> Ejecutar Rutas';
+          btnEjecutarHeader.disabled = false;
+          btnEjecutarHeader.classList.remove('opacity-40', 'cursor-not-allowed');
+          btnEjecutarHeader.title = "";
+        }
+
+        cargarMatrizMigracion('QRO');
+      }
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function verificarPermisosSupervisorLEN() {
+      const user = (localStorage.getItem('ollin_console_user') || '').toLowerCase().trim();
+      const userName = localStorage.getItem('ollin_console_name') || user;
+      const esAutorizado = SUPERVISORES_LEN_EMAILS.indexOf(user) !== -1;
+
+      const container = document.getElementById('len-supervisor-badge-container');
+      const btnInyectar = document.getElementById('btn-inyectar-len');
+      const btnIntercambiar = document.getElementById('btn-intercambiar-len');
+      const btnHeader = document.getElementById('btn-header-ejecutar-rutas');
+
+      if (container) {
+        if (esAutorizado) {
+          container.innerHTML = `
+            <div class="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 flex items-center justify-between gap-3 text-xs shadow-md">
+              <div class="flex items-center gap-2.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <div>
+                  <span class="font-extrabold uppercase tracking-wider">🛡️ Tlachixqui Autorizado LEN:</span>
+                  <span class="font-semibold text-slate-100">${userName}</span>
+                  <span class="font-mono text-[10px] text-emerald-400 ml-1">(${user})</span>
+                </div>
+              </div>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase font-mono">CONSOLA OPERATIVA</span>
+            </div>
+          `;
+        } else {
+          container.innerHTML = `
+            <div class="p-4 rounded-2xl bg-red-950/60 border border-red-500/50 text-red-200 flex items-center gap-3.5 shadow-xl">
+              <div class="w-10 h-10 rounded-xl bg-red-900/60 border border-red-500/40 flex items-center justify-center flex-shrink-0 text-red-300">
+                <i data-lucide="shield-alert" class="w-6 h-6"></i>
+              </div>
+              <div class="space-y-0.5">
+                <h4 class="font-black text-xs uppercase tracking-wider text-red-200">🔒 Acceso Restringido a Supervisión LEN</h4>
+                <p class="text-[11px] text-red-300 leading-relaxed">
+                  La rampa de León está restringida exclusivamente a los supervisores <strong>Ignacio Zambrano</strong>, <strong>Irvin Reyes</strong> y <strong>Sidharta Santiago</strong>. Tu usuario (<code class="font-mono text-red-200 bg-red-950 px-1 py-0.5 rounded">${user || 'Anónimo'}</code>) no cuenta con autorización para detonar inyecciones o relevos en esta plaza.
+                </p>
+              </div>
+            </div>
+          `;
+        }
+      }
+
+      if (btnInyectar) {
+        btnInyectar.disabled = !esAutorizado;
+        if (!esAutorizado) {
+          btnInyectar.classList.add('opacity-40', 'cursor-not-allowed');
+          btnInyectar.title = "Acceso restringido: requiere autorización de supervisor LEN";
+        } else {
+          btnInyectar.classList.remove('opacity-40', 'cursor-not-allowed');
+          btnInyectar.title = "";
+        }
+      }
+
+      if (btnIntercambiar) {
+        btnIntercambiar.disabled = !esAutorizado;
+        if (!esAutorizado) {
+          btnIntercambiar.classList.add('opacity-40', 'cursor-not-allowed');
+          btnIntercambiar.title = "Acceso restringido: requiere autorización de supervisor LEN";
+        } else {
+          btnIntercambiar.classList.remove('opacity-40', 'cursor-not-allowed');
+          btnIntercambiar.title = "";
+        }
+      }
+
+      if (plazaActiva === 'LEN' && btnHeader) {
+        btnHeader.disabled = !esAutorizado;
+        if (!esAutorizado) {
+          btnHeader.classList.add('opacity-40', 'cursor-not-allowed');
+        } else {
+          btnHeader.classList.remove('opacity-40', 'cursor-not-allowed');
+        }
+      }
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function cargarPochtecasLEN() {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(lista) {
+            if (lista && Array.isArray(lista) && lista.length > 0) {
+              cachePochtecasLEN = lista;
+              actualizarSelectsPochtecasLEN();
+            }
+          })
+          .withFailureHandler(function(err) {
+            console.warn("Aviso al cargar Pochtecas LEN:", err);
+          })
+          .obtenerPochtecasLEN();
+      } else {
+        actualizarSelectsPochtecasLEN();
+      }
+    }
+
+    function cargarReportesPendientesLEN() {
+      const container = document.getElementById('len-reportes-container');
+      const countBadge = document.getElementById('len-reportes-count');
+      const icon = document.getElementById('icon-refresh-reportes-len');
+      if (icon) icon.classList.add('animate-spin');
+
+      if (container) {
+        container.innerHTML = `
+          <div class="py-12 text-center text-slate-500 font-mono text-xs flex flex-col items-center gap-2">
+            <i data-lucide="loader-2" class="w-6 h-6 animate-spin text-amber-400"></i>
+            <span>Escaneando correos con etiqueta '02_REPORTE_LEN' en Gmail...</span>
+          </div>
+        `;
+        if (window.lucide) lucide.createIcons();
+      }
+
+      addLogLEN("📥 Escaneando reportes de DHL en Gmail (etiqueta: 02_REPORTE_LEN)...", "info");
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(reportes) {
+            if (icon) icon.classList.remove('animate-spin');
+            cacheReportesLEN = reportes || [];
+            renderizarReportesPendientesLEN(cacheReportesLEN);
+          })
+          .withFailureHandler(function(err) {
+            if (icon) icon.classList.remove('animate-spin');
+            if (container) {
+              container.innerHTML = `<div class="p-6 text-center text-red-400 text-xs font-mono">Error al consultar Gmail: ${err.message || err}</div>`;
+            }
+            addLogLEN("❌ Error al escanear reportes: " + (err.message || err), "error");
+          })
+          .obtenerReportesPendientesLEN();
+      } else {
+        setTimeout(function() {
+          if (icon) icon.classList.remove('animate-spin');
+          cacheReportesLEN = [
+            {
+              messageId: "mock-msg-len-01",
+              threadId: "mock-th-01",
+              subject: "02_REPORTE_LEN: RUTA LAGOS GERARDO TORRES 12-OCT",
+              filename: "REPORTE_LEON_LAGOS_GT_20261012.xlsx",
+              date: "12/10 13:45",
+              sender: "dhl_ops_bjx@dhl.com"
+            },
+            {
+              messageId: "mock-msg-len-02",
+              threadId: "mock-th-02",
+              subject: "02_REPORTE_LEN: SILAO FORANEO IGNACIO ZAMBRANO",
+              filename: "REPORTE_SILAO_IZ_20261012.xlsx",
+              date: "12/10 13:50",
+              sender: "dhl_ops_bjx@dhl.com"
+            }
+          ];
+          renderizarReportesPendientesLEN(cacheReportesLEN);
+          addLogLEN("✅ Se detectaron " + cacheReportesLEN.length + " reportes pendientes en Gmail.", "success");
+        }, 500);
+      }
+    }
+
+    function renderizarReportesPendientesLEN(reportes) {
+      const container = document.getElementById('len-reportes-container');
+      const countBadge = document.getElementById('len-reportes-count');
+      if (countBadge) countBadge.innerText = (reportes || []).length;
+
+      if (!container) return;
+
+      if (!reportes || reportes.length === 0) {
+        container.innerHTML = `
+          <div class="py-12 text-center text-slate-500 font-medium text-xs flex flex-col items-center gap-2">
+            <div class="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600 mb-1">
+              <i data-lucide="inbox" class="w-6 h-6"></i>
+            </div>
+            <p class="font-bold text-slate-400">Sin reportes pendientes de DHL</p>
+            <p class="text-[11px] text-slate-600 max-w-sm">No se encontraron correos con la etiqueta <span class="font-mono text-emerald-400">02_REPORTE_LEN</span> en la bandeja de entrada.</p>
+          </div>
+        `;
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      let html = `
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-950/80 border-b border-slate-800 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+              <tr>
+                <th class="p-3">Archivo Excel</th>
+                <th class="p-3">Asunto & Remitente</th>
+                <th class="p-3">Fecha</th>
+                <th class="p-3">Pochteca Asignado (León)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60">
+      `;
+
+      reportes.forEach((rep, idx) => {
+        let correoSugerido = sugerirPochtecaLEN(rep.filename, rep.subject);
+
+        let opcionesOptions = cachePochtecasLEN.map(p => {
+          let sel = (p.correo.toLowerCase() === correoSugerido.toLowerCase()) ? "selected" : "";
+          return `<option value="${p.correo}" ${sel}>${p.nombre} (${p.zona || p.correo})</option>`;
+        }).join("");
+
+        html += `
+          <tr class="hover:bg-slate-900/50 transition-colors">
+            <td class="p-3 font-mono font-bold text-amber-400 flex items-center gap-2">
+              <div class="w-7 h-7 rounded-lg bg-amber-950/80 border border-amber-500/30 flex items-center justify-center flex-shrink-0 text-amber-400">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+              </div>
+              <span class="truncate max-w-[220px]" title="${rep.filename}">${rep.filename}</span>
+            </td>
+            <td class="p-3">
+              <div class="font-semibold text-slate-200 truncate max-w-[260px]" title="${rep.subject}">${rep.subject}</div>
+              <div class="text-[10px] text-slate-400 font-mono">${rep.sender}</div>
+            </td>
+            <td class="p-3 font-mono text-slate-400 whitespace-nowrap text-[11px]">${rep.date}</td>
+            <td class="p-3">
+              <select id="select-len-asig-${idx}" data-msgid="${rep.messageId}" data-filename="${rep.filename}" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-amber-300 focus:outline-none focus:border-amber-500 transition-all shadow-inner">
+                <option value="sin_asignar@arauto.express">-- Sin Asignar / Auto Detección --</option>
+                ${opcionesOptions}
+              </select>
+            </td>
+          </tr>
+        `;
+      });
+
+      html += `
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      container.innerHTML = html;
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function sugerirPochtecaLEN(filename, subject) {
+      let f = (filename || "").toLowerCase();
+      let s = (subject || "").toLowerCase();
+      let texto = f + " " + s;
+
+      if (texto.indexOf("gerardo") !== -1 || texto.indexOf("torres") !== -1 || texto.indexOf("lagos") !== -1) {
+        return "gerardotorresaviles5@gmail.com";
+      }
+      if (texto.indexOf("ignacio") !== -1 || texto.indexOf("silao") !== -1) {
+        return "Ignaciozambraldb@gmail.com";
+      }
+      if (texto.indexOf("deliveryplus") !== -1 || texto.indexOf("dpzambrano") !== -1 || texto.indexOf("dp") !== -1) {
+        return "deliverypluszambrano@gmail.com";
+      }
+      if (texto.indexOf("nava") !== -1 || texto.indexOf("jesus") !== -1) {
+        return "jesusnavas1989perez@gmail.com";
+      }
+      return "";
+    }
+
+    function actualizarSelectsPochtecasLEN() {
+      const selA = document.getElementById('len-intercambio-pochteca-a');
+      const selB = document.getElementById('len-intercambio-pochteca-b');
+      if (selA && selB) {
+        let opts = cachePochtecasLEN.map(p => `<option value="${p.correo}">${p.nombre} (${p.zona || p.correo})</option>`).join("");
+        selA.innerHTML = `<option value="">-- Selecciona Pochteca A --</option>` + opts;
+        selB.innerHTML = `<option value="">-- Selecciona Pochteca B --</option>` + opts;
+      }
+    }
+
+    function ejecutarInyeccionLoteLEN() {
+      if (cacheReportesLEN.length === 0) {
+        alert("No hay reportes de DHL pendientes en la lista para inyectar.");
+        return;
+      }
+
+      const user = (localStorage.getItem('ollin_console_user') || '').toLowerCase().trim();
+      if (SUPERVISORES_LEN_EMAILS.indexOf(user) === -1) {
+        alert("🔒 Acción denegada: Tu usuario no cuenta con autorización de supervisor en SVC León.");
+        return;
+      }
+
+      let mapaAsignaciones = {};
+      for (let i = 0; i < cacheReportesLEN.length; i++) {
+        const el = document.getElementById('select-len-asig-' + i);
+        if (el) {
+          const msgId = el.getAttribute('data-msgid');
+          const filename = el.getAttribute('data-filename');
+          const choferEmail = el.value;
+          if (choferEmail && choferEmail !== 'sin_asignar@arauto.express') {
+            if (msgId) mapaAsignaciones[msgId] = choferEmail;
+            if (filename) mapaAsignaciones[filename] = choferEmail;
+          }
+        }
+      }
+
+      mapaAsignaciones.__operador = user;
+
+      const btnInyectar = document.getElementById('btn-inyectar-len');
+      const iconInyectar = document.getElementById('icon-inyectar-len');
+      const orb = document.getElementById('orb-inyectar-len');
+
+      if (btnInyectar) btnInyectar.disabled = true;
+      if (iconInyectar) iconInyectar.classList.remove('hidden');
+      if (orb) OllinOrbs.setState('orb-inyectar-len', 'fast', 'gold');
+
+      addLogLEN("🚀 Detonando Motor Ingesta LEN (SheetJS + Cruce 01_QUERY_LEN)...", "warn");
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(resp) {
+            if (btnInyectar) btnInyectar.disabled = false;
+            if (iconInyectar) iconInyectar.classList.add('hidden');
+            if (orb) OllinOrbs.setState('orb-inyectar-len', 'breathing', 'emerald');
+
+            if (resp && resp.exito) {
+              addLogLEN("✅ " + resp.mensaje, "success");
+              if (resp.desglose) {
+                for (let c in resp.desglose) {
+                  addLogLEN("  👤 " + c + ": " + resp.desglose[c].guias + " guías (" + resp.desglose[c].piezas + " piezas)", "info");
+                }
+              }
+              alert(resp.mensaje);
+              cargarReportesPendientesLEN();
+            } else {
+              addLogLEN("❌ Error en ingesta: " + (resp ? resp.mensaje : "Sin respuesta"), "error");
+              alert("Error: " + (resp ? resp.mensaje : "Fallo en el procesamiento de rutas LEN."));
+            }
+          })
+          .withFailureHandler(function(err) {
+            if (btnInyectar) btnInyectar.disabled = false;
+            if (iconInyectar) iconInyectar.classList.add('hidden');
+            if (orb) OllinOrbs.setState('orb-inyectar-len', 'idle', 'gold');
+            addLogLEN("❌ Fallo de red / GAS: " + (err.message || err), "error");
+            alert("Fallo de conexión: " + (err.message || err));
+          })
+          .procesarRutasLEN(mapaAsignaciones, user);
+      } else {
+        setTimeout(function() {
+          if (btnInyectar) btnInyectar.disabled = false;
+          if (iconInyectar) iconInyectar.classList.add('hidden');
+          if (orb) OllinOrbs.setState('orb-inyectar-len', 'breathing', 'emerald');
+
+          addLogLEN("✅ Ingesta LEN simulada completada exitosamente. Se inyectaron 42 guías en 'Ruta LEN'.", "success");
+          alert("✅ Ingesta completada (Modo offline). Se inyectaron 42 guías en 'Ruta LEN' y 48 bultos en 'Batch Piece LEN'.");
+          cacheReportesLEN = [];
+          renderizarReportesPendientesLEN([]);
+        }, 1200);
+      }
+    }
+
+    function ejecutarIntercambioRutasLEN() {
+      const selA = document.getElementById('len-intercambio-pochteca-a');
+      const selB = document.getElementById('len-intercambio-pochteca-b');
+      const emailA = selA ? selA.value : '';
+      const emailB = selB ? selB.value : '';
+
+      if (!emailA || !emailB) {
+        alert("Por favor selecciona ambos Pochtecas para realizar el intercambio.");
+        return;
+      }
+      if (emailA.toLowerCase() === emailB.toLowerCase()) {
+        alert("Selecciona dos Pochtecas diferentes para intercambiar rutas.");
+        return;
+      }
+
+      const user = (localStorage.getItem('ollin_console_user') || '').toLowerCase().trim();
+      if (SUPERVISORES_LEN_EMAILS.indexOf(user) === -1) {
+        alert("🔒 Acción denegada: Tu usuario no cuenta con autorización de supervisor en SVC León.");
+        return;
+      }
+
+      if (!confirm(`¿Confirmas el intercambio atómico de TODAS las guías asignadas hoy en 'Ruta LEN' entre:\n\n• ${emailA}\n• ${emailB}\n\nEsta acción reasignará las guías en la base real de inmediato.`)) {
+        return;
+      }
+
+      const btn = document.getElementById('btn-intercambiar-len');
+      if (btn) btn.disabled = true;
+
+      addLogLEN(`🔄 Ejecutando intercambio atómico de rutas en 'Ruta LEN' entre ${emailA} y ${emailB}...`, "warn");
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(resp) {
+            if (btn) btn.disabled = false;
+            if (resp && resp.exito) {
+              addLogLEN(resp.mensaje, "success");
+              alert(resp.mensaje);
+            } else {
+              addLogLEN("⚠️ " + (resp ? resp.mensaje : "Fallo en el intercambio."), "error");
+              alert(resp ? resp.mensaje : "No se pudo realizar el intercambio.");
+            }
+          })
+          .withFailureHandler(function(err) {
+            if (btn) btn.disabled = false;
+            addLogLEN("❌ Error en intercambio: " + (err.message || err), "error");
+            alert("Error de conexión: " + (err.message || err));
+          })
+          .intercambiarRutasPostIngestaLEN(emailA, emailB, user);
+      } else {
+        setTimeout(function() {
+          if (btn) btn.disabled = false;
+          addLogLEN(`✅ Intercambio simulado completado: 18 guías de ${emailA} ⇋ 15 guías de ${emailB}.`, "success");
+          alert(`✅ ¡Intercambio completado en 'Ruta LEN'! Se reasignaron con éxito 18 guías de '${emailA}' con 15 guías de '${emailB}'.`);
+        }, 800);
+      }
+    }
+
+    function addLogLEN(msg, tipo = "info") {
+      const consoleEl = document.getElementById('len-logs-console');
+      if (!consoleEl) return;
+      const time = new Date().toLocaleTimeString();
+      const colorClass = tipo === "error" ? "text-red-400" : tipo === "warn" ? "text-amber-400" : tipo === "success" ? "text-emerald-400" : "text-slate-300";
+      consoleEl.innerHTML += `<div class="${colorClass}">[${time}] ${msg}</div>`;
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
 
     // Teclado PIN Obsidian y soporte de teclado físico
     function consPressKey(digit) {
@@ -2826,6 +4433,12 @@
 
         // Cargar únicamente la pestaña activa seleccionada (por defecto 'rampa')
         switchTab(activeTab || 'rampa');
+      }
+
+      if (userRole === 'zambrano') {
+        seleccionarPlaza('LEN');
+      } else {
+        verificarPermisosSupervisorLEN();
       }
     }
 
@@ -4382,7 +5995,11 @@
       
       btn.disabled = true;
       btn.classList.add('opacity-50', 'cursor-not-allowed');
-      icon.classList.add('animate-spin');
+      if (icon) icon.classList.add('animate-spin');
+      if (window.OllinOrbs) {
+        OllinOrbs.setState('orb-unificado', 'working', 'gold');
+        OllinOrbs.setState('orb-header-status', 'working', 'gold');
+      }
       
       addLog("🚀 [v81.2 PROD] Enviando comando unificado al Cerebro Asíncrono OLLIN...", 'warn');
 
@@ -4391,7 +6008,11 @@
           .withSuccessHandler(function(res) {
             btn.disabled = false;
             btn.classList.remove('opacity-50', 'cursor-not-allowed');
-            icon.classList.remove('animate-spin');
+            if (icon) icon.classList.remove('animate-spin');
+            if (window.OllinOrbs) {
+              OllinOrbs.setState('orb-unificado', 'breathing', 'emerald');
+              OllinOrbs.setState('orb-header-status', 'breathing', 'gold');
+            }
             
             if (res.logs) {
               res.logs.forEach(l => addLog(l));
@@ -4409,7 +6030,11 @@
           .withFailureHandler(function(err) {
             btn.disabled = false;
             btn.classList.remove('opacity-50', 'cursor-not-allowed');
-            icon.classList.remove('animate-spin');
+            if (icon) icon.classList.remove('animate-spin');
+            if (window.OllinOrbs) {
+              OllinOrbs.setState('orb-unificado', 'breathing', 'emerald');
+              OllinOrbs.setState('orb-header-status', 'breathing', 'gold');
+            }
             addLog("❌ ERROR crítico de red en google.script.run: " + err.message, 'error');
           })
           .ejecutarProcesamientoUnificadoQRO();
@@ -6168,19 +7793,24 @@
     // =========================================================================
     let cacheMatrizMigracion = [];
 
-    function cargarMatrizMigracion() {
+    function cargarMatrizMigracion(filtroPlaza) {
       const icon = document.getElementById('icon-refresh-matriz');
       if (icon) icon.classList.add('animate-spin');
+      const pFiltro = filtroPlaza || plazaActiva || 'QRO';
 
       if (typeof google !== 'undefined' && google.script && google.script.run) {
         google.script.run
           .withSuccessHandler(function(resp) {
             if (icon) icon.classList.remove('animate-spin');
+            if (window.OllinOrbs) {
+              OllinOrbs.setState('orb-refresh-aclaraciones', 'breathing', 'gold');
+              OllinOrbs.setState('orb-header-status', 'breathing', 'gold');
+            }
             if (resp && resp.exito) {
               cacheMatrizMigracion = resp.matriz || [];
               matrizPochtecasLocal = resp.matriz || resp.mapa || [];
-              renderizarMatrizMigracion(resp);
-              renderizarCardsMigracion(matrizPochtecasLocal);
+              renderizarMatrizMigracion(resp, pFiltro);
+              renderizarCardsMigracion(matrizPochtecasLocal, pFiltro);
             } else {
               console.warn("Aviso al cargar matriz de migración:", resp ? resp.error : "Sin datos");
             }
@@ -6189,7 +7819,7 @@
             if (icon) icon.classList.remove('animate-spin');
             console.error("Fallo de red al cargar matriz de migración:", err);
           })
-          .obtenerMatrizMigracionRutas();
+          .obtenerMatrizMigracionRutas(pFiltro);
       } else {
         if (icon) icon.classList.remove('animate-spin');
         const mockMatriz = [
@@ -6207,22 +7837,34 @@
       }
     }
 
-    function renderizarMatrizMigracion(data) {
+    function renderizarMatrizMigracion(data, filtroPlaza) {
       const contenedor = document.getElementById('contenedor-matriz-pochtecas');
       if (!contenedor) return;
 
-      const res = data.resumen || { total: 0, bdCentral: 0, hibrido: 0, ollinqui: 0 };
+      const pFiltro = filtroPlaza || plazaActiva || 'QRO';
+      const listaRaw = data.matriz || [];
+      const lista = listaRaw.filter(p => {
+        if (pFiltro === 'LEN') return p.plaza === 'LEN';
+        return p.plaza === 'QRO' || !p.plaza;
+      });
+
+      // Recalcular KPIs filtrados por la plaza activa
+      let kTot = lista.length, kCen = 0, kHib = 0, kOll = 0;
+      lista.forEach(m => {
+        if (m.modo === 'HIBRIDO') kHib++;
+        else if (m.modo === 'OLLINQUI') kOll++;
+        else kCen++;
+      });
+
       const elTot = document.getElementById('kpi-matriz-total');
       const elCen = document.getElementById('kpi-matriz-central');
       const elHib = document.getElementById('kpi-matriz-hibrido');
       const elOll = document.getElementById('kpi-matriz-ollinqui');
 
-      if (elTot) elTot.innerText = res.total;
-      if (elCen) elCen.innerText = res.bdCentral;
-      if (elHib) elHib.innerText = res.hibrido;
-      if (elOll) elOll.innerText = res.ollinqui;
-
-      const lista = data.matriz || [];
+      if (elTot) elTot.innerText = kTot;
+      if (elCen) elCen.innerText = kCen;
+      if (elHib) elHib.innerText = kHib;
+      if (elOll) elOll.innerText = kOll;
       if (lista.length === 0) {
         contenedor.innerHTML = `<div class="col-span-full py-4 text-center text-slate-500 font-mono text-xs">No hay pochtecas en la matriz.</div>`;
         return;
@@ -6381,6 +8023,10 @@
     function cargarAclaracionesDHL() {
       const icon = document.getElementById('icon-refresh-aclaraciones');
       if (icon) icon.classList.add('animate-spin');
+      if (window.OllinOrbs) {
+        OllinOrbs.setState('orb-refresh-aclaraciones', 'searching', 'cyan');
+        OllinOrbs.setState('orb-header-status', 'searching', 'cyan');
+      }
 
       if (typeof google !== 'undefined' && google.script && google.script.run) {
         google.script.run
@@ -6873,6 +8519,58 @@
       }
       ticketFichaPericialActual = ticket;
       textoFichaPericial('ficha-360-subtitulo', `Guía: ${ticket.guia || 'S/G'} | PID: ${ticket.pid || 'S/P'} | Ticket: ${ticket.ticketId || '--'}`);
+
+      // 🔮 Inyección Pericial 360 en Vivo si faltan datos
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        if (window.OllinOrbs) {
+          OllinOrbs.setState('orb-ficha-360', 'searching', 'cyan');
+        }
+        google.script.run
+          .withSuccessHandler(function(respEv) {
+            if (window.OllinOrbs) {
+              OllinOrbs.setState('orb-ficha-360', 'weaving', 'gold');
+            }
+            if (respEv && respEv.exito && respEv.datos && respEv.encontrado) {
+              const d = respEv.datos;
+              if (d.direccionCompleta) textoFichaPericial('ficha-360-direccion', d.direccionCompleta);
+              if (d.cp) textoFichaPericial('ficha-360-cp', d.cp);
+              if (d.comunidadMunicipio) textoFichaPericial('ficha-360-comunidad', d.comunidadMunicipio);
+              if (d.telefonoContacto) textoFichaPericial('ficha-360-tel-contacto', d.telefonoContacto);
+              if (d.gps) {
+                textoFichaPericial('ficha-360-gps', d.gps);
+                mostrarEnlaceFichaPericial('ficha-360-maps', 'https:' + '\x2F\x2F' + 'www.google.com/maps/search/?api=1&query=' + encodeURIComponent(d.gps));
+              }
+              if (d.pochteca && d.pochteca !== 'Sin Asignar') textoFichaPericial('ficha-360-chofer', d.pochteca);
+              if (d.supervisor) textoFichaPericial('ficha-360-supervisor', d.supervisor);
+              if (d.telefonoChofer) {
+                textoFichaPericial('ficha-360-tel-chofer', d.telefonoChofer);
+                const phoneDigits = String(d.telefonoChofer).replace(/\D/g, '');
+                mostrarEnlaceFichaPericial('ficha-360-llamar', phoneDigits.length >= 10 ? 'tel:+' + phoneDigits : '', true);
+                mostrarEnlaceFichaPericial('ficha-360-whatsapp', phoneDigits.length >= 10 ? 'https:' + '\x2F\x2F' + 'wa.me/' + (phoneDigits.length === 10 ? '52' + phoneDigits : phoneDigits) : '');
+              }
+              if (d.fotoFachada) mostrarImagenFichaPericial('foto', d.fotoFachada);
+              if (d.firma) mostrarImagenFichaPericial('firma', d.firma);
+              if (d.checkpoint) textoFichaPericial('ficha-360-checkpoint', d.checkpoint);
+              if (d.comentariosPOD) textoFichaPericial('ficha-360-comentarios', d.comentariosPOD);
+              if (d.audioTeoyolotl) {
+                const audio = document.getElementById('ficha-360-audio');
+                const audioUrl = urlSeguraFichaPericial(d.audioTeoyolotl);
+                const audioEmpty = document.getElementById('ficha-360-audio-vacio');
+                if (audio && audioUrl) {
+                  audio.src = audioUrl;
+                  audio.classList.remove('hidden');
+                  if (audioEmpty) audioEmpty.classList.add('hidden');
+                }
+              }
+            }
+          })
+          .withFailureHandler(function(errEv) {
+            if (window.OllinOrbs) {
+              OllinOrbs.setState('orb-ficha-360', 'weaving', 'gold');
+            }
+          })
+          .buscarEvidenciaCompleta360(ticket.guia, ticket.pid, ticket.textoOriginalDhl || ticket.detalleDhl);
+      }
       textoFichaPericial('ficha-360-direccion', ticket.direccionCompleta, 'Dirección no registrada');
       textoFichaPericial('ficha-360-cp', ticket.cp, 'No registrado');
       textoFichaPericial('ficha-360-comunidad', ticket.comunidadMunicipio, 'Zona no identificada');
@@ -6973,19 +8671,25 @@
 
 // cargarMatrizMigracion unificada arriba
 
-    function renderizarCardsMigracion(data) {
+    function renderizarCardsMigracion(data, filtroPlaza) {
       const c = document.getElementById('contenedor-cards-migracion');
       if (!c) return;
 
-      let items = [];
+      const pFiltro = filtroPlaza || plazaActiva || 'QRO';
+      let itemsRaw = [];
       if (Array.isArray(data)) {
-        items = data;
+        itemsRaw = data;
       } else if (data && typeof data === 'object') {
         const obj = data.mapa || data;
         for (const k in obj) {
-          items.push(obj[k]);
+          itemsRaw.push(obj[k]);
         }
       }
+
+      let items = itemsRaw.filter(p => {
+        if (pFiltro === 'LEN') return p.plaza === 'LEN';
+        return p.plaza === 'QRO' || !p.plaza;
+      });
 
       let html = '';
       items.forEach(p => {
@@ -8245,6 +9949,12 @@
       document.body.removeChild(link);
     }
 
-</script>
+
+    // Inicialización de Plaza y Supervisor al cargar la página
+    document.addEventListener('DOMContentLoaded', function() {
+      const savedPlaza = localStorage.getItem('ollin_plaza_activa') || 'QRO';
+      seleccionarPlaza(savedPlaza);
+    });
+  </script>
 </body>
 </html>

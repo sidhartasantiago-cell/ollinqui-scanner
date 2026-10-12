@@ -119,6 +119,27 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
+  // =========================================================================
+  // 🦁 ENDPOINTS REST: INTEGRACIÓN OPERATIVA SVC LEÓN (LEN / BJX)
+  // =========================================================================
+  if (page.toLowerCase() === 'obtener_reportes_len' || (e && e.parameter && e.parameter.action === 'obtener_reportes_len')) {
+    return ContentService.createTextOutput(JSON.stringify(obtenerReportesPendientesLEN()))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (page.toLowerCase() === 'obtener_pochtecas_len' || (e && e.parameter && e.parameter.action === 'obtener_pochtecas_len')) {
+    return ContentService.createTextOutput(JSON.stringify(obtenerPochtecasLEN()))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (page.toLowerCase() === 'procesar_rutas_len' || (e && e.parameter && e.parameter.action === 'procesar_rutas_len') ||
+      page.toLowerCase() === 'intercambiar_rutas_len' || (e && e.parameter && e.parameter.action === 'intercambiar_rutas_len')) {
+    return ContentService.createTextOutput(JSON.stringify({
+      exito: false,
+      mensaje: "⛔ Método GET no permitido para operaciones mutantes de rampa LEN. Utilice POST o la interfaz de Consola Maestra."
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
   if (page.toLowerCase() === 'legacy_sierra') {
     var templateSierra = HtmlService.createTemplateFromFile('Index_Sierra');
     templateSierra.role = roleParam || 'daniel';
@@ -226,6 +247,34 @@ function doPost(e) {
 
     if (action === "obtener_aclaraciones_v2") {
       return ContentService.createTextOutput(JSON.stringify(obtenerAclaracionesAbiertasV2()))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // =========================================================================
+    // 🦁 WEBHOOKS Y ACCIONES POST: INTEGRACIÓN SVC LEÓN (LEN / BJX)
+    // =========================================================================
+    if (action === "obtener_reportes_len") {
+      return ContentService.createTextOutput(JSON.stringify(obtenerReportesPendientesLEN()))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === "obtener_pochtecas_len") {
+      return ContentService.createTextOutput(JSON.stringify(obtenerPochtecasLEN()))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === "procesar_rutas_len") {
+      var mapaAsig = payload.mapaAsignaciones || payload.asignaciones || payload.mapa || {};
+      var opAsig = payload.operador || payload.__operador || (e && e.parameter && e.parameter.operador) || "";
+      return ContentService.createTextOutput(JSON.stringify(procesarRutasLEN(mapaAsig, opAsig)))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === "intercambiar_rutas_len") {
+      var emA = payload.emailA || (e && e.parameter && e.parameter.emailA) || "";
+      var emB = payload.emailB || (e && e.parameter && e.parameter.emailB) || "";
+      var opInt = payload.operador || payload.__operador || (e && e.parameter && e.parameter.operador) || "";
+      return ContentService.createTextOutput(JSON.stringify(intercambiarRutasPostIngestaLEN(emA, emB, opInt)))
         .setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -2010,17 +2059,23 @@ function obtenerNominaPochtecas(anio, semana, choferFiltro) {
  * 📋 DIRECTORIO MAESTRO DE CONTACTO POCHTECAS (OLLIN v84.5)
  */
 var DIRECTORIO_CONTACTO_POCHTECAS = typeof DIRECTORIO_CONTACTO_POCHTECAS !== 'undefined' ? DIRECTORIO_CONTACTO_POCHTECAS : {
-  "xichudaniel@gmail.com": { nombre: "Daniel Juárez", tel: "419 100 8472", zona: "Sierra Gorda (Xichú)" },
-  "fmtierrabla1@gmail.com": { nombre: "Diego", tel: "419 114 4521", zona: "Tierra Blanca" },
-  "diegovv21mar@gmail.com": { nombre: "Diego", tel: "419 114 4521", zona: "Tierra Blanca" },
-  "victor18amadorm@gmail.com": { nombre: "Víctor Amador", tel: "419 108 9231", zona: "Comodín Sierra" },
-  "fmsanluispaq@gmail.com": { nombre: "Gregorio Adonai", tel: "442 561 7890", zona: "San Luis de la Paz" },
-  "fmpaqueteriatvsm@gmail.com": { nombre: "Lyonnet", tel: "442 812 3456", zona: "Dr. Mora / S.J. Iturbide" },
-  "yesigonzg1827@gmail.com": { nombre: "Rosi González", tel: "419 102 3344", zona: "Santa Catarina" },
-  "edgar.rodriguez.arauto@gmail.com": { nombre: "Edgar Rodríguez", tel: "442 338 9898", zona: "Querétaro Metrópoli" },
-  "fernando.maestro.1991@gmail.com": { nombre: "Fernando Maestro", tel: "442 411 2233", zona: "Querétaro Metrópoli" },
-  "irvin.reyes@arauto.express": { nombre: "Irvin Reyes", tel: "442 708 5511", zona: "Supervisor Operativo" },
-  "sidharta.santiago@arauto.express": { nombre: "Sidharta Santiago", tel: "442 123 4567", zona: "Dirección Operativa" }
+  "xichudaniel@gmail.com": { nombre: "Daniel Juárez", tel: "419 100 8472", zona: "Sierra Gorda (Xichú)", plaza: "QRO" },
+  "fmtierrabla1@gmail.com": { nombre: "Diego", tel: "419 114 4521", zona: "Tierra Blanca", plaza: "QRO" },
+  "diegovv21mar@gmail.com": { nombre: "Diego", tel: "419 114 4521", zona: "Tierra Blanca", plaza: "QRO" },
+  "victor18amadorm@gmail.com": { nombre: "Víctor Amador", tel: "419 108 9231", zona: "Comodín Sierra", plaza: "QRO" },
+  "fmsanluispaq@gmail.com": { nombre: "Gregorio Adonai", tel: "442 561 7890", zona: "San Luis de la Paz", plaza: "QRO" },
+  "fmpaqueteriatvsm@gmail.com": { nombre: "Lyonnet", tel: "442 812 3456", zona: "Dr. Mora / S.J. Iturbide", plaza: "QRO" },
+  "yesigonzg1827@gmail.com": { nombre: "Rosi González", tel: "419 102 3344", zona: "Santa Catarina", plaza: "QRO" },
+  "edgar.rodriguez.arauto@gmail.com": { nombre: "Edgar Rodríguez", tel: "442 338 9898", zona: "Querétaro Metrópoli", plaza: "QRO" },
+  "fernando.maestro.1991@gmail.com": { nombre: "Fernando Maestro", tel: "442 411 2233", zona: "Querétaro Metrópoli", plaza: "QRO" },
+  "irvin.reyes@arauto.express": { nombre: "Irvin Reyes", tel: "442 708 5511", zona: "Supervisor Operativo", plaza: "QRO" },
+  "sidharta.santiago@arauto.express": { nombre: "Sidharta Santiago", tel: "442 123 4567", zona: "Dirección Operativa", plaza: "QRO" },
+  // 🦁 Pochtecas y Supervisores SVC León (LEN)
+  "gerardotorresaviles5@gmail.com": { nombre: "Gerardo Torres", tel: "", zona: "Local Lagos/León", plaza: "LEN" },
+  "ignaciozambraldb@gmail.com": { nombre: "Ignacio Zambrano", tel: "", zona: "Foráneo Silao", plaza: "LEN" },
+  "deliverypluszambrano@gmail.com": { nombre: "DPZambrano", tel: "", zona: "Foráneo GTO", plaza: "LEN" },
+  "jesusnavas1989perez@gmail.com": { nombre: "Jesús Nava", tel: "", zona: "Foráneo GTO", plaza: "LEN" },
+  "mizambra71086@gmail.com": { nombre: "Ignacio Zambrano", tel: "", zona: "Supervisor León", plaza: "LEN" }
 };
 
 /**
@@ -2045,6 +2100,7 @@ var DEFAULT_MATRIZ_MIGRACION = {
     nombre: "Daniel Juárez",
     zona: "Sierra Gorda (Xichú)",
     telefono: "419 100 8472",
+    plaza: "QRO",
     modo: "HIBRIDO", // Default normativo: Daniel Juárez en HÍBRIDO
     ultimaModificacion: "2026-10-09 12:00:00",
     modificadoPor: "Sistema (Default)"
@@ -2054,6 +2110,7 @@ var DEFAULT_MATRIZ_MIGRACION = {
     nombre: "Diego",
     zona: "Tierra Blanca",
     telefono: "419 114 4521",
+    plaza: "QRO",
     modo: "BD_CENTRAL",
     ultimaModificacion: "2026-10-09 12:00:00",
     modificadoPor: "Sistema (Default)"
@@ -2063,6 +2120,7 @@ var DEFAULT_MATRIZ_MIGRACION = {
     nombre: "Diego",
     zona: "Tierra Blanca",
     telefono: "419 114 4521",
+    plaza: "QRO",
     modo: "BD_CENTRAL",
     ultimaModificacion: "2026-10-09 12:00:00",
     modificadoPor: "Sistema (Default)"
@@ -2072,6 +2130,7 @@ var DEFAULT_MATRIZ_MIGRACION = {
     nombre: "Víctor Amador",
     zona: "Comodín Sierra",
     telefono: "419 108 9231",
+    plaza: "QRO",
     modo: "BD_CENTRAL",
     ultimaModificacion: "2026-10-09 12:00:00",
     modificadoPor: "Sistema (Default)"
@@ -2081,6 +2140,7 @@ var DEFAULT_MATRIZ_MIGRACION = {
     nombre: "Gregorio Adonai",
     zona: "San Luis de la Paz",
     telefono: "442 561 7890",
+    plaza: "QRO",
     modo: "BD_CENTRAL",
     ultimaModificacion: "2026-10-09 12:00:00",
     modificadoPor: "Sistema (Default)"
@@ -2090,6 +2150,7 @@ var DEFAULT_MATRIZ_MIGRACION = {
     nombre: "Lyonnet",
     zona: "Dr. Mora / S.J. Iturbide",
     telefono: "442 812 3456",
+    plaza: "QRO",
     modo: "BD_CENTRAL",
     ultimaModificacion: "2026-10-09 12:00:00",
     modificadoPor: "Sistema (Default)"
@@ -2099,6 +2160,7 @@ var DEFAULT_MATRIZ_MIGRACION = {
     nombre: "Rosi González",
     zona: "Santa Catarina",
     telefono: "419 102 3344",
+    plaza: "QRO",
     modo: "BD_CENTRAL",
     ultimaModificacion: "2026-10-09 12:00:00",
     modificadoPor: "Sistema (Default)"
@@ -2108,6 +2170,7 @@ var DEFAULT_MATRIZ_MIGRACION = {
     nombre: "Edgar Rodríguez",
     zona: "Querétaro Metrópoli",
     telefono: "442 338 9898",
+    plaza: "QRO",
     modo: "BD_CENTRAL",
     ultimaModificacion: "2026-10-09 12:00:00",
     modificadoPor: "Sistema (Default)"
@@ -2117,9 +2180,51 @@ var DEFAULT_MATRIZ_MIGRACION = {
     nombre: "Fernando Maestro",
     zona: "Querétaro Metrópoli",
     telefono: "442 411 2233",
+    plaza: "QRO",
     modo: "BD_CENTRAL",
     ultimaModificacion: "2026-10-09 12:00:00",
     modificadoPor: "Sistema (Default)"
+  },
+  // 🦁 Pochtecas Canónicos de León (LEN)
+  "gerardotorresaviles5@gmail.com": {
+    correo: "gerardotorresaviles5@gmail.com",
+    nombre: "Gerardo Torres",
+    zona: "Local Lagos/León",
+    telefono: "",
+    plaza: "LEN",
+    modo: "BD_CENTRAL",
+    ultimaModificacion: "2026-10-12 12:00:00",
+    modificadoPor: "Sistema (Default LEN)"
+  },
+  "ignaciozambraldb@gmail.com": {
+    correo: "Ignaciozambraldb@gmail.com",
+    nombre: "Ignacio Zambrano",
+    zona: "Foráneo Silao",
+    telefono: "",
+    plaza: "LEN",
+    modo: "BD_CENTRAL",
+    ultimaModificacion: "2026-10-12 12:00:00",
+    modificadoPor: "Sistema (Default LEN)"
+  },
+  "deliverypluszambrano@gmail.com": {
+    correo: "deliverypluszambrano@gmail.com",
+    nombre: "DPZambrano",
+    zona: "Foráneo GTO",
+    telefono: "",
+    plaza: "LEN",
+    modo: "BD_CENTRAL",
+    ultimaModificacion: "2026-10-12 12:00:00",
+    modificadoPor: "Sistema (Default LEN)"
+  },
+  "jesusnavas1989perez@gmail.com": {
+    correo: "jesusnavas1989perez@gmail.com",
+    nombre: "Jesús Nava",
+    zona: "Foráneo GTO",
+    telefono: "",
+    plaza: "LEN",
+    modo: "BD_CENTRAL",
+    ultimaModificacion: "2026-10-12 12:00:00",
+    modificadoPor: "Sistema (Default LEN)"
   }
 };
 
@@ -2127,7 +2232,7 @@ var DEFAULT_MATRIZ_MIGRACION = {
  * 1. Obtiene la matriz de migración actual desde PropertiesService.
  * Si no está inicializada, persiste y retorna los defaults normativos.
  */
-function obtenerMatrizMigracionRutas() {
+function obtenerMatrizMigracionRutas(filtroPlaza) {
   try {
     var props = PropertiesService.getScriptProperties();
     var raw = props.getProperty(CLAVE_PROPS_MATRIZ_MIGRACION);
@@ -2149,9 +2254,19 @@ function obtenerMatrizMigracionRutas() {
       // Asegurar que todos los pochtecas del catálogo por defecto existan
       var huboCambio = false;
       for (var emailKey in DEFAULT_MATRIZ_MIGRACION) {
-        if (!matriz[emailKey]) {
+        var emailKeyLow = emailKey.toLowerCase();
+        var matchKey = null;
+        for (var k in matriz) {
+          if (k.toLowerCase() === emailKeyLow) { matchKey = k; break; }
+        }
+        if (!matchKey) {
           matriz[emailKey] = JSON.parse(JSON.stringify(DEFAULT_MATRIZ_MIGRACION[emailKey]));
           huboCambio = true;
+        } else {
+          if (!matriz[matchKey].plaza && DEFAULT_MATRIZ_MIGRACION[emailKey].plaza) {
+            matriz[matchKey].plaza = DEFAULT_MATRIZ_MIGRACION[emailKey].plaza;
+            huboCambio = true;
+          }
         }
       }
       if (huboCambio) {
@@ -2161,9 +2276,16 @@ function obtenerMatrizMigracionRutas() {
 
     var lista = [];
     var resumen = { total: 0, bdCentral: 0, hibrido: 0, ollinqui: 0 };
+    var fPlaza = filtroPlaza ? String(filtroPlaza).toUpperCase().trim() : "";
 
     for (var k in matriz) {
       var item = matriz[k];
+      if (!item.plaza) item.plaza = "QRO";
+
+      if (fPlaza && item.plaza !== fPlaza) {
+        continue;
+      }
+
       lista.push(item);
       resumen.total++;
       if (item.modo === "HIBRIDO") resumen.hibrido++;
@@ -4992,4 +5114,1128 @@ function rechazarEntregaAuditoria(pid, motivo, auditorEmail) {
   } finally {
     lock.releaseLock();
   }
+}
+
+/**
+ * 🛡️ MOTOR PERICIAL 360° TOTAL: Búsqueda exhaustiva en Validación PWA, Bóveda Facturados, RUTA y Matriz CP
+ */
+function buscarEvidenciaCompleta360(guiaRaw, pidRaw, textoDhl) {
+  try {
+    var guiaClean = String(guiaRaw || "").trim().replace(/\D/g, "");
+    var pidClean = sanitizarPIDParaBoveda(pidRaw);
+    if (!guiaClean && !pidClean) {
+      return { exito: false, mensaje: "Guía o PID requerido" };
+    }
+
+    var resultado = {
+      encontrado: false,
+      fuente: "NINGUNA",
+      guia: guiaClean,
+      pid: pidClean,
+      direccionCompleta: "",
+      cp: "",
+      comunidadMunicipio: "",
+      telefonoContacto: "",
+      gps: "",
+      pochteca: "Sin Asignar",
+      emailChofer: "",
+      telefonoChofer: "",
+      supervisor: "Irvin Reyes",
+      fotoFachada: "",
+      firma: "",
+      audioTeoyolotl: "",
+      comentariosPOD: "",
+      checkpoint: "PENDIENTE",
+      receptor: "Destinatario"
+    };
+
+    // 1. Cargar MATRIZ_CP para enriquecimiento
+    var cpInfoMap = {};
+    try {
+      var ssBoveda = SpreadsheetApp.openById(ID_BOVEDA_BATCH_MAESTRO);
+      var hojaMatrizCP = ssBoveda.getSheetByName("MATRIZ_CP");
+      if (hojaMatrizCP && hojaMatrizCP.getLastRow() > 1) {
+        var matrizCP = hojaMatrizCP.getDataRange().getValues();
+        for (var im = 1; im < matrizCP.length; im++) {
+          var cpMatriz = normalizarCPAclaracion_(matrizCP[im][0]);
+          if (cpMatriz) {
+            cpInfoMap[cpMatriz] = {
+              municipio: String(matrizCP[im][1] || "").trim(),
+              zona: String(matrizCP[im][2] || "").trim(),
+              supervisor: String(matrizCP[im][5] || "").trim().toLowerCase()
+            };
+          }
+        }
+      }
+    } catch(eCP) {
+      Logger.log("Aviso MATRIZ_CP: " + eCP.toString());
+    }
+
+    // 2. BUSCAR EN VALIDACIÓN_QRO_2025 usando TextFinder
+    try {
+      var idVal = "1tkfIyZIO2UxzSHFNRPFssRKOpkOscn7qNbkYA7SXr0M";
+      var ssVal = SpreadsheetApp.openById(idVal);
+      var shVal = ssVal.getSheetByName("Validación") || ssVal.getSheetByName("VALIDACIÓN_QRO_2025") || ssVal.getSheets()[0];
+      if (shVal && shVal.getLastRow() > 1) {
+        var headerVal = shVal.getRange(1, 1, 1, shVal.getLastColumn()).getValues()[0];
+        var indexVal = crearIndiceEncabezadosAclaracion_(headerVal);
+        var matchCell = null;
+        if (guiaClean) matchCell = shVal.createTextFinder(guiaClean).findNext();
+        if (!matchCell && pidClean) matchCell = shVal.createTextFinder(pidClean).findNext();
+        if (!matchCell && pidRaw) matchCell = shVal.createTextFinder(String(pidRaw).trim()).findNext();
+
+        if (matchCell) {
+          var rowNum = matchCell.getRow();
+          if (rowNum > 1) {
+            var vr = shVal.getRange(rowNum, 1, 1, shVal.getLastColumn()).getValues()[0];
+            resultado.encontrado = true;
+            resultado.fuente = "VALIDACION_PWA";
+            if (!resultado.guia) resultado.guia = String(obtenerCampoAclaracion_(vr, indexVal, ["Guia", "Guía", "HWB", "AWB"], 0) || "").trim();
+            if (!resultado.pid) resultado.pid = sanitizarPIDParaBoveda(obtenerCampoAclaracion_(vr, indexVal, ["PID", "PID Codigo", "PID Código"], 1));
+            resultado.cp = String(obtenerCampoAclaracion_(vr, indexVal, ["C.P.", "CP", "Codigo Postal", "Código Postal"], 2) || "").trim();
+            resultado.checkpoint = String(obtenerCampoAclaracion_(vr, indexVal, ["Checkpoint", "Estatus"], 3) || "OK").trim().toUpperCase();
+            resultado.receptor = String(obtenerCampoAclaracion_(vr, indexVal, ["Receiver Name", "Receptor", "Destinatario", "Quien Recibio"], 4) || "").trim();
+            resultado.firma = String(obtenerCampoAclaracion_(vr, indexVal, ["Firma", "URL Firma"], 5) || "").trim();
+            resultado.fotoFachada = String(obtenerCampoAclaracion_(vr, indexVal, ["Imagen Fachada", "Foto Fachada", "Foto"], 6) || "").trim();
+            resultado.audioTeoyolotl = String(obtenerCampoAclaracion_(vr, indexVal, ["Audio Teoyolotl", "Audio", "URL Audio"], 7) || "").trim();
+            resultado.gps = String(obtenerCampoAclaracion_(vr, indexVal, ["GPS", "Coordenadas"], 8) || "").trim();
+            resultado.emailChofer = String(obtenerCampoAclaracion_(vr, indexVal, ["ID Correo", "Email Chofer", "Pochteca", "Operador"], 9) || "").trim().toLowerCase();
+            resultado.telefonoContacto = String(obtenerCampoAclaracion_(vr, indexVal, ["Telefono", "Telefono Contacto", "Tel Contacto"], 20) || "").trim();
+            resultado.comentariosPOD = String(obtenerCampoAclaracion_(vr, indexVal, ["Comentarios", "Comentarios POD", "Observaciones"], 10) || "").trim();
+            
+            var d1 = String(obtenerCampoAclaracion_(vr, indexVal, ["Rcvr Addr 1", "Receiver Address 1", "Direccion 1", "Direccion"]) || "").trim();
+            var d2 = String(obtenerCampoAclaracion_(vr, indexVal, ["Rcvr Addr 2", "Receiver Address 2", "Direccion 2"]) || "").trim();
+            var d3 = String(obtenerCampoAclaracion_(vr, indexVal, ["Rcvr Addr 3", "Receiver Address 3", "Direccion 3"]) || "").trim();
+            resultado.direccionCompleta = construirDireccionAclaracion_([d1, d2, d3]);
+          }
+        }
+      }
+    } catch(eVal) {
+      Logger.log("Aviso Validación: " + eVal.toString());
+    }
+
+    // 3. BUSCAR EN FACTURADOS_PROD_2026 (BOVEDA BATCH MAESTRO)
+    if (!resultado.encontrado || !resultado.direccionCompleta || !resultado.fotoFachada) {
+      try {
+        var ssBov = SpreadsheetApp.openById(ID_BOVEDA_BATCH_MAESTRO);
+        var shFact = ssBov.getSheetByName("FACTURADOS_PROD_2026") || ssBov.getSheetByName("BOVEDA_BATCH_MAESTRO");
+        if (shFact && shFact.getLastRow() > 1) {
+          var matchFact = null;
+          if (guiaClean) matchFact = shFact.createTextFinder(guiaClean).findNext();
+          if (!matchFact && pidClean) matchFact = shFact.createTextFinder(pidClean).findNext();
+          if (matchFact) {
+            var fRowNum = matchFact.getRow();
+            if (fRowNum > 1) {
+              var fHeader = shFact.getRange(1, 1, 1, shFact.getLastColumn()).getValues()[0];
+              var fIdx = crearIndiceEncabezadosAclaracion_(fHeader);
+              var fRow = shFact.getRange(fRowNum, 1, 1, shFact.getLastColumn()).getValues()[0];
+              resultado.encontrado = true;
+              if (resultado.fuente === "NINGUNA") resultado.fuente = "BOVEDA_FACTURADOS";
+              if (!resultado.guia) resultado.guia = String(obtenerCampoAclaracion_(fRow, fIdx, ["Guia", "Guía", "HWB"], -1) || "").trim();
+              if (!resultado.pid) resultado.pid = sanitizarPIDParaBoveda(obtenerCampoAclaracion_(fRow, fIdx, ["PID"], -1));
+              if (!resultado.cp) resultado.cp = String(obtenerCampoAclaracion_(fRow, fIdx, ["CP", "C.P.", "Codigo Postal"], -1) || "").trim();
+              if (!resultado.checkpoint || resultado.checkpoint === "PENDIENTE") resultado.checkpoint = String(obtenerCampoAclaracion_(fRow, fIdx, ["Checkpoint"], -1) || "OK").trim().toUpperCase();
+              if (!resultado.receptor || resultado.receptor === "Destinatario") resultado.receptor = String(obtenerCampoAclaracion_(fRow, fIdx, ["Receiver Name", "Receptor"], -1) || "").trim();
+              if (!resultado.emailChofer) resultado.emailChofer = String(obtenerCampoAclaracion_(fRow, fIdx, ["Pochteca", "Email Chofer", "Operador"], -1) || "").trim().toLowerCase();
+              if (!resultado.firma) resultado.firma = String(obtenerCampoAclaracion_(fRow, fIdx, ["Firma", "URL Firma"], -1) || "").trim();
+              if (!resultado.fotoFachada) resultado.fotoFachada = String(obtenerCampoAclaracion_(fRow, fIdx, ["Foto Fachada", "Foto"], -1) || "").trim();
+              if (!resultado.audioTeoyolotl) resultado.audioTeoyolotl = String(obtenerCampoAclaracion_(fRow, fIdx, ["Audio", "Audio Teoyolotl"], -1) || "").trim();
+              if (!resultado.gps) resultado.gps = String(obtenerCampoAclaracion_(fRow, fIdx, ["GPS", "Coordenadas"], -1) || "").trim();
+              if (!resultado.comentariosPOD) resultado.comentariosPOD = String(obtenerCampoAclaracion_(fRow, fIdx, ["Comentarios", "Observaciones"], -1) || "").trim();
+              if (!resultado.direccionCompleta) {
+                var fd1 = String(obtenerCampoAclaracion_(fRow, fIdx, ["Rcvr Addr 1", "Direccion 1", "Direccion"], -1) || "").trim();
+                var fd2 = String(obtenerCampoAclaracion_(fRow, fIdx, ["Rcvr Addr 2", "Direccion 2"], -1) || "").trim();
+                var fd3 = String(obtenerCampoAclaracion_(fRow, fIdx, ["Rcvr Addr 3", "Direccion 3"], -1) || "").trim();
+                resultado.direccionCompleta = construirDireccionAclaracion_([fd1, fd2, fd3]);
+              }
+            }
+          }
+        }
+      } catch(eBov) {
+        Logger.log("Aviso Boveda: " + eBov.toString());
+      }
+    }
+
+    // 4. PARSEO DE CORREO DHL SI FALTAN CAMPOS
+    var rawText = String(textoDhl || "");
+    if (rawText) {
+      if (!resultado.cp) {
+        var cpMatch = rawText.match(/\b(76\d{3}|37\d{3}|38\d{3})\b/);
+        if (cpMatch) resultado.cp = cpMatch[1];
+      }
+      if (!resultado.telefonoContacto) {
+        var telMatch = rawText.match(/\b(?:\+?52)?\s*(\d{10})\b/);
+        if (telMatch) resultado.telefonoContacto = telMatch[1];
+      }
+    }
+
+    // 5. ENRIQUECER CON DIRECTORIO DE POCHTECAS Y MATRIZ_CP
+    if (resultado.cp) {
+      var cpClean = normalizarCPAclaracion_(resultado.cp);
+      var cInfo = cpInfoMap[cpClean] || {};
+      if (cInfo.municipio) {
+        resultado.comunidadMunicipio = cInfo.municipio + (cInfo.zona && cInfo.zona !== cInfo.municipio ? " · " + cInfo.zona : "");
+      }
+      if (cInfo.supervisor) {
+        var dirSup = typeof DIRECTORIO_CONTACTO_POCHTECAS !== "undefined" && DIRECTORIO_CONTACTO_POCHTECAS[cInfo.supervisor];
+        resultado.supervisor = dirSup ? dirSup.nombre : cInfo.supervisor;
+      }
+    }
+
+    if (resultado.emailChofer) {
+      var dirPoch = typeof DIRECTORIO_CONTACTO_POCHTECAS !== "undefined" && DIRECTORIO_CONTACTO_POCHTECAS[resultado.emailChofer];
+      if (dirPoch) {
+        resultado.pochteca = dirPoch.nombre;
+        resultado.telefonoChofer = dirPoch.tel;
+      } else {
+        resultado.pochteca = resultado.emailChofer;
+      }
+    }
+
+    return {
+      exito: true,
+      encontrado: resultado.encontrado,
+      datos: resultado
+    };
+  } catch(errAll) {
+    Logger.log("Error en buscarEvidenciaCompleta360: " + errAll.toString());
+    return { exito: false, error: errAll.toString() };
+  }
+}
+
+
+// =========================================================================
+// 🦁 CEREBRO OPERATIVO E INTEGRACIÓN SVC LEÓN (LEN / BJX) - OLLIN v86.2 PROD
+// =========================================================================
+// Bases de datos operativas de León:
+// 1. ID_LIBRO_LEN_CENTRAL: '1Qu9q7LCBIY5PcWYqKwroIRX9b57NCOwmvbP-cQJ_hGQ'
+//    Hojas: 'Ruta LEN', 'RUTA Back end LEN', 'COURIER LEN', 'Batch Piece LEN'
+// 2. ID_OLLIN_CAJA_NEGRA_LEN: '1UPoGsJCXamRKcrMxleHp8b7XEMn_gHplcE1ZdcYITFM'
+//    Hojas: 'VALIDACIÓN_LEN_2025', '1_BATCH_DHL_PLAN_LEN'
+// =========================================================================
+
+const ID_LIBRO_LEN_CENTRAL = "1Qu9q7LCBIY5PcWYqKwroIRX9b57NCOwmvbP-cQJ_hGQ";
+const ID_OLLIN_CAJA_NEGRA_LEN = "1UPoGsJCXamRKcrMxleHp8b7XEMn_gHplcE1ZdcYITFM";
+
+// Webhook Google Chat para la plaza León
+const GOOGLE_CHAT_WEBHOOK_URL_LEN = "https://chat.googleapis.com/v1/spaces/AAQAfglmxgU/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=b_yjbJt9WnlrbBFHfWKs1dM26EzK-KUnYhhigT6sghI";
+
+// Supervisores autorizados para operar la Consola LEN (Tlachixqui)
+const SUPERVISORES_AUTORIZADOS_LEN = [
+  "mizambra71086@gmail.com",
+  "irvin.reyes@arauto.express",
+  "sidharta.santiago@arauto.express"
+];
+
+function esSupervisorLENAutorizado(email) {
+  if (!email) return false;
+  var emailClean = String(email).toLowerCase().trim();
+  for (var i = 0; i < SUPERVISORES_AUTORIZADOS_LEN.length; i++) {
+    if (SUPERVISORES_AUTORIZADOS_LEN[i].toLowerCase().trim() === emailClean) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Pochtecas Canónicos de León
+const POCHTECAS_CANONICOS_LEN = [
+  { correo: "gerardotorresaviles5@gmail.com", nombre: "Gerardo Torres", zona: "Local Lagos/León", plaza: "LEN" },
+  { correo: "Ignaciozambraldb@gmail.com", nombre: "Ignacio Zambrano", zona: "Foráneo Silao", plaza: "LEN" },
+  { correo: "deliverypluszambrano@gmail.com", nombre: "DPZambrano", zona: "Foráneo GTO", plaza: "LEN" },
+  { correo: "jesusnavas1989perez@gmail.com", nombre: "Jesús Nava", zona: "Foráneo GTO", plaza: "LEN" }
+];
+
+// Diccionario de mapeo de columnas logísticas de DHL LEN
+const DICCIONARIO_MAPEO_LEN = {
+  "hwb no": ["hwb no", "hwb", "guia", "search", "waybill", "airbill", "guía"],
+  "piece id": ["piece id", "pid", "piece_id", "pieceid", "pieza id"],
+  "piece no": ["piece no", "pieces", "bultos", "piezas", "piece_no", "piece count"],
+  "receiver name": ["receiver name", "consignee name", "destinatario", "nombre_recibe", "nombre recibe"],
+  "rcvr addr 1": ["rcvr addr 1", "receiver address 1", "address 1", "rcvr addr1", "rcvr_addr_1", "direccion 1", "dirección 1"],
+  "rcvr addr 2": ["rcvr addr 2", "receiver address 2", "address 2", "rcvr addr2", "rcvr_addr_2", "direccion 2", "dirección 2"],
+  "rcvr addr 3": ["rcvr addr 3", "receiver address 3", "address 3", "rcvr addr3", "rcvr_addr_3", "direccion 3", "dirección 3"],
+  "rcvr postcode": ["rcvr postcode", "receiver postcode", "rcvr postal code", "postal code", "cp", "postcode", "rcvr_postcode", "c.p."]
+};
+
+/**
+ * 🦁 Obtiene la lista de reportes Excel de DHL actualmente en Gmail con etiqueta '02_REPORTE_LEN'
+ */
+function obtenerReportesPendientesLEN() {
+  try {
+    var etiquetaReporte = obtenerEtiquetaPorNombre("02_REPORTE_LEN");
+    if (!etiquetaReporte) {
+      var threadsBuscados = GmailApp.search("label:02_REPORTE_LEN", 0, 15);
+      if (threadsBuscados.length === 0) return [];
+      return extraerReportesDeHilosLEN(threadsBuscados);
+    }
+    var hilosRep = etiquetaReporte.getThreads(0, 15);
+    return extraerReportesDeHilosLEN(hilosRep);
+  } catch(e) {
+    Logger.log("⚠️ Error en obtenerReportesPendientesLEN: " + e.message);
+    return [];
+  }
+}
+
+/**
+ * 🦁 Extrae los adjuntos Excel (.xlsx / .xls) de un lote de hilos de Gmail
+ */
+function extraerReportesDeHilosLEN(hilos) {
+  var reportes = [];
+  var timeZone = Session.getScriptTimeZone() || "America/Mexico_City";
+  for (var h = 0; h < hilos.length; h++) {
+    var mensajes = hilos[h].getMessages();
+    for (var m = 0; m < mensajes.length; m++) {
+      var message = mensajes[m];
+      var adjuntos = message.getAttachments();
+      var asunto = message.getSubject();
+      var remitente = extraerRemitenteOriginal(message);
+      var fecha = Utilities.formatDate(message.getDate(), timeZone, "dd/MM HH:mm");
+      
+      for (var a = 0; a < adjuntos.length; a++) {
+        var adjunto = adjuntos[a];
+        var nombreAdjunto = adjunto.getName();
+        var nombreAdjuntoLow = nombreAdjunto.toLowerCase();
+        
+        if (nombreAdjuntoLow.indexOf(".xlsx") !== -1 || nombreAdjuntoLow.indexOf(".xls") !== -1 || adjunto.getContentType() === MimeType.MICROSOFT_EXCEL) {
+          reportes.push({
+            messageId: message.getId(),
+            threadId: hilos[h].getId(),
+            subject: asunto,
+            filename: nombreAdjunto,
+            date: fecha,
+            sender: remitente
+          });
+        }
+      }
+    }
+  }
+  return reportes;
+}
+
+/**
+ * 🦁 Obtiene el catálogo dinámico de Pochtecas (choferes) de León desde COURIER LEN / Matriz
+ */
+function obtenerPochtecasLEN() {
+  try {
+    var pochtecas = [];
+    var correosVistos = {};
+
+    // 1. Intentar leer desde la pestaña COURIER LEN en ID_LIBRO_LEN_CENTRAL
+    try {
+      var libro = SpreadsheetApp.openById(ID_LIBRO_LEN_CENTRAL);
+      var hojaCourier = libro.getSheetByName("COURIER LEN") || libro.getSheetByName("COURIER_LEN");
+      if (hojaCourier) {
+        var dataCourier = hojaCourier.getDataRange().getValues();
+        for (var i = 1; i < dataCourier.length; i++) {
+          var nombre = dataCourier[i][1]; // Columna B
+          var email = dataCourier[i][3];  // Columna D
+          if (nombre && email) {
+            var emailStr = email.toString().trim();
+            var emailLow = emailStr.toLowerCase();
+            if (!correosVistos[emailLow]) {
+              correosVistos[emailLow] = true;
+              pochtecas.push({
+                nombre: nombre.toString().trim(),
+                email: emailStr,
+                correo: emailStr,
+                zona: "Ruta León"
+              });
+            }
+          }
+        }
+      }
+    } catch (eLibro) {
+      Logger.log("Aviso al leer COURIER LEN de hoja central: " + eLibro.message);
+    }
+
+    // 2. Incorporar y garantizar los Pochtecas Canónicos de León
+    for (var c = 0; c < POCHTECAS_CANONICOS_LEN.length; c++) {
+      var can = POCHTECAS_CANONICOS_LEN[c];
+      var canEmailLow = can.correo.toLowerCase();
+      if (!correosVistos[canEmailLow]) {
+        correosVistos[canEmailLow] = true;
+        pochtecas.push({
+          nombre: can.nombre,
+          email: can.correo,
+          correo: can.correo,
+          zona: can.zona
+        });
+      }
+    }
+
+    return pochtecas;
+  } catch(e) {
+    Logger.log("⚠️ Error en obtenerPochtecasLEN: " + e.message);
+    return POCHTECAS_CANONICOS_LEN.map(function(p) {
+      return { nombre: p.nombre, email: p.correo, correo: p.correo, zona: p.zona };
+    });
+  }
+}
+
+/**
+ * 🦁 MOTOR MAESTRO: PROCESAR RUTAS LEÓN (GMAIL-TO-SHEETS + SHEETJS + CAJA NEGRA FEDERADA)
+ * @param {Object|string} mapaAsignaciones Mapa { [filenameOrId]: pochtecaEmail, ... }
+ */
+function procesarRutasLEN(mapaAsignaciones, operadorParam) {
+  Logger.log("🚀 Iniciando Ingesta de Gmail SVC LEN (OLLIN v86.2 PROD)...");
+
+  var asignaciones = mapaAsignaciones;
+  if (typeof asignaciones === "string") {
+    try { asignaciones = JSON.parse(asignaciones); } catch (eParse) { asignaciones = {}; }
+  }
+  if (!asignaciones || typeof asignaciones !== "object") {
+    asignaciones = {};
+  }
+
+  // 🛡️ Validación de Supervisor Autorizado (Tlachixqui)
+  var usuarioDetectado = "";
+  try {
+    usuarioDetectado = Session.getActiveUser().getEmail().toLowerCase().trim();
+  } catch (eUser) {}
+
+  var usuarioOperador = operadorParam || (asignaciones && (asignaciones.__operador || asignaciones.operador)) || usuarioDetectado || "";
+
+  if (usuarioDetectado && !esSupervisorLENAutorizado(usuarioDetectado)) {
+    return {
+      exito: false,
+      mensaje: "⛔ Acceso denegado: El usuario activo '" + usuarioDetectado + "' no cuenta con permisos de supervisor en SVC León."
+    };
+  }
+
+  if (!usuarioDetectado && usuarioOperador && !esSupervisorLENAutorizado(usuarioOperador)) {
+    return {
+      exito: false,
+      mensaje: "⛔ Acceso denegado: El operador '" + usuarioOperador + "' no cuenta con permisos de supervisor en SVC León."
+    };
+  }
+
+  var libro = SpreadsheetApp.openById(ID_LIBRO_LEN_CENTRAL);
+  var hojaCourier = libro.getSheetByName("COURIER LEN") || libro.getSheetByName("COURIER_LEN");
+  var hojaRuta = libro.getSheetByName("Ruta LEN");
+  var hojaBatchAWB = libro.getSheetByName("Batch AWB LEN");
+  var hojaBatchPiece = libro.getSheetByName("Batch Piece LEN");
+
+  if (!hojaRuta || !hojaBatchPiece) {
+    return {
+      exito: false,
+      mensaje: "❌ Error crítico: Faltan pestañas críticas 'Ruta LEN' o 'Batch Piece LEN' en el libro central de León."
+    };
+  }
+
+  var conteoPorCourier = {};
+  var dictTelefonos = {};
+
+  // 1. Obtener catálogo de couriers de León
+  var dictCouriers = {};
+  if (hojaCourier) {
+    var dataCourier = hojaCourier.getDataRange().getValues();
+    for (var i = 1; i < dataCourier.length; i++) {
+      if (dataCourier[i][1] && dataCourier[i][3]) {
+        dictCouriers[dataCourier[i][1].toString().toLowerCase().trim()] = dataCourier[i][3].toString().trim();
+      }
+    }
+  }
+  for (var cIdx = 0; cIdx < POCHTECAS_CANONICOS_LEN.length; cIdx++) {
+    var pCan = POCHTECAS_CANONICOS_LEN[cIdx];
+    dictCouriers[pCan.nombre.toLowerCase().trim()] = pCan.correo.trim();
+  }
+
+  // 2. Procesar Mesa de Ayuda: Query de Teléfonos Ocultos (01_QUERY_LEN)
+  var etiquetaQuery = obtenerEtiquetaPorNombre("01_QUERY_LEN");
+  if (etiquetaQuery) {
+    var hilosQuery = etiquetaQuery.getThreads(0, 20);
+    for (var hq = 0; hq < hilosQuery.length; hq++) {
+      var mensajesQuery = hilosQuery[hq].getMessages();
+      for (var mq = 0; mq < mensajesQuery.length; mq++) {
+        var contenido = mensajesQuery[mq].getPlainBody() || mensajesQuery[mq].getBody() || "";
+        var cuerpoDecodificado = decodificarCuerpoEmail(contenido);
+        var textoLimpio = cuerpoDecodificado.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+        var bloques = textoLimpio.split(/(?:A\s*W\s*B|H\s*W\s*B|W\s*a\s*y\s*b\s*i\s*l\s*l)/i);
+        bloques.shift();
+        
+        bloques.forEach(function(bloque) {
+          var guiaMatch = bloque.match(/^[^0-9]*(\d{10})/);
+          if (guiaMatch) {
+            var guia = normalizarAwb(guiaMatch[1]);
+            var regexTel = /(?:P\s*h\s*o\s*n\s*e|T\s*e\s*l)[^0-9\+]*([\+\d][\d\s\-]{6,})/gi;
+            var matchTel;
+            var listaTels = [];
+            while ((matchTel = regexTel.exec(bloque)) !== null) {
+              var tel = matchTel[1].trim().split(/\s{2,}/)[0];
+              if (tel.toUpperCase() !== "NOT SUPPLIED") {
+                var cleanTel = limpiarYValidarTelefono(tel);
+                if (cleanTel) listaTels.push(cleanTel);
+              }
+            }
+            if (listaTels.length === 0) {
+              var todosLosNumeros = bloque.match(/\d{10,12}/g) || [];
+              for (var n = 0; n < todosLosNumeros.length; n++) {
+                var numLimpio = normalizarAwb(todosLosNumeros[n]);
+                if (numLimpio !== guia) {
+                  var cleanTelFallback = limpiarYValidarTelefono(numLimpio);
+                  if (cleanTelFallback) listaTels.push(cleanTelFallback);
+                }
+              }
+            }
+            if (listaTels.length >= 2) dictTelefonos[guia] = listaTels[1];
+            else if (listaTels.length === 1) dictTelefonos[guia] = listaTels[0];
+          }
+        });
+      }
+      hilosQuery[hq].removeLabel(etiquetaQuery);
+      hilosQuery[hq].markRead();
+    }
+  }
+
+  // 3. Escudo anti-duplicados contra guías existentes en 'Ruta LEN'
+  var guiasExistentes = {};
+  if (hojaRuta.getLastRow() > 1) {
+    var valoresRuta = hojaRuta.getRange(2, 1, hojaRuta.getLastRow() - 1, 1).getValues();
+    for (var vr = 0; vr < valoresRuta.length; vr++) {
+      var gVal = String(valoresRuta[vr][0] || "").trim();
+      if (gVal) guiasExistentes[gVal] = true;
+    }
+  }
+
+  // 4. Procesar Mesa de Reportes: Excel adjuntos en Gmail (02_REPORTE_LEN)
+  var etiquetaReporte = obtenerEtiquetaPorNombre("02_REPORTE_LEN");
+  var hilosRep = etiquetaReporte ? etiquetaReporte.getThreads(0, 15) : GmailApp.search("label:02_REPORTE_LEN", 0, 15);
+
+  var inyeccionDatosRuta = [];
+  var inyeccionBatchAWB = [];
+  var inyeccionBatchPiece = [];
+  var inyeccionCajaNegra = [];
+
+  var targetHeadersPiece_Std = [];
+  if (hojaBatchPiece && hojaBatchPiece.getLastColumn() > 0) {
+    targetHeadersPiece_Std = hojaBatchPiece.getRange(1, 1, 1, hojaBatchPiece.getLastColumn()).getValues()[0].map(obtenerNombreEstandar);
+  }
+
+  var targetHeadersAWB_Std = [];
+  var colTelIdxBatch = -1;
+  if (hojaBatchAWB && hojaBatchAWB.getLastColumn() > 0) {
+    targetHeadersAWB_Std = hojaBatchAWB.getRange(1, 1, 1, hojaBatchAWB.getLastColumn()).getValues()[0].map(obtenerNombreEstandar);
+    colTelIdxBatch = targetHeadersAWB_Std.indexOf("rcvr tel");
+  }
+
+  var hilosAProcesar = [];
+  var timeZone = Session.getScriptTimeZone() || "America/Mexico_City";
+  var fechaHoy = new Date();
+  var fechaHoraActual = Utilities.formatDate(fechaHoy, timeZone, "dd/MM/yyyy HH:mm:ss");
+
+  for (var h = 0; h < hilosRep.length; h++) {
+    var hiloActual = hilosRep[h];
+    var mensajes = hiloActual.getMessages();
+    var hiloProcesado = false;
+
+    for (var m = 0; m < mensajes.length; m++) {
+      var message = mensajes[m];
+      var mId = message.getId();
+      var adjuntos = message.getAttachments();
+      var asuntoCorreo = message.getSubject().toLowerCase();
+      var remitenteOriginal = extraerRemitenteOriginal(message);
+
+      for (var a = 0; a < adjuntos.length; a++) {
+        var adjunto = adjuntos[a];
+        var nombreAdjunto = adjunto.getName();
+        var nombreAdjuntoLow = nombreAdjunto.toLowerCase();
+
+        if (nombreAdjuntoLow.indexOf(".xlsx") !== -1 || nombreAdjuntoLow.indexOf(".xls") !== -1 || adjunto.getContentType() === MimeType.MICROSOFT_EXCEL) {
+          // Determinar asignación de Pochteca
+          var idCorreo = "sin_asignar@arauto.express";
+          if (asignaciones[mId]) {
+            idCorreo = asignaciones[mId];
+          } else if (asignaciones[nombreAdjunto]) {
+            idCorreo = asignaciones[nombreAdjunto];
+          } else if (asignaciones[nombreAdjuntoLow]) {
+            idCorreo = asignaciones[nombreAdjuntoLow];
+          } else {
+            // Fallback por detección en asunto o nombre de archivo
+            for (var nomCou in dictCouriers) {
+              if (asuntoCorreo.indexOf(nomCou) !== -1 || nombreAdjuntoLow.indexOf(nomCou) !== -1) {
+                idCorreo = dictCouriers[nomCou];
+                break;
+              }
+            }
+          }
+
+          // Parser SheetJS en memoria
+          var resTemporal = procesarExcelTemporal(adjunto);
+          if (resTemporal && resTemporal.exito) {
+            hiloProcesado = true;
+            var tempSheetData = resTemporal.data;
+
+            // Pre-mapeo de PIDs desde la hoja de piezas
+            var mapaPidsLocal = {};
+            if (tempSheetData.piece && tempSheetData.piece.length > 0 && tempSheetData.pieceHeaders) {
+              var cabStdPiece = tempSheetData.pieceHeaders.map(obtenerNombreEstandar);
+              var colG_Piece = cabStdPiece.indexOf("hwb no");
+              var colP_Piece = cabStdPiece.indexOf("piece id");
+              if (colG_Piece !== -1 && colP_Piece !== -1) {
+                for (var pRow = 0; pRow < tempSheetData.piece.length; pRow++) {
+                  var fPiece = tempSheetData.piece[pRow];
+                  if (fPiece && fPiece[colG_Piece] && fPiece[colP_Piece]) {
+                    var rG = String(fPiece[colG_Piece]).trim();
+                    var nG = normalizarAwb(rG);
+                    var pStr = String(fPiece[colP_Piece]).trim();
+                    if (rG && pStr) {
+                      if (!mapaPidsLocal[rG]) mapaPidsLocal[rG] = pStr;
+                      if (nG && !mapaPidsLocal[nG]) mapaPidsLocal[nG] = pStr;
+                    }
+                  }
+                }
+              }
+            }
+
+            // Procesar Hoja de Embarques (Shipment)
+            if (tempSheetData.shipment && tempSheetData.shipment.length > 0) {
+              var cabStd = tempSheetData.shipmentHeaders.map(obtenerNombreEstandar);
+              var colGuia = cabStd.indexOf("hwb no");
+              var colAddr1 = cabStd.indexOf("rcvr addr 1");
+              var colAddr2 = cabStd.indexOf("rcvr addr 2");
+              var colAddr3 = cabStd.indexOf("rcvr addr 3");
+              var colNombre = cabStd.indexOf("receiver name");
+              var colCP = cabStd.indexOf("rcvr postcode");
+              var colPiezas = cabStd.indexOf("piece no");
+              var colPid = cabStd.indexOf("piece id");
+              var colEDD = cabStd.indexOf("edd");
+
+              if (colGuia !== -1 && colAddr1 !== -1) {
+                for (var sRow = 0; sRow < tempSheetData.shipment.length; sRow++) {
+                  var filaShip = tempSheetData.shipment[sRow];
+                  var guiaStr = String(filaShip[colGuia] || "").trim();
+                  if (!guiaStr) continue;
+                  if (guiasExistentes[guiaStr]) continue; // Escudo anti-duplicados
+                  guiasExistentes[guiaStr] = true; // Blindaje intra-lote inmediato
+
+                  var pidModificado = "";
+                  if (colPid !== -1 && filaShip[colPid]) {
+                    pidModificado = limpiarYFormatearPid(filaShip[colPid]);
+                  } else {
+                    var pidEnc = mapaPidsLocal[guiaStr] || mapaPidsLocal[normalizarAwb(guiaStr)] || "";
+                    if (pidEnc) pidModificado = limpiarYFormatearPid(pidEnc);
+                  }
+
+                  var cpVal = (colCP !== -1) ? String(filaShip[colCP] || "").trim() : "S/N";
+                  var piezasVal = (colPiezas !== -1) ? parseInt(filaShip[colPiezas]) || 1 : 1;
+                  var tel = dictTelefonos[guiaStr] || "";
+                  var llaveUnica = Utilities.getUuid().substring(0, 8);
+
+                  // PID con Doble J para rampa/AppSheet
+                  var pidRuta = pidModificado ? (pidModificado.toUpperCase().startsWith("JJ") ? pidModificado : "J" + pidModificado) : "";
+
+                  var nombreRecibe = (colNombre !== -1) ? filaShip[colNombre] : "";
+                  var dir1 = filaShip[colAddr1];
+                  var dir2 = (colAddr2 !== -1) ? filaShip[colAddr2] : "";
+                  var dir3 = (colAddr3 !== -1) ? filaShip[colAddr3] : "";
+                  var eddVal = (colEDD !== -1) ? filaShip[colEDD] : "";
+
+                  // Inyección en 'Ruta LEN' (22 columnas canónicas)
+                  inyeccionDatosRuta.push([
+                    guiaStr, pidRuta, cpVal, piezasVal,
+                    dir1, dir2, dir3,
+                    nombreRecibe, "", "FD", "", fechaHoy, fechaHoraActual, "", idCorreo,
+                    eddVal, "", llaveUnica, "", "", "", tel
+                  ]);
+
+                  // Inyección federada en OLLIN_CAJA_NEGRA_LEN (1_BATCH_DHL_PLAN_LEN)
+                  inyeccionCajaNegra.push([
+                    fechaHoraActual, guiaStr, pidRuta, piezasVal,
+                    nombreRecibe, dir1, cpVal, tel, idCorreo, "PLAN"
+                  ]);
+
+                  // Inyección en 'Batch AWB LEN' si existe
+                  if (targetHeadersAWB_Std.length > 0) {
+                    var filaBatch = new Array(targetHeadersAWB_Std.length).fill("");
+                    cabStd.forEach(function(stdH, sIdx) {
+                      if (stdH !== "") {
+                        for (var tIdx = 0; tIdx < targetHeadersAWB_Std.length; tIdx++) {
+                          if (targetHeadersAWB_Std[tIdx] === stdH) {
+                            var val = filaShip[sIdx];
+                            if (stdH === "hwb no") val = String(val).trim();
+                            if (stdH === "piece id") val = limpiarYFormatearPid(val);
+                            filaBatch[tIdx] = val;
+                          }
+                        }
+                      }
+                    });
+                    if (colTelIdxBatch !== -1 && tel) { filaBatch[colTelIdxBatch] = tel; }
+                    inyeccionBatchAWB.push(filaBatch);
+                  }
+
+                  if (!conteoPorCourier[idCorreo]) {
+                    conteoPorCourier[idCorreo] = { guias: 0, piezas: 0 };
+                  }
+                  conteoPorCourier[idCorreo].guias++;
+                  conteoPorCourier[idCorreo].piezas += piezasVal;
+                }
+              }
+            }
+
+            // Procesar Hoja de Piezas (Piece)
+            if (tempSheetData.piece && tempSheetData.piece.length > 0 && targetHeadersPiece_Std.length > 0) {
+              var cabStdPieceRow = tempSheetData.pieceHeaders.map(obtenerNombreEstandar);
+              var colG_PieceR = cabStdPieceRow.indexOf("hwb no");
+              var colP_PieceR = cabStdPieceRow.indexOf("piece id");
+
+              if (colG_PieceR !== -1 && colP_PieceR !== -1) {
+                for (var pIdx = 0; pIdx < tempSheetData.piece.length; pIdx++) {
+                  var filaPieceData = tempSheetData.piece[pIdx];
+                  var gStrPiece = String(filaPieceData[colG_PieceR] || "").trim();
+                  if (!gStrPiece) continue;
+
+                  var filaPieceTarget = new Array(targetHeadersPiece_Std.length).fill("");
+                  cabStdPieceRow.forEach(function(stdH, sIdx) {
+                    if (stdH !== "") {
+                      for (var tIdx = 0; tIdx < targetHeadersPiece_Std.length; tIdx++) {
+                        if (targetHeadersPiece_Std[tIdx] === stdH) {
+                          var val = filaPieceData[sIdx];
+                          if (stdH === "hwb no") val = String(val).trim();
+                          if (stdH === "piece id") val = limpiarYFormatearPid(val);
+                          filaPieceTarget[tIdx] = val;
+                        }
+                      }
+                    }
+                  });
+                  inyeccionBatchPiece.push(filaPieceTarget);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (hiloProcesado) {
+      hilosAProcesar.push(hiloActual);
+    }
+  }
+
+  // 5. Inyección física en bases de datos
+  if (inyeccionDatosRuta.length > 0) {
+    var uRowRuta = hojaRuta.getLastRow();
+    hojaRuta.getRange(uRowRuta + 1, 1, inyeccionDatosRuta.length, 22).setValues(inyeccionDatosRuta);
+    Logger.log("✅ Ruta LEN: " + inyeccionDatosRuta.length + " guías inyectadas.");
+  }
+
+  if (inyeccionBatchPiece.length > 0 && hojaBatchPiece) {
+    var colHwbPiece = targetHeadersPiece_Std.indexOf("hwb no");
+    var checkColP = (colHwbPiece !== -1) ? (colHwbPiece + 1) : 1;
+    var realLastRowPiece = obtenerUltimaFilaReal(hojaBatchPiece, checkColP);
+    hojaBatchPiece.getRange(realLastRowPiece + 1, 1, inyeccionBatchPiece.length, inyeccionBatchPiece[0].length).setValues(inyeccionBatchPiece);
+    Logger.log("✅ Batch Piece LEN: " + inyeccionBatchPiece.length + " piezas inyectadas.");
+  }
+
+  if (inyeccionBatchAWB.length > 0 && hojaBatchAWB) {
+    var colHwbAWB = targetHeadersAWB_Std.indexOf("hwb no");
+    var checkColA = (colHwbAWB !== -1) ? (colHwbAWB + 1) : 1;
+    var realLastRowAWB = obtenerUltimaFilaReal(hojaBatchAWB, checkColA);
+    hojaBatchAWB.getRange(realLastRowAWB + 1, 1, inyeccionBatchAWB.length, targetHeadersAWB_Std.length).setValues(inyeccionBatchAWB);
+  }
+
+  // Inyección federada opcional en OLLIN_CAJA_NEGRA_LEN
+  if (inyeccionCajaNegra.length > 0) {
+    try {
+      var ssCajaNegra = SpreadsheetApp.openById(ID_OLLIN_CAJA_NEGRA_LEN);
+      var hojaPlanCN = ssCajaNegra.getSheetByName("1_BATCH_DHL_PLAN_LEN") || ssCajaNegra.getSheetByName("1_BATCH_DHL_PLAN");
+      if (hojaPlanCN) {
+        var lastRowCN = hojaPlanCN.getLastRow();
+        hojaPlanCN.getRange(lastRowCN + 1, 1, inyeccionCajaNegra.length, inyeccionCajaNegra[0].length).setValues(inyeccionCajaNegra);
+        Logger.log("✅ OLLIN_CAJA_NEGRA_LEN: " + inyeccionCajaNegra.length + " registros inyectados en 1_BATCH_DHL_PLAN_LEN.");
+      }
+    } catch (eCN) {
+      Logger.log("Aviso federado Caja Negra LEN: " + eCN.message);
+    }
+  }
+
+  // 6. Actualización de etiquetas en Gmail (Retira 02_REPORTE_LEN, agrega 02_PROCESADO_LEN y marca leído)
+  var etiquetaProcesado = asegurarEtiqueta("02_PROCESADO_LEN");
+  for (var hp = 0; hp < hilosAProcesar.length; hp++) {
+    try {
+      if (etiquetaReporte) hilosAProcesar[hp].removeLabel(etiquetaReporte);
+      if (etiquetaProcesado) hilosAProcesar[hp].addLabel(etiquetaProcesado);
+      hilosAProcesar[hp].markRead();
+    } catch (eLabel) {
+      Logger.log("Aviso etiqueta hilo LEN: " + eLabel.message);
+    }
+  }
+
+  // 7. Notificación Webhook Google Chat
+  if (GOOGLE_CHAT_WEBHOOK_URL_LEN && inyeccionDatosRuta.length > 0) {
+    try {
+      var textoChat = "🦁 *OLLIN - Rampa SVC León (LEN)*\n" +
+                      "📦 *Guías inyectadas en Ruta LEN:* `" + inyeccionDatosRuta.length + "`\n" +
+                      "🧩 *Bultos en Batch Piece:* `" + inyeccionBatchPiece.length + "`\n\n" +
+                      "👥 *Desglose por Pochteca:*\n";
+      for (var cou in conteoPorCourier) {
+        textoChat += "• *" + cou + "*: " + conteoPorCourier[cou].guias + " guías (" + conteoPorCourier[cou].piezas + " bultos)\n";
+      }
+      UrlFetchApp.fetch(GOOGLE_CHAT_WEBHOOK_URL_LEN, {
+        method: "post",
+        contentType: "application/json",
+        payload: JSON.stringify({ text: textoChat }),
+        muteHttpExceptions: true
+      });
+    } catch(eChat) {
+      Logger.log("Aviso Chat Webhook LEN: " + eChat.message);
+    }
+  }
+
+  return {
+    exito: true,
+    guias: inyeccionDatosRuta.length,
+    bultos: inyeccionBatchPiece.length,
+    desglose: conteoPorCourier,
+    mensaje: "✅ Ingesta LEN completada exitosamente. Se inyectaron *" + inyeccionDatosRuta.length + "* guías en 'Ruta LEN' y *" + inyeccionBatchPiece.length + "* bultos en 'Batch Piece LEN'."
+  };
+}
+
+/**
+ * 🦁 Intercambia de forma atómica todas las guías asignadas en 'Ruta LEN'
+ * para las guías del día de hoy entre dos Pochtecas seleccionados.
+ */
+function intercambiarRutasPostIngestaLEN(emailA, emailB, operadorParam) {
+  try {
+    if (!emailA || !emailB) {
+      return { exito: false, mensaje: "❌ Debes seleccionar ambos Pochtecas para poder realizar el intercambio." };
+    }
+    if (String(emailA).toLowerCase().trim() === String(emailB).toLowerCase().trim()) {
+      return { exito: false, mensaje: "❌ Selecciona dos Pochtecas diferentes para intercambiar." };
+    }
+
+    // 🛡️ Validación de Supervisor Autorizado (Tlachixqui)
+    var usuarioDetectado = "";
+    try {
+      usuarioDetectado = Session.getActiveUser().getEmail().toLowerCase().trim();
+    } catch (eUser) {}
+
+    var usuarioOperador = operadorParam || usuarioDetectado || "";
+
+    if (usuarioDetectado && !esSupervisorLENAutorizado(usuarioDetectado)) {
+      return {
+        exito: false,
+        mensaje: "⛔ Acceso denegado: El usuario activo '" + usuarioDetectado + "' no cuenta con permisos de supervisor en SVC León."
+      };
+    }
+
+    if (!usuarioDetectado && usuarioOperador && !esSupervisorLENAutorizado(usuarioOperador)) {
+      return {
+        exito: false,
+        mensaje: "⛔ Acceso denegado: El operador '" + usuarioOperador + "' no cuenta con permisos de supervisor en SVC León."
+      };
+    }
+
+    var libro = SpreadsheetApp.openById(ID_LIBRO_LEN_CENTRAL);
+    var hojaRuta = libro.getSheetByName("Ruta LEN");
+    if (!hojaRuta) {
+      return { exito: false, mensaje: "❌ No se encontró la pestaña 'Ruta LEN' en el libro de León." };
+    }
+
+    var lastRow = hojaRuta.getLastRow();
+    if (lastRow < 2) {
+      return { exito: false, mensaje: "⚠️ No hay rutas asignadas registradas en 'Ruta LEN' para realizar el intercambio." };
+    }
+
+    // Columna O (15) es idCorreo, Columna L (12) es Fecha_Asignacion
+    var rangoDatos = hojaRuta.getRange(2, 1, lastRow - 1, 22).getValues();
+    var contadorA = 0;
+    var contadorB = 0;
+
+    var emailALow = String(emailA).toLowerCase().trim();
+    var emailBLow = String(emailB).toLowerCase().trim();
+
+    var timeZone = Session.getScriptTimeZone() || "America/Mexico_City";
+    var hoyStr = Utilities.formatDate(new Date(), timeZone, "yyyy-MM-dd");
+    var hoyDmy = Utilities.formatDate(new Date(), timeZone, "dd/MM/yyyy");
+
+    var filasModificadas = false;
+
+    for (var r = 0; r < rangoDatos.length; r++) {
+      var row = rangoDatos[r];
+      var valorActual = String(row[14] || "").toLowerCase().trim();
+
+      var fechaFila = row[11];
+      var esDeHoy = true;
+      if (fechaFila instanceof Date) {
+        var fStr = Utilities.formatDate(fechaFila, timeZone, "yyyy-MM-dd");
+        esDeHoy = (fStr === hoyStr);
+      } else if (fechaFila) {
+        var strF = String(fechaFila).trim();
+        if (strF.indexOf("/") !== -1 || strF.indexOf("-") !== -1) {
+          var matchHoy = strF.indexOf(hoyDmy) !== -1 || strF.indexOf(hoyStr) !== -1;
+          if (!matchHoy) esDeHoy = true; // Fallback tolerante si formato difiere
+        }
+      }
+
+      if (esDeHoy) {
+        if (valorActual === emailALow) {
+          row[14] = emailB;
+          contadorA++;
+          filasModificadas = true;
+        } else if (valorActual === emailBLow) {
+          row[14] = emailA;
+          contadorB++;
+          filasModificadas = true;
+        }
+      }
+    }
+
+    if (!filasModificadas || (contadorA === 0 && contadorB === 0)) {
+      return { exito: false, mensaje: "⚠️ No se encontraron guías en 'Ruta LEN' asignadas a ninguno de los dos Pochtecas seleccionados." };
+    }
+
+    // Guardar cambios atómicamente en columna O
+    var soloColumnaO = [];
+    for (var r2 = 0; r2 < rangoDatos.length; r2++) {
+      soloColumnaO.push([rangoDatos[r2][14]]);
+    }
+    hojaRuta.getRange(2, 15, lastRow - 1, 1).setValues(soloColumnaO);
+
+    // Alerta a Google Chat
+    if (GOOGLE_CHAT_WEBHOOK_URL_LEN) {
+      try {
+        var resumenChat = "🔄 *Intercambio Post-Ingesta Completado (SVC LEN)*\n" +
+                          "• *De:* `" + emailA + "` (" + contadorA + " guías traspasadas)\n" +
+                          "• *A:* `" + emailB + "` (" + contadorB + " guías traspasadas)\n" +
+                          "• *Total reasignadas:* `" + (contadorA + contadorB) + "` guías.";
+        UrlFetchApp.fetch(GOOGLE_CHAT_WEBHOOK_URL_LEN, {
+          method: "post",
+          contentType: "application/json",
+          payload: JSON.stringify({ text: resumenChat }),
+          muteHttpExceptions: true
+        });
+      } catch (eCh) { Logger.log("Aviso Chat swap LEN: " + eCh.message); }
+    }
+
+    return {
+      exito: true,
+      mensaje: "✅ ¡Intercambio completado en 'Ruta LEN'! Se reasignaron con éxito " + contadorA + " guías de '" + emailA + "' con " + contadorB + " guías de '" + emailB + "'.",
+      contadorA: contadorA,
+      contadorB: contadorB,
+      total: contadorA + contadorB
+    };
+  } catch(err) {
+    Logger.log("❌ Error en intercambiarRutasPostIngestaLEN: " + err.message);
+    return {
+      exito: false,
+      mensaje: "❌ Error en intercambiarRutasPostIngestaLEN: " + err.message
+    };
+  }
+}
+
+/**
+ * 📦 Helper: Búsqueda de correos Batch QRO para el buzón de rampa
+ */
+function buscarCorreosBatchQRO() {
+  try {
+    var lista = [];
+    var threads = GmailApp.search("label:02_REPORTE_QRO OR label:01_QUERY_QRO", 0, 10);
+    var timeZone = Session.getScriptTimeZone() || "America/Mexico_City";
+    for (var i = 0; i < threads.length; i++) {
+      var msgs = threads[i].getMessages();
+      var msg = msgs[msgs.length - 1];
+      var subj = msg.getSubject();
+      var tipo = (subj.indexOf("02_REPORTE") !== -1 || threads[i].getLabels().some(function(l){ return l.getName().indexOf("REPORTE") !== -1; })) ? "REPORTE" : "QUERY";
+      lista.push({
+        id: msg.getId(),
+        subject: subj,
+        sender: msg.getFrom().replace(/^.*<([^>]+)>.*$/, "$1"),
+        date: Utilities.formatDate(msg.getDate(), timeZone, "dd/MM/yyyy HH:mm"),
+        isUnread: threads[i].isUnread(),
+        tipo: tipo
+      });
+    }
+    return lista;
+  } catch(e) {
+    Logger.log("Aviso buscarCorreosBatchQRO: " + e.message);
+    return [];
+  }
+}
+
+// ==========================================
+// 🛠️ MOTOR DE CONVERSIÓN EN MEMORIA (SHEETJS)
+// ==========================================
+function procesarExcelTemporal(blob) {
+  try {
+    if (typeof XLSX === 'undefined') {
+      var cdnUrl = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+      var response = UrlFetchApp.fetch(cdnUrl);
+      var jsCode = response.getContentText();
+      eval(jsCode); // Expone el objeto global 'XLSX'
+    }
+
+    var base64Data = Utilities.base64Encode(blob.getBytes());
+    var workbook = XLSX.read(base64Data, { type: 'base64' });
+
+    var dataResult = {
+      shipmentHeaders: [],
+      shipment: [],
+      piece: [],
+      pieceHeaders: []
+    };
+
+    if (workbook.SheetNames.length > 0) {
+      var firstSheetName = workbook.SheetNames[0];
+      var worksheet = workbook.Sheets[firstSheetName];
+      var fullShipment = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+
+      var headerRowIdx = 0;
+      var headerFound = false;
+      for (var r = 0; r < Math.min(fullShipment.length, 15); r++) {
+        var row = fullShipment[r];
+        for (var c = 0; c < row.length; c++) {
+          var valStr = String(row[c]).toLowerCase().trim();
+          if (valStr === "hwb no" || valStr === "hwb" || valStr === "waybill" || valStr === "airbill" || valStr === "hawb" || valStr === "guia" || valStr === "guía") {
+            headerRowIdx = r;
+            headerFound = true;
+            break;
+          }
+        }
+        if (headerFound) break;
+      }
+      dataResult.shipmentHeaders = fullShipment[headerRowIdx] || [];
+      dataResult.shipment = fullShipment.slice(headerRowIdx + 1);
+    }
+
+    if (workbook.SheetNames.length > 1) {
+      var secondSheetName = workbook.SheetNames[1];
+      var worksheetPiece = workbook.Sheets[secondSheetName];
+      var fullPiece = XLSX.utils.sheet_to_json(worksheetPiece, { header: 1, defval: "" });
+
+      var pieceHeaderRowIdx = 0;
+      var pieceHeaderFound = false;
+      for (var pr = 0; pr < Math.min(fullPiece.length, 15); pr++) {
+        var pRow = fullPiece[pr];
+        for (var pc = 0; pc < pRow.length; pc++) {
+          var valStrP = String(pRow[pc]).toLowerCase().trim();
+          if (valStrP === "piece id" || valStrP === "pid" || valStrP === "piece_id" || valStrP === "search" || valStrP === "pieza id" || valStrP === "pieza_id") {
+            pieceHeaderRowIdx = pr;
+            pieceHeaderFound = true;
+            break;
+          }
+        }
+        if (pieceHeaderFound) break;
+      }
+      dataResult.pieceHeaders = fullPiece[pieceHeaderRowIdx] || [];
+      dataResult.piece = fullPiece.slice(pieceHeaderRowIdx + 1);
+    }
+
+    return { exito: true, data: dataResult };
+  } catch(e) {
+    Logger.log("⚠️ Error en procesarExcelTemporal (SheetJS): " + e.message);
+    return { exito: false, error: e.message };
+  }
+}
+
+// ==========================================
+// ⚙️ FUNCIONES AUXILIARES DE NORMALIZACIÓN
+// ==========================================
+function extraerRemitenteOriginal(mensaje) {
+  var cuerpo = mensaje.getPlainBody() || "";
+  var regexForwarded = /(?:From|De):\s*([^<\n]+<)?([a-zA-Z0-9\._%+-]+@[a-zA-Z0-9\.-]+\.[a-zA-Z]{2,})/i;
+  var match = cuerpo.match(regexForwarded);
+  if (match && match[2]) {
+    var emailOriginal = match[2].toLowerCase().trim();
+    if (emailOriginal.indexOf("arauto.express") === -1 && emailOriginal.indexOf("gmail.com") === -1) {
+      return emailOriginal;
+    }
+  }
+  var regexDHL = /\b[a-zA-Z0-9\._%+-]+@dhl\.com\b/gi;
+  var matchesDHL = cuerpo.match(regexDHL);
+  if (matchesDHL && matchesDHL.length > 0) {
+    return matchesDHL[0].toLowerCase().trim();
+  }
+  return mensaje.getFrom().replace(/^.*<([^>]+)>.*$/, "$1").trim();
+}
+
+function obtenerNombreEstandar(header) {
+  var h = header ? String(header).toLowerCase().trim().replace(/\s+/g, " ") : "";
+  if (h === "") return "";
+  if (DICCIONARIO_MAPEO_LEN[h]) return h;
+  for (var colMaestra in DICCIONARIO_MAPEO_LEN) {
+    if (DICCIONARIO_MAPEO_LEN[colMaestra].indexOf(h) !== -1) return colMaestra;
+  }
+  return h;
+}
+
+function obtenerUltimaFilaReal(hoja, colNum) {
+  var lastRow = hoja.getLastRow();
+  if (lastRow === 0) return 0;
+  var valores = hoja.getRange(1, colNum, lastRow, 1).getValues();
+  for (var i = valores.length - 1; i >= 0; i--) {
+    if (valores[i][0].toString().trim() !== "") {
+      return i + 1;
+    }
+  }
+  return 0;
+}
+
+function limpiarYFormatearPid(val) {
+  if (!val) return "";
+  var str = String(val).trim().replace(/\s+/g, "");
+  if (str === "") return "";
+  if (/^J/i.test(str)) return "J" + str.substring(1).toUpperCase();
+  return "J" + str.toUpperCase();
+}
+
+function normalizarAwb(awbVal) {
+  if (!awbVal) return "";
+  var str = String(awbVal).trim();
+  if (str.indexOf("e") !== -1 || str.indexOf("E") !== -1) {
+    var num = Number(str);
+    if (!isNaN(num)) {
+      str = num.toFixed(0);
+    }
+  }
+  if (str.indexOf(".") !== -1) {
+    str = str.split(".")[0];
+  }
+  return str.replace(/\D/g, "");
+}
+
+function decodificarCuerpoEmail(bodyRaw) {
+  return bodyRaw || "";
+}
+
+function obtenerEtiquetaPorNombre(nombreLabel) {
+  var labels = GmailApp.getUserLabels();
+  for (var i = 0; i < labels.length; i++) {
+    var labelName = labels[i].getName();
+    if (labelName === nombreLabel || labelName.indexOf("/" + nombreLabel) !== -1) {
+      return labels[i];
+    }
+  }
+  return null;
+}
+
+function asegurarEtiqueta(nombreLabel) {
+  var label = obtenerEtiquetaPorNombre(nombreLabel);
+  if (!label) {
+    try {
+      label = GmailApp.createLabel(nombreLabel);
+    } catch(e) {
+      Logger.log("Aviso al crear etiqueta " + nombreLabel + ": " + e.message);
+    }
+  }
+  return label;
+}
+
+function limpiarYValidarTelefono(telRaw) {
+  if (!telRaw) return "";
+  var str = String(telRaw).replace(/\D/g, "").trim();
+  if (str.length < 10) return "";
+  if (str.length > 10) {
+    str = str.substring(str.length - 10);
+  }
+  var numerosProhibidos = [
+    "5591384100",
+    "5591384101",
+    "5591384102",
+    "0180076563"
+  ];
+  if (numerosProhibidos.indexOf(str) !== -1) {
+    return "";
+  }
+  return str;
 }

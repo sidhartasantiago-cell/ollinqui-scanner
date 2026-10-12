@@ -1,0 +1,21 @@
+{
+  "name": "calpixqui-whatsapp-gateway",
+  "version": "1.0.0",
+  "description": "Gateway headless WhatsApp para el Agente CALPIXQUI — Ecosistema OLLIN Arauto Express",
+  "main": "gateway.js",
+  "scripts": {
+    "start": "node gateway.js",
+    "qr": "node gateway.js --qr"
+  },
+  "author": "Antigravity (Google DeepMind) & Sidharta Santiago (Tlayacanqui)",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.2",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "github:wwebjs/whatsapp-web.js"
+  },
+  "allowScripts": {
+    "puppeteer@24.38.0": true
+  }
+}

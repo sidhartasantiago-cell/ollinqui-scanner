@@ -18,3 +18,5 @@ inbox_multimodal/*
 
 # NSSM y binarios locales
 bin/
+*.db
+data/*.db

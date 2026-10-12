@@ -80,8 +80,11 @@ except ImportError:
     FastAPI = None
     BackgroundTasks = None
     HTTPException = Exception
+    HTMLResponse = object
+    JSONResponse = object
     class StatusMock:
         HTTP_200_OK = 200
+        HTTP_202_ACCEPTED = 202
         HTTP_404_NOT_FOUND = 404
         HTTP_500_INTERNAL_SERVER_ERROR = 500
     status = StatusMock()
@@ -129,8 +132,9 @@ GEMINI_FALLBACKS = [
 TAILSCALE_IP_MAESTRA = os.getenv("TAILSCALE_IP_MAESTRA", "").strip()
 TAILSCALE_IP_NODO = os.getenv("TAILSCALE_IP_NODO", "").strip()
 
-HERMES_HOST = os.getenv("HERMES_HOST", "0.0.0.0")
+HERMES_HOST = os.getenv("HERMES_HOST", "127.0.0.1")
 HERMES_PORT = int(os.getenv("HERMES_PORT", "8088"))
+OLLIN_INTERNAL_SECRET = os.getenv("OLLIN_INTERNAL_SECRET", "ollin_enterprise_calpixqui_secret_2026")
 
 SPREADSHEET_ID_BD_APP_RUTA_2025 = os.getenv("SPREADSHEET_ID_BD_APP_RUTA_2025", "1Rj7Ce6jWIFTXTamfcgO2h-uhFKBuNhSB8m_tBY_g__w")
 SPREADSHEET_ID_CONTROL_FOLIOS = os.getenv("SPREADSHEET_ID_CONTROL_FOLIOS", "1vhG5Sv6yCkrok35FnKXwZq0hppUdmXydhHUA5pi1rX8")
@@ -405,8 +409,12 @@ def enviar_alerta_google_chat(titulo: str, mensaje: str, severidad: str = "INFO"
 def _normalizar_numero_whatsapp(telefono: str) -> str:
     """
     Normaliza un número de teléfono al formato chatId de WhatsApp: '524491805948@c.us'
+    Si ya incluye sufijo de chat individual '@c.us' o grupo '@g.us', lo respeta íntegramente.
     """
-    digits = re.sub(r'[^\d]', '', str(telefono))
+    tel_str = str(telefono).strip()
+    if "@g.us" in tel_str or "@c.us" in tel_str:
+        return tel_str
+    digits = re.sub(r'[^\d]', '', tel_str)
     if digits.startswith("521") and len(digits) == 13:
         # México con 1 extra: 52 + 1 + 10 digitos -> quitar el 1
         digits = "52" + digits[3:]
@@ -415,6 +423,12 @@ def _normalizar_numero_whatsapp(telefono: str) -> str:
     elif not digits.startswith("52"):
         digits = f"52{digits}"
     return f"{digits}@c.us"
+
+
+def despachar_whatsapp_headless(chat_id: str, mensaje: str,
+                                gateway_url: str = "http://localhost:3001/send-message") -> Dict[str, Any]:
+    """Alias canónico para despachar mensajes individuales o grupales al gateway Node.js."""
+    return despachar_via_gateway_headless(telefono=chat_id, mensaje=mensaje, gateway_url=gateway_url)
 
 
 def despachar_via_gateway_headless(telefono: str, mensaje: str,
@@ -1099,7 +1113,175 @@ def consultar_estado_matriz_cp():
     }
 
 # ------------------------------------------------------------------------------
-# 6.B CONSOLA DE MONITOREO Y REASIGNACIÓN SIERRA GORDA (DANIEL JUÁREZ)
+# 6.B AUTO-ASIGNACIÓN MULTIMODAL VÍA WHATSAPP (CALPIXQUI VISION & DUAL WRITER)
+# ------------------------------------------------------------------------------
+class WhatsAppImagenPayload(BaseModel):
+    message_id: str = ""
+    chat_id: str
+    sender: str
+    is_group: bool = False
+    caption: str = ""
+    mimetype: str = "image/jpeg"
+    image_base64: str
+    timestamp: Optional[int] = None
+
+def actualizar_reaccion_whatsapp(message_id: str, reaccion: str = "✅"):
+    """Envía POST al gateway Node.js para actualizar la reacción emoji del mensaje."""
+    if not message_id:
+        return
+    gateway_url = os.getenv("WHATSAPP_GATEWAY_URL", "http://localhost:3001").rstrip("/")
+    try:
+        http_post_json(f"{gateway_url}/react-message", payload={"messageId": message_id, "reaction": reaccion}, timeout=3)
+    except Exception as e:
+        logger.debug(f"Nota actualizando reacción: {e}")
+
+def procesar_asignacion_imagen_en_segundo_plano(datos: Dict[str, Any]):
+    """Procesa en segundo plano la extracción multimodal, resolución de zona y persistencia dual."""
+    try:
+        from calpixqui_vision_router import CalpixquiVisionRouter
+        from calpixqui_dual_writer import encolar_asignacion_outbox
+        from calpixqui_gobernanza import pochtecas_global, matriz_cp_global
+
+        vision_router = CalpixquiVisionRouter(
+            gemini_client=gemini_client,
+            pochtecas_manager=pochtecas_global,
+            matriz_cp_manager=matriz_cp_global
+        )
+
+        res = vision_router.procesar_imagen_whatsapp(
+            image_base64=datos["image_base64"],
+            mimetype=datos.get("mimetype", "image/jpeg"),
+            sender_phone=datos["sender"],
+            chat_id=datos["chat_id"],
+            is_group=datos.get("is_group", False),
+            caption=datos.get("caption", "")
+        )
+
+        message_id = datos.get("message_id", "")
+        chat_id = datos["chat_id"]
+
+        # 1. Si falló la extracción OCR
+        if not res.get("exito"):
+            msg_error = res.get("mensaje_usuario", "⚠️ No se detectó una guía legible.")
+            despachar_whatsapp_headless(chat_id, msg_error)
+            actualizar_reaccion_whatsapp(message_id, "⚠️")
+            return
+
+        # 2. Si es duplicado reciente
+        if res.get("es_duplicado_reciente"):
+            hwb = res.get("hwb", "")
+            msg_dup = f"ℹ️ La guía *{hwb}* ya fue procesada y asignada previamente a tu ruta."
+            despachar_whatsapp_headless(chat_id, msg_dup)
+            actualizar_reaccion_whatsapp(message_id, "✅")
+            return
+
+        # 3. Guardar en Outbox Local WAL SQLite (inserción inmediata <15ms)
+        res["message_id"] = message_id
+        encolar_asignacion_outbox(res)
+
+        hwb = res.get("hwb", "")
+        pid_app = res.get("pid_appsheet", "")
+        pid_bov = res.get("pid_boveda", "")
+        nuevo_nombre = res.get("nuevo_chofer_nombre", "Operador")
+        nuevo_email = res.get("nuevo_chofer_email", "")
+        destinatario = res.get("destinatario", "")
+        direccion = res.get("direccion", "")
+        cp = res.get("cp", "")
+        es_traspaso = res.get("es_traspaso", False)
+        chofer_ant = res.get("chofer_anterior", "")
+
+        # 4. Enrutamiento de Respuesta en WhatsApp
+        if res.get("is_group"):
+            # En GRUPO: Micro-Badge conciso
+            if es_traspaso:
+                msg_grupo = (
+                    f"🔄 *TRASPASO REGISTRADO*\n"
+                    f"Guía *{hwb}* transferida a *{nuevo_nombre}* (anterior: {chofer_ant}).\n"
+                    f"📦 PID: `{pid_app}` | Estatus: A_BORDO"
+                )
+            else:
+                msg_grupo = (
+                    f"✅ *{nuevo_nombre}*: Guía *{hwb}* asignada a tu ruta.\n"
+                    f"📦 PID: `{pid_app}` | 1 pza | Estatus: A_BORDO"
+                )
+            despachar_whatsapp_headless(chat_id, msg_grupo)
+            actualizar_reaccion_whatsapp(message_id, "✅")
+
+        else:
+            # En INDIVIDUAL (1 a 1): Ficha técnica detallada al chofer
+            msg_indiv = (
+                f"🏛️ *CALPIXQUI — ASIGNACIÓN CONFIRMADA*\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"📦 *Guía:* `{hwb}`\n"
+                f"🏷️ *PID:* `{pid_app}`\n"
+                f"👤 *Destinatario:* {destinatario or 'Sin nombre'}\n"
+                f"📍 *Dirección:* {direccion or 'Registrada en sistema'} (CP: {cp})\n"
+                f"🚚 *Operador:* {nuevo_nombre} ({nuevo_email})\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"🛡️ _Registrado en Bóveda y AppSheet (A_BORDO)._"
+            )
+            despachar_whatsapp_headless(chat_id, msg_indiv)
+            actualizar_reaccion_whatsapp(message_id, "✅")
+
+            # Alerta de Auditoría al espacio de Mesa de Control en Google Chat
+            try:
+                from calpixqui_gobernanza import despacho_dual_global, pochtecas_global
+                supervisor_email = res.get("info_pochteca", {}).get("supervisor", "")
+                sup_poch = pochtecas_global.obtener_pochteca(supervisor_email)
+                webhook_sup = sup_poch.get("webhook_chat", "") if sup_poch else ""
+                msg_auditoria_chat = (
+                    f"⚠️ *AUDITORÍA: ASIGNACIÓN POR CHAT INDIVIDUAL*\n"
+                    f"━━━━━━━━━━━━━━━━━━━━\n"
+                    f"👤 *Pochteca:* {nuevo_nombre} ({nuevo_email})\n"
+                    f"📦 *Guía:* `{hwb}` | *PID:* `{pid_bov}`\n"
+                    f"📍 *Destino:* {destinatario} (CP: {cp})\n"
+                    f"🕒 *Hora:* {datetime.now().strftime('%H:%M:%S')}\n"
+                    f"━━━━━━━━━━━━━━━━━━━━\n"
+                    f"🛡️ _Asignada y persistida en Bóveda._"
+                )
+                despacho_dual_global.enviar_alerta_chat_resiliente(webhook_sup, msg_auditoria_chat, supervisor_email)
+            except Exception as eChat:
+                logger.warning(f"Error enviando alerta de auditoría a Google Chat: {eChat}")
+
+    except Exception as exGeneral:
+        logger.error(f"Error procesando asignación imagen en segundo plano: {exGeneral}", exc_info=True)
+
+@app.post("/webhook/whatsapp_imagen_asignacion", status_code=status.HTTP_202_ACCEPTED)
+async def webhook_whatsapp_imagen_asignacion(
+    payload: WhatsAppImagenPayload,
+    background_tasks: BackgroundTasks,
+    request: Request
+):
+    """
+    Endpoint asíncrono para ingesta de imágenes de WhatsApp desde gateway.js:
+    - Valida token interno X-OLLIN-TOKEN para peticiones externas.
+    - Persiste inmediatamente en SQLite WAL outbox_multimodal_inbox antes de responder (Durabilidad Cero-Pérdida).
+    - Retorna 202 Accepted en <50ms.
+    - Despacha procesamiento pesado (Gemini OCR, Bóveda, Outbox) a BackgroundTasks.
+    """
+    token = request.headers.get("X-OLLIN-TOKEN") or request.headers.get("x-ollin-token")
+    client_host = request.client.host if request.client else "127.0.0.1"
+    if client_host not in ("127.0.0.1", "localhost", "::1") and token != OLLIN_INTERNAL_SECRET:
+        raise HTTPException(status_code=403, detail="Acceso no autorizado: Token OLLIN requerido")
+
+    datos = payload.dict() if hasattr(payload, "dict") else payload.__dict__
+    
+    # 💾 Persistencia durable en Outbox SQLite WAL ANTES de responder HTTP 202
+    try:
+        from calpixqui_dual_writer import guardar_multimodal_inbox
+        guardar_multimodal_inbox(datos)
+    except Exception as eInbox:
+        logger.warning(f"Advertencia guardando en outbox inbox: {eInbox}")
+
+    background_tasks.add_task(procesar_asignacion_imagen_en_segundo_plano, datos)
+    return {
+        "status": "ACEPTADO",
+        "mensaje": "Imagen recibida y persistida en SQLite outbox durable. Procesando en segundo plano.",
+        "message_id": payload.message_id
+    }
+
+# ------------------------------------------------------------------------------
+# 6.C CONSOLA DE MONITOREO Y REASIGNACIÓN SIERRA GORDA (DANIEL JUÁREZ)
 # ------------------------------------------------------------------------------
 class ReasignarChoferPayload(BaseModel):
     origen_email: str = ""

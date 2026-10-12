@@ -1,0 +1,9 @@
+node_modules/
+session/
+session*/
+.wwebjs_auth/
+.wwebjs_cache/
+*.log
+*.png
+*.jpg
+
