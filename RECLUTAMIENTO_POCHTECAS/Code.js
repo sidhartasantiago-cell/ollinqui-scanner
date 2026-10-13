@@ -41,7 +41,6 @@ const HEADERS_V2 = [
 ];
 
 // 📡 CANALES DE NOTIFICACIÓN Y MESA DE CONTROL
-const GOOGLE_CHAT_WEBHOOK_DEFAULT = "https://chat.googleapis.com/v1/spaces/AAQA-NmGVf0/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=Ml4k0Mmpx8c3vGco583llDQGEGJf3OY7LUMKlJjJIsY";
 const DESTINATARIOS_CALPIXQUI = [
   "524491805948@c.us", // Sidharta Santiago (Tlayacanqui)
   "525541891708@c.us"  // Irvin Reyes (Tlachixqui)
@@ -126,7 +125,7 @@ function obtenerCarpetaExpedientesDrive_(subcarpetaNombre) {
  * ☁️ Sube un archivo codificado en Base64 a la carpeta de Drive corporativa y retorna su URL
  */
 function guardarArchivoEnDrive_(fileObj, prefijoDoc, carpetaDestino) {
-  if (!fileObj || !fileObj.base64) {
+  if (!fileObj || !fileObj.base64 || !carpetaDestino) {
     return "";
   }
   try {
@@ -134,26 +133,35 @@ function guardarArchivoEnDrive_(fileObj, prefijoDoc, carpetaDestino) {
     if (base64Data.indexOf(",") !== -1) {
       base64Data = base64Data.split(",")[1];
     }
-    const mimeType = fileObj.mimeType || "image/jpeg";
-    const ext = fileObj.fileName && fileObj.fileName.indexOf(".") !== -1
-      ? fileObj.fileName.substring(fileObj.fileName.lastIndexOf("."))
-      : (mimeType.indexOf("pdf") !== -1 ? ".pdf" : ".jpg");
+    const mimeType = String(fileObj.mimeType || "image/jpeg").toLowerCase();
+    const extensionByMime = {
+      "application/pdf": ".pdf",
+      "image/jpeg": ".jpg",
+      "image/png": ".png",
+      "image/webp": ".webp",
+      "image/heic": ".heic",
+      "image/heif": ".heif"
+    };
+    if (!extensionByMime[mimeType] || !/^[A-Za-z0-9+/]*={0,2}$/.test(base64Data) ||
+        base64Data.length === 0 || base64Data.length % 4 !== 0 ||
+        base64Data.length > 7 * 1024 * 1024) {
+      console.warn("Adjunto omitido por formato o tamaño no válido (" + prefijoDoc + ").");
+      return "";
+    }
 
-    const cleanName = prefijoDoc + "_" + Utilities.formatDate(new Date(), "America/Mexico_City", "yyyyMMdd_HHmmss") + ext;
     const decoded = Utilities.base64Decode(base64Data);
+    if (!decoded || decoded.length > 5 * 1024 * 1024) {
+      console.warn("Adjunto omitido por exceder 5 MB (" + prefijoDoc + ").");
+      return "";
+    }
+    const cleanName = prefijoDoc + "_" + Utilities.formatDate(new Date(), "America/Mexico_City", "yyyyMMdd_HHmmss") + extensionByMime[mimeType];
     const blob = Utilities.newBlob(decoded, mimeType, cleanName);
     const file = carpetaDestino.createFile(blob);
-
-    try {
-      file.setSharing(DriveApp.Access.DOMAIN_WITH_LINK, DriveApp.Permission.VIEW);
-    } catch (eShare) {
-      // Si la política del dominio restringe cambio explícito, el propietario y admins ya tienen acceso total
-    }
 
     return file.getUrl();
   } catch (errUp) {
     console.error("Error subiendo archivo (" + prefijoDoc + "):", errUp);
-    return "Error al subir: " + errUp.toString();
+    return "";
   }
 }
 
@@ -251,6 +259,7 @@ function evaluarCandidatoPokaYokeV2_(datos) {
  * ✍️ API PRINCIPAL DE REGISTRO Y EVALUACIÓN v2.0 (POKA-YOKE)
  */
 function registrarAspirantePochteca(form) {
+  let registroPrincipalGuardado = false;
   try {
     if (!form || !form.nombre || !form.telefono) {
       return {
@@ -282,55 +291,15 @@ function registrarAspirantePochteca(form) {
     const experienciaMilla       = String(form.experienciaMilla || "").trim();
     const procClienteAusente     = String(form.procClienteAusente || "").trim();
     const evidenciasManejo       = String(form.evidenciasManejo || "").trim();
+    let fotoVehiculoUrl = String(form.foto_url || form.fotoVehiculoUrl || "");
 
-    // 1. Subir archivos adjuntos a carpeta corporativa de Google Drive
-    const carpetaNombreCandidato = nombreLimpio.replace(/[^A-Z0-9 ]/g, "").replace(/\s+/g, "_") + "_" + telefonoLimpio;
-    const carpetaCandidato = obtenerCarpetaExpedientesDrive_(carpetaNombreCandidato);
-
-    let ineUrl = "";
-    if (form.ineFile && form.ineFile.base64) {
-      ineUrl = guardarArchivoEnDrive_(form.ineFile, "INE_" + telefonoLimpio, carpetaCandidato);
-    } else if (form.ineUrl) {
-      ineUrl = String(form.ineUrl);
-    }
-
-    let comprobanteUrl = "";
-    if (form.comprobanteFile && form.comprobanteFile.base64) {
-      comprobanteUrl = guardarArchivoEnDrive_(form.comprobanteFile, "COMPROBANTE_" + telefonoLimpio, carpetaCandidato);
-    } else if (form.comprobanteUrl) {
-      comprobanteUrl = String(form.comprobanteUrl);
-    }
-
-    let fotoVehiculoUrl = "";
-    if (form.vehiculoFile && form.vehiculoFile.base64) {
-      fotoVehiculoUrl = guardarArchivoEnDrive_(form.vehiculoFile, "UNIDAD_" + telefonoLimpio, carpetaCandidato);
-    } else if (form.foto_url || form.fotoVehiculoUrl) {
-      fotoVehiculoUrl = String(form.foto_url || form.fotoVehiculoUrl);
-    }
-
-    // 2. Ejecutar Evaluación Poka-Yoke v2.0
-    const dictamen = evaluarCandidatoPokaYokeV2_({
-      ineUrl: ineUrl,
-      comprobanteUrl: comprobanteUrl,
-      tipoVehiculo: tipoVehiculo,
-      marcaModelo: marcaModelo,
-      anoUnidad: anoUnidad,
-      experienciaMilla: experienciaMilla,
-      procClienteAusente: procClienteAusente,
-      evidenciasManejo: evidenciasManejo
-    });
-
-    const estatusFiltro = dictamen.estatus;
-    const comentariosIa = dictamen.comentarios;
-
-    // 3. Armar fila de 19 columnas exactas
     const filaNueva = [
       timestamp,
       nombreLimpio,
       "'" + telefonoLimpio,
       correoLimpio,
-      ineUrl || "Sin adjuntar",
-      comprobanteUrl || "Sin adjuntar",
+      "Pendiente por WhatsApp",
+      "Pendiente por WhatsApp",
       tipoVehiculo,
       marcaModelo || "No especificado",
       anoUnidad || "No especificado",
@@ -342,72 +311,148 @@ function registrarAspirantePochteca(form) {
       experienciaMilla,
       procClienteAusente,
       evidenciasManejo,
-      estatusFiltro,
-      comentariosIa
+      "EVALUACIÓN",
+      "Registro recibido; expediente en verificación. Solicitar por WhatsApp cualquier adjunto faltante."
     ];
 
-    // 4. Inyectar en Sheet Principal (1Qu9q7LCBIY5PcWYqKwroIRX9b57NCOwmvbP-cQJ_hGQ) y Espejo Corporativo
-    const sheetsIds = [SPREADSHEET_ID_PRIMARY, SPREADSHEET_ID_MIRROR];
-    const customId = PropertiesService.getScriptProperties().getProperty("SPREADSHEET_ID");
-    if (customId && sheetsIds.indexOf(customId) === -1) {
-      sheetsIds.push(customId);
-    }
+    // Persistir primero los datos básicos: Drive nunca debe impedir guardar al candidato.
+    const spreadsheetPrincipal = SpreadsheetApp.openById(SPREADSHEET_ID_PRIMARY);
+    const hojaPrincipal = prepararHojaDestino_(spreadsheetPrincipal);
+    hojaPrincipal.appendRow(filaNueva);
+    registroPrincipalGuardado = true;
+    const filaPrincipal = hojaPrincipal.getLastRow();
 
-    let inyectadoEnAlMenosUno = false;
-    sheetsIds.forEach(function(idSheet) {
-      if (!idSheet) return;
-      try {
-        const ss = SpreadsheetApp.openById(idSheet);
-        const sheet = prepararHojaDestino_(ss);
-        sheet.appendRow(filaNueva);
-
-        const ultimaFila = sheet.getLastRow();
-        const celdaEstatus = sheet.getRange(ultimaFila, 18); // Columna 18 = Estatus_Filtro
-        if (estatusFiltro === "APTO") {
-          celdaEstatus.setBackground("#dcfce7").setFontColor("#15803d").setFontWeight("bold");
-        } else {
-          celdaEstatus.setBackground("#fef9c3").setFontColor("#a16207").setFontWeight("bold");
-        }
-        inyectadoEnAlMenosUno = true;
-      } catch (eSheet) {
-        console.warn("Aviso al escribir en Sheet ID " + idSheet + ":", eSheet.toString());
-      }
+    let ineUrl = form.ineUrl ? String(form.ineUrl) : "";
+    let comprobanteUrl = form.comprobanteUrl ? String(form.comprobanteUrl) : "";
+    let carpetaCandidato = null;
+    let carpetaUrl = "";
+    const hayArchivos = [form.ineFile, form.comprobanteFile, form.vehiculoFile].some(function(file) {
+      return file && file.base64;
     });
 
-    if (!inyectadoEnAlMenosUno) {
-      throw new Error("No se pudo abrir ninguna de las Bóvedas configuradas.");
+    if (hayArchivos) {
+      try {
+        const carpetaNombreCandidato = nombreLimpio.replace(/[^A-Z0-9 ]/g, "").replace(/\s+/g, "_") + "_" + telefonoLimpio;
+        carpetaCandidato = obtenerCarpetaExpedientesDrive_(carpetaNombreCandidato);
+        carpetaUrl = carpetaCandidato.getUrl();
+      } catch (eDriveFolder) {
+        console.error("No se pudo preparar la carpeta de adjuntos; se conserva el registro:", eDriveFolder);
+      }
     }
 
-    // 5. Notificación Instantánea 24/7 a Mesa de Control (Google Chat + Calpixqui)
-    despacharAlertaReclutamientoV2_({
-      nombre: nombreLimpio,
-      telefono: telefonoLimpio,
-      correo: correoLimpio,
+    if (form.ineFile && form.ineFile.base64) {
+      ineUrl = carpetaCandidato ? guardarArchivoEnDrive_(form.ineFile, "INE_" + telefonoLimpio, carpetaCandidato) : "";
+    }
+    if (form.comprobanteFile && form.comprobanteFile.base64) {
+      comprobanteUrl = carpetaCandidato ? guardarArchivoEnDrive_(form.comprobanteFile, "COMPROBANTE_" + telefonoLimpio, carpetaCandidato) : "";
+    }
+    if (form.vehiculoFile && form.vehiculoFile.base64) {
+      fotoVehiculoUrl = carpetaCandidato ? guardarArchivoEnDrive_(form.vehiculoFile, "UNIDAD_" + telefonoLimpio, carpetaCandidato) : "";
+    }
+
+    const dictamen = evaluarCandidatoPokaYokeV2_({
       ineUrl: ineUrl,
       comprobanteUrl: comprobanteUrl,
       tipoVehiculo: tipoVehiculo,
       marcaModelo: marcaModelo,
       anoUnidad: anoUnidad,
-      fotoVehiculoUrl: fotoVehiculoUrl,
-      equipoSeguridad: equipoSeguridadStr,
-      comunidadesPreferencia: comunidadesPreferencia,
-      conocimientoCarreteras: conocimientoCarreteras,
       experienciaMilla: experienciaMilla,
       procClienteAusente: procClienteAusente,
-      estatusFiltro: estatusFiltro,
-      comentarios: comentariosIa,
-      carpetaUrl: carpetaCandidato.getUrl()
+      evidenciasManejo: evidenciasManejo
     });
+    const estatusFiltro = dictamen.estatus;
+    let comentariosIa = dictamen.comentarios;
+    if (!ineUrl || !comprobanteUrl) {
+      comentariosIa += " | Solicitar por WhatsApp: " +
+        [!ineUrl ? "INE/identificación" : "", !comprobanteUrl ? "comprobante de domicilio" : ""]
+          .filter(String).join(" y ") + ".";
+    }
+    if ((form.vehiculoFile && form.vehiculoFile.base64) && !fotoVehiculoUrl) {
+      comentariosIa += " | Foto de unidad pendiente por falla o formato del adjunto.";
+    }
+
+    hojaPrincipal.getRange(filaPrincipal, 5, 1, 2).setValues([[
+      ineUrl || "Pendiente por WhatsApp",
+      comprobanteUrl || "Pendiente por WhatsApp"
+    ]]);
+    hojaPrincipal.getRange(filaPrincipal, 10).setValue(fotoVehiculoUrl || "Sin foto de unidad");
+    hojaPrincipal.getRange(filaPrincipal, 18, 1, 2).setValues([[estatusFiltro, comentariosIa]]);
+    try {
+      const celdaEstatus = hojaPrincipal.getRange(filaPrincipal, 18);
+      if (estatusFiltro === "APTO") {
+        celdaEstatus.setBackground("#dcfce7").setFontColor("#15803d").setFontWeight("bold");
+      } else {
+        celdaEstatus.setBackground("#fef9c3").setFontColor("#a16207").setFontWeight("bold");
+      }
+    } catch (eStyle) {
+      console.warn("No se pudo aplicar el formato de estatus; el registro sí está guardado:", eStyle);
+    }
+
+    const mirrorIds = [SPREADSHEET_ID_MIRROR];
+    const customId = PropertiesService.getScriptProperties().getProperty("SPREADSHEET_ID");
+    if (customId && customId !== SPREADSHEET_ID_PRIMARY && mirrorIds.indexOf(customId) === -1) {
+      mirrorIds.push(customId);
+    }
+    mirrorIds.forEach(function(idSheet) {
+      if (!idSheet || idSheet === SPREADSHEET_ID_PRIMARY) return;
+      try {
+        const mirrorSheet = prepararHojaDestino_(SpreadsheetApp.openById(idSheet));
+        mirrorSheet.appendRow(filaNueva.map(function(value, index) {
+          if (index === 4) return ineUrl || "Pendiente por WhatsApp";
+          if (index === 5) return comprobanteUrl || "Pendiente por WhatsApp";
+          if (index === 9) return fotoVehiculoUrl || "Sin foto de unidad";
+          if (index === 17) return estatusFiltro;
+          if (index === 18) return comentariosIa;
+          return value;
+        }));
+      } catch (eMirror) {
+        console.warn("No se pudo actualizar la hoja espejo " + idSheet + "; el registro principal sí está guardado:", eMirror);
+      }
+    });
+
+    // 5. Notificación Instantánea 24/7 a Mesa de Control (Google Chat + Calpixqui)
+    try {
+      despacharAlertaReclutamientoV2_({
+        nombre: nombreLimpio,
+        telefono: telefonoLimpio,
+        correo: correoLimpio,
+        ineUrl: ineUrl,
+        comprobanteUrl: comprobanteUrl,
+        tipoVehiculo: tipoVehiculo,
+        marcaModelo: marcaModelo,
+        anoUnidad: anoUnidad,
+        fotoVehiculoUrl: fotoVehiculoUrl,
+        equipoSeguridad: equipoSeguridadStr,
+        comunidadesPreferencia: comunidadesPreferencia,
+        conocimientoCarreteras: conocimientoCarreteras,
+        experienciaMilla: experienciaMilla,
+        procClienteAusente: procClienteAusente,
+        estatusFiltro: estatusFiltro,
+        comentarios: comentariosIa,
+        carpetaUrl: carpetaUrl
+      });
+    } catch (eNotify) {
+      console.error("No se pudo despachar la notificación; el registro sí está guardado:", eNotify);
+    }
 
     const primerNombre = nombreLimpio.split(" ")[0];
     return {
       success: true,
       estatus: estatusFiltro,
-      message: "¡Expediente recibido con éxito, " + primerNombre + "! El Tlayacanqui Sidharta Santiago y la Mesa de Control de Arauto Express han recibido tu documentación y evaluación territorial. Te contactaremos por WhatsApp a la brevedad."
+      message: "¡Solicitud recibida, " + primerNombre + "! Guardamos tus datos y evaluación. " +
+        ((!ineUrl || !comprobanteUrl) ? "Si faltó algún documento, te lo pediremos por WhatsApp. " : "") +
+        "Te contactaremos por WhatsApp a la brevedad."
     };
 
   } catch (err) {
     console.error("Error en registrarAspirantePochteca v2.0:", err);
+    if (registroPrincipalGuardado) {
+      return {
+        success: true,
+        estatus: "EVALUACIÓN",
+        message: "Tu solicitud quedó registrada. Estamos completando el expediente; si falta algún archivo, te lo pediremos por WhatsApp."
+      };
+    }
     return {
       success: false,
       message: "Error al procesar el registro en Bóveda Corporativa: " + err.toString()
@@ -424,7 +469,7 @@ function despacharAlertaReclutamientoV2_(c) {
 
   // 1. Google Chat Webhook (Espacio Mesa de Control Sidharta & Irvin)
   try {
-    const chatWebhook = PropertiesService.getScriptProperties().getProperty("GOOGLE_CHAT_WEBHOOK") || GOOGLE_CHAT_WEBHOOK_DEFAULT;
+    const chatWebhook = PropertiesService.getScriptProperties().getProperty("GOOGLE_CHAT_WEBHOOK");
     if (chatWebhook && chatWebhook.startsWith("http")) {
       const textoChat = "🚨 *NUEVO EXPEDIENTE POCHTECA v2.0 RECIBIDO* 🚚📋\n\n" +
         "🏷️ *Dictamen Poka-Yoke:* " + badge + "\n" +
@@ -448,6 +493,8 @@ function despacharAlertaReclutamientoV2_(c) {
         payload: JSON.stringify({ text: textoChat }),
         muteHttpExceptions: true
       });
+    } else {
+      console.warn("GOOGLE_CHAT_WEBHOOK no está configurado en Script Properties.");
     }
   } catch (errChat) {
     console.error("Error al despachar a Google Chat:", errChat.toString());

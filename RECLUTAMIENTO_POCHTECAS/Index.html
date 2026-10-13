@@ -96,19 +96,19 @@
                 <!-- INE / Identificación Oficial -->
                 <div class="flex flex-col gap-1">
                     <label class="required text-[11px] uppercase font-bold text-zinc-300 tracking-wider">INE / Identificación Oficial (Cédula o Pasaporte):</label>
-                    <input type="file" id="ineFile" name="ineFile" accept="image/*,.pdf" required
+                    <input type="file" id="ineFile" name="ineFile" accept="image/*,.pdf"
                            onchange="preprocesarEnCambio(this, 'status-ine')"
                            class="input-field file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 cursor-pointer" />
-                    <span id="status-ine" class="text-[10px] text-zinc-500">Puedes tomar foto directa con tu cámara o adjuntar imagen / PDF.</span>
+                    <span id="status-ine" class="text-[10px] text-zinc-500">Adjunto recomendado. Si tu teléfono no puede leerlo, podrás enviar la solicitud y te lo pediremos por WhatsApp.</span>
                 </div>
 
                 <!-- Comprobante de Domicilio -->
                 <div class="flex flex-col gap-1">
                     <label class="required text-[11px] uppercase font-bold text-zinc-300 tracking-wider">Comprobante de Domicilio (Reciente):</label>
-                    <input type="file" id="comprobanteFile" name="comprobanteFile" accept="image/*,.pdf" required
+                    <input type="file" id="comprobanteFile" name="comprobanteFile" accept="image/*,.pdf"
                            onchange="preprocesarEnCambio(this, 'status-comprobante')"
                            class="input-field file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 cursor-pointer" />
-                    <span id="status-comprobante" class="text-[10px] text-zinc-500">Recibo de luz, agua, teléfono o estado de cuenta no mayor a 3 meses.</span>
+                    <span id="status-comprobante" class="text-[10px] text-zinc-500">Recibo reciente. Si tu teléfono no puede leerlo, podrás enviar la solicitud y te lo pediremos por WhatsApp.</span>
                 </div>
             </div>
 
@@ -277,20 +277,34 @@
     <!-- MOTOR DE CARGA INMEDIATA ANTI-EXPIRACIÓN ANDROID (SCOPED STORAGE FIX)    -->
     <!-- ========================================================================= -->
     <script>
-        const CACHE_ARCHIVOS = {
-            ineFile: null,
-            comprobanteFile: null,
-            vehiculoFile: null
-        };
+        const MAX_PDF_BYTES = 5 * 1024 * 1024;
+        const MAX_RAW_FALLBACK_BYTES = 1024 * 1024;
+        const MAX_TOTAL_ATTACHMENT_BYTES = 3 * 1024 * 1024;
+        const CACHE_ARCHIVOS = { ineFile: null, comprobanteFile: null, vehiculoFile: null };
+        const PREPROCESOS_ARCHIVOS = { ineFile: null, comprobanteFile: null, vehiculoFile: null };
 
         function arrayBufferABase64(buffer, mimeType) {
             let binary = '';
             const bytes = new Uint8Array(buffer);
-            const chunkSize = 8192;
-            for (let i = 0; i < bytes.length; i += chunkSize) {
-                binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+            for (let i = 0; i < bytes.length; i += 8192) {
+                binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
             }
-            return 'data:' + (mimeType || 'application/octet-stream') + ';base64,' + btoa(binary);
+            return 'data:' + mimeType + ';base64,' + btoa(binary);
+        }
+
+        function bytesEnBase64(dataUrl) {
+            const base64 = String(dataUrl || '').split(',').pop();
+            return Math.floor(base64.length * 3 / 4) - (base64.endsWith('==') ? 2 : (base64.endsWith('=') ? 1 : 0));
+        }
+
+        function mimeArchivo(file, isPdf) {
+            if (file.type) return file.type;
+            const ext = (file.name || '').split('.').pop().toLowerCase();
+            if (isPdf) return 'application/pdf';
+            if (ext === 'heic' || ext === 'heif') return 'image/heic';
+            if (ext === 'webp') return 'image/webp';
+            if (ext === 'png') return 'image/png';
+            return 'image/jpeg';
         }
 
         function comprimirImagenDesdeUrl(url, fileName) {
@@ -301,256 +315,236 @@
                         const maxDim = 1200;
                         let width = img.width || 1000;
                         let height = img.height || 1000;
-
                         if (width > maxDim || height > maxDim) {
-                            if (width > height) {
-                                height = Math.round((height * maxDim) / width);
-                                width = maxDim;
-                            } else {
-                                width = Math.round((width * maxDim) / height);
-                                height = maxDim;
-                            }
+                            const scale = maxDim / Math.max(width, height);
+                            width = Math.round(width * scale);
+                            height = Math.round(height * scale);
                         }
-
                         const canvas = document.createElement('canvas');
                         canvas.width = width;
                         canvas.height = height;
                         const ctx = canvas.getContext('2d');
+                        if (!ctx) throw new Error('No se pudo preparar la imagen.');
                         ctx.drawImage(img, 0, 0, width, height);
-
-                        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.72);
                         resolve({
-                            base64: compressedDataUrl,
+                            base64: canvas.toDataURL('image/jpeg', 0.72),
                             mimeType: 'image/jpeg',
-                            fileName: (fileName || 'foto').replace(/\.[^/.]+$/, "") + ".jpg"
+                            fileName: (fileName || 'foto').replace(/\.[^/.]+$/, '') + '.jpg'
                         });
-                    } catch (errCanvas) {
-                        reject(errCanvas);
+                    } catch (err) {
+                        reject(err);
                     }
                 };
-                img.onerror = function(errImg) {
-                    reject(errImg);
-                };
+                img.onerror = function() { reject(new Error('Formato de imagen no compatible')); };
                 img.src = url;
             });
         }
 
         async function leerArchivoSeguro(file) {
             if (!file) return null;
-            const isImage = (file.type && file.type.startsWith('image/')) || /\.(jpg|jpeg|png|webp|heic)$/i.test(file.name || '');
+            const name = file.name || '';
+            const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(name);
+            const isImage = (file.type && file.type.indexOf('image/') === 0) ||
+                /\.(jpg|jpeg|png|webp|heic|heif)$/i.test(name);
+            if (!isPdf && !isImage) return null;
+            if (isPdf && file.size > MAX_PDF_BYTES) return null;
 
-            if (isImage && typeof URL !== 'undefined' && URL.createObjectURL) {
-                let objUrl = null;
-                try {
-                    objUrl = URL.createObjectURL(file);
-                    const resImg = await comprimirImagenDesdeUrl(objUrl, file.name);
-                    URL.revokeObjectURL(objUrl);
-                    return resImg;
-                } catch (e1) {
-                    if (objUrl) {
-                        try { URL.revokeObjectURL(objUrl); } catch (_) {}
+            try {
+                if (isImage && typeof URL !== 'undefined' && URL.createObjectURL) {
+                    let objectUrl;
+                    try {
+                        objectUrl = URL.createObjectURL(file);
+                        return await comprimirImagenDesdeUrl(objectUrl, name);
+                    } catch (_) {
+                        // Algunos formatos del selector Android no son decodificables por el navegador.
+                    } finally {
+                        if (objectUrl) URL.revokeObjectURL(objectUrl);
                     }
                 }
-            }
 
-            if (typeof file.arrayBuffer === 'function') {
-                try {
-                    const buffer = await file.arrayBuffer();
-                    const dataUrl = arrayBufferABase64(buffer, file.type || (isImage ? 'image/jpeg' : 'application/pdf'));
-                    if (isImage) {
+                const maxRawBytes = isPdf ? MAX_PDF_BYTES : MAX_RAW_FALLBACK_BYTES;
+                if (file.size > maxRawBytes) return null;
+                const mimeType = mimeArchivo(file, isPdf);
+                let dataUrl;
+                if (typeof file.arrayBuffer === 'function') {
+                    dataUrl = arrayBufferABase64(await file.arrayBuffer(), mimeType);
+                } else {
+                    dataUrl = await new Promise((resolve) => {
                         try {
-                            return await comprimirImagenDesdeUrl(dataUrl, file.name);
+                            const reader = new FileReader();
+                            reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+                            reader.onerror = () => resolve(null);
+                            reader.onabort = () => resolve(null);
+                            reader.readAsDataURL(file);
                         } catch (_) {
-                            return {
-                                base64: dataUrl,
-                                mimeType: file.type || 'image/jpeg',
-                                fileName: file.name || 'archivo.jpg'
-                            };
+                            resolve(null);
                         }
-                    }
-                    return {
-                        base64: dataUrl,
-                        mimeType: file.type || 'application/pdf',
-                        fileName: file.name || 'documento.pdf'
-                    };
-                } catch (e2) {}
-            }
-
-            return await new Promise((resolve) => {
-                try {
-                    const reader = new FileReader();
-                    reader.onload = async function(e) {
-                        const rawDataUrl = e.target.result;
-                        if (isImage) {
-                            try {
-                                const comp = await comprimirImagenDesdeUrl(rawDataUrl, file.name);
-                                resolve(comp);
-                                return;
-                            } catch (_) {}
-                        }
-                        resolve({
-                            base64: rawDataUrl,
-                            mimeType: file.type || 'application/pdf',
-                            fileName: file.name || 'documento'
-                        });
-                    };
-                    reader.onerror = function() {
-                        resolve(null);
-                    };
-                    reader.readAsDataURL(file);
-                } catch (_) {
-                    resolve(null);
+                    });
                 }
-            });
+                if (!dataUrl) return null;
+                if (isImage) {
+                    try {
+                        return await comprimirImagenDesdeUrl(dataUrl, name);
+                    } catch (_) {
+                        if (file.size > MAX_RAW_FALLBACK_BYTES) return null;
+                    }
+                }
+                return { base64: dataUrl, mimeType: mimeType, fileName: name || (isPdf ? 'documento.pdf' : 'foto') };
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function mostrarEstadoArchivo(inputId, message, success) {
+            const span = document.getElementById('status-' + inputId.replace('File', '').toLowerCase());
+            if (!span) return;
+            span.className = 'text-[11px] font-semibold ' + (success ? 'text-emerald-400' : 'text-amber-300');
+            span.textContent = message;
         }
 
         async function preprocesarEnCambio(fileInput, statusSpanId) {
+            const inputId = fileInput && fileInput.id;
             const span = document.getElementById(statusSpanId);
-            const inputId = fileInput.id;
+            if (!inputId || !Object.prototype.hasOwnProperty.call(CACHE_ARCHIVOS, inputId)) return;
+            const file = fileInput.files && fileInput.files[0];
+            CACHE_ARCHIVOS[inputId] = null;
+            if (!file) return;
 
-            if (!fileInput.files || fileInput.files.length === 0) {
-                CACHE_ARCHIVOS[inputId] = null;
-                return;
-            }
-
-            const file = fileInput.files[0];
             if (span) {
-                span.className = "text-[11px] font-semibold text-amber-400";
-                span.textContent = "⏳ Procesando y optimizando archivo...";
+                span.className = 'text-[11px] font-semibold text-amber-400';
+                span.textContent = '⏳ Preparando archivo de forma segura...';
             }
-
-            const procesado = await leerArchivoSeguro(file);
-            if (procesado && procesado.base64) {
-                CACHE_ARCHIVOS[inputId] = procesado;
+            const task = leerArchivoSeguro(file);
+            PREPROCESOS_ARCHIVOS[inputId] = { file: file, task: task };
+            try {
+                const processed = await task;
+                if (!fileInput.files || fileInput.files[0] !== file) return;
+                CACHE_ARCHIVOS[inputId] = processed ? { file: file, result: processed } : null;
                 if (span) {
-                    span.className = "text-[11px] font-semibold text-emerald-400";
-                    span.textContent = "✅ Archivo listo (" + procesado.fileName + ")";
+                    span.className = 'text-[11px] font-semibold ' + (processed ? 'text-emerald-400' : 'text-amber-300');
+                    span.textContent = processed
+                        ? '✅ Archivo listo (' + processed.fileName + ')'
+                        : (file.size > MAX_PDF_BYTES && /\.pdf$/i.test(file.name || '')
+                            ? '⚠️ PDF mayor a 5 MB; envía la solicitud y te lo pediremos por WhatsApp.'
+                            : '⚠️ No se pudo leer u optimizar. Puedes enviar la solicitud; te lo pediremos por WhatsApp.');
                 }
-            } else {
+            } catch (_) {
                 CACHE_ARCHIVOS[inputId] = null;
-                if (span) {
-                    span.className = "text-[11px] font-semibold text-amber-300";
-                    span.textContent = "⚠️ Tu teléfono bloqueó la lectura de este archivo en la nube. Toma una foto directa con la cámara o continúa con el envío.";
-                }
+                if (span) span.textContent = '⚠️ No se pudo leer. Puedes enviar la solicitud; te lo pediremos por WhatsApp.';
             }
         }
 
         async function obtenerArchivoFinal(inputId) {
-            if (CACHE_ARCHIVOS[inputId] && CACHE_ARCHIVOS[inputId].base64) {
-                return CACHE_ARCHIVOS[inputId];
+            const input = document.getElementById(inputId);
+            const file = input && input.files && input.files[0];
+            if (!file) return null;
+            const cached = CACHE_ARCHIVOS[inputId];
+            if (cached && cached.file === file) return cached.result;
+            const pending = PREPROCESOS_ARCHIVOS[inputId];
+            if (pending && pending.file === file) {
+                await pending.task;
+                const ready = CACHE_ARCHIVOS[inputId];
+                if (ready && ready.file === file) return ready.result;
+                return null;
             }
-            const el = document.getElementById(inputId);
-            if (el && el.files && el.files.length > 0) {
-                const res = await leerArchivoSeguro(el.files[0]);
-                if (res && res.base64) {
-                    CACHE_ARCHIVOS[inputId] = res;
-                    return res;
-                }
-            }
-            return null;
+            const result = await leerArchivoSeguro(file);
+            if (result) CACHE_ARCHIVOS[inputId] = { file: file, result: result };
+            return result;
+        }
+
+        function enviarConGoogleScript(payload) {
+            return new Promise((resolve, reject) => {
+                google.script.run
+                    .withSuccessHandler(resolve)
+                    .withFailureHandler(reject)
+                    .registrarAspirantePochteca(payload);
+            });
         }
 
         async function enviarFormularioV2(event) {
             event.preventDefault();
-
             const form = document.getElementById('form-reclutamiento');
+            if (!form.reportValidity()) return;
             const btn = document.getElementById('btn-submit');
             const statusBar = document.getElementById('status-bar');
             const statusText = document.getElementById('status-text');
-
-            btn.setAttribute('disabled', 'true');
-            btn.innerHTML = `<span class="w-4 h-4 border-2 border-zinc-200 border-t-transparent rounded-full animate-spin"></span> SUBIENDO EXPEDIENTE DIGITAL...`;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="w-4 h-4 border-2 border-zinc-200 border-t-transparent rounded-full animate-spin"></span> ENVIANDO SOLICITUD...';
             statusBar.classList.remove('hidden');
-            statusText.textContent = "Preparando expediente digital de forma segura...";
+            statusText.textContent = 'Preparando los datos. Los archivos que fallen no bloquearán tu solicitud...';
 
             try {
-                const ineObj = await obtenerArchivoFinal('ineFile');
-                const comprobanteObj = await obtenerArchivoFinal('comprobanteFile');
-                const vehiculoObj = await obtenerArchivoFinal('vehiculoFile');
+                const attachmentIds = ['ineFile', 'comprobanteFile', 'vehiculoFile'];
+                const attachments = {};
+                let remainingBytes = MAX_TOTAL_ATTACHMENT_BYTES;
+                for (const inputId of attachmentIds) {
+                    const fileObject = await obtenerArchivoFinal(inputId);
+                    const fileBytes = fileObject ? bytesEnBase64(fileObject.base64) : 0;
+                    if (fileObject && fileBytes <= remainingBytes) {
+                        attachments[inputId] = fileObject;
+                        remainingBytes -= fileBytes;
+                    } else {
+                        attachments[inputId] = null;
+                        if (fileObject) {
+                            const spanId = 'status-' + inputId.replace('File', '').toLowerCase();
+                            const span = document.getElementById(spanId);
+                            if (span) {
+                                span.className = 'text-[11px] font-semibold text-amber-300';
+                                span.textContent = '⚠️ Se omitió para enviar la solicitud con seguridad; te lo pediremos por WhatsApp.';
+                            }
+                        }
+                    }
+                }
 
-                const checkboxes = document.querySelectorAll('input[name="equipoSeguridad"]:checked');
-                const equipoSeleccionado = Array.from(checkboxes).map(cb => cb.value);
-
-                statusText.textContent = "Guardando en Bóveda Corporativa Arauto Express...";
-
+                const selected = Array.from(document.querySelectorAll('input[name="equipoSeguridad"]:checked')).map(cb => cb.value);
+                const value = (id) => document.getElementById(id).value;
                 const payload = {
-                    nombre: document.getElementById('nombre').value,
-                    telefono: document.getElementById('telefono').value,
-                    correo: document.getElementById('correo').value,
-                    ineFile: ineObj,
-                    comprobanteFile: comprobanteObj,
-                    tipoVehiculo: document.getElementById('tipoVehiculo').value,
-                    marcaModelo: document.getElementById('marcaModelo').value,
-                    anoUnidad: document.getElementById('anoUnidad').value,
-                    vehiculoFile: vehiculoObj,
-                    equipoSeguridad: equipoSeleccionado,
-                    comunidadesPreferencia: document.getElementById('comunidadesPreferencia').value,
-                    conocimientoCarreteras: document.getElementById('conocimientoCarreteras').value,
-                    orientacionNavegacion: document.getElementById('orientacionNavegacion').value,
-                    experienciaMilla: document.getElementById('experienciaMilla').value,
-                    procClienteAusente: document.getElementById('procClienteAusente').value,
-                    evidenciasManejo: document.getElementById('evidenciasManejo').value
+                    nombre: value('nombre'), telefono: value('telefono'), correo: value('correo'),
+                    ineFile: attachments.ineFile, comprobanteFile: attachments.comprobanteFile,
+                    tipoVehiculo: value('tipoVehiculo'), marcaModelo: value('marcaModelo'),
+                    anoUnidad: value('anoUnidad'), vehiculoFile: attachments.vehiculoFile,
+                    equipoSeguridad: selected, comunidadesPreferencia: value('comunidadesPreferencia'),
+                    conocimientoCarreteras: value('conocimientoCarreteras'),
+                    orientacionNavegacion: value('orientacionNavegacion'),
+                    experienciaMilla: value('experienciaMilla'), procClienteAusente: value('procClienteAusente'),
+                    evidenciasManejo: value('evidenciasManejo')
                 };
 
-                const WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbwcqW3I9jAJUaHfl_n3DNAhnBtW1ZGbatYSTbp8OSORaBdcIoOdWmQgnlaGAttU-yUH4Q/exec";
-
+                statusText.textContent = 'Guardando tu solicitud en la Bóveda Corporativa...';
+                let result;
                 if (typeof google !== 'undefined' && google.script && google.script.run) {
-                    google.script.run
-                        .withSuccessHandler(res => {
-                            btn.removeAttribute('disabled');
-                            btn.innerHTML = `<span>🚀</span> ENVIAR SOLICITUD Y EXPEDIENTE`;
-                            statusBar.classList.add('hidden');
-
-                            if (res && res.success) {
-                                form.classList.add('hidden');
-                                document.getElementById('pantalla-respuesta').classList.remove('hidden');
-                                document.getElementById('msg-respuesta').textContent = res.message;
-                                window.scrollTo({ top: 0, behavior: 'smooth' });
-                            } else {
-                                alert("❌ Aviso del servidor: " + (res ? res.message : "Respuesta vacía"));
-                            }
-                        })
-                        .withFailureHandler(err => {
-                            btn.removeAttribute('disabled');
-                            btn.innerHTML = `<span>🚀</span> ENVIAR SOLICITUD Y EXPEDIENTE`;
-                            statusBar.classList.add('hidden');
-                            alert("❌ Error de red al subir expediente: " + (err && err.message ? err.message : JSON.stringify(err)));
-                        })
-                        .registrarAspirantePochteca(payload);
+                    result = await enviarConGoogleScript(payload);
                 } else {
-                    const response = await fetch(WEBHOOK_URL, {
+                    const response = await fetch('/.netlify/functions/registro-pochteca', {
                         method: 'POST',
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         body: JSON.stringify(payload)
                     });
-                    const res = await response.json();
-                    btn.removeAttribute('disabled');
-                    btn.innerHTML = `<span>🚀</span> ENVIAR SOLICITUD Y EXPEDIENTE`;
-                    statusBar.classList.add('hidden');
-
-                    if (res && res.success) {
-                        form.classList.add('hidden');
-                        document.getElementById('pantalla-respuesta').classList.remove('hidden');
-                        document.getElementById('msg-respuesta').textContent = res.message;
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                    } else {
-                        alert("❌ Aviso del servidor: " + (res ? res.message : "Respuesta vacía"));
+                    const responseText = await response.text();
+                    if (!response.ok) throw new Error('El servidor respondió HTTP ' + response.status + '.');
+                    try {
+                        result = JSON.parse(responseText);
+                    } catch (_) {
+                        throw new Error('El servidor no devolvió una confirmación válida.');
                     }
                 }
-
-            } catch (errEnvio) {
-                btn.removeAttribute('disabled');
-                btn.innerHTML = `<span>🚀</span> ENVIAR SOLICITUD Y EXPEDIENTE`;
+                if (!result || !result.success) throw new Error(result && result.message ? result.message : 'El servidor no confirmó el registro.');
+                form.classList.add('hidden');
+                document.getElementById('pantalla-respuesta').classList.remove('hidden');
+                document.getElementById('msg-respuesta').textContent = result.message;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (err) {
+                const message = err && err.message ? err.message : 'No fue posible confirmar el envío.';
+                alert('⚠️ No pudimos confirmar la recepción. Tus datos siguen en pantalla; verifica tu conexión e inténtalo de nuevo. ' + message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>🚀</span> ENVIAR SOLICITUD Y EXPEDIENTE';
                 statusBar.classList.add('hidden');
-                const detalle = errEnvio && errEnvio.message ? errEnvio.message : String(errEnvio);
-                alert("❌ Error de conexión al enviar. Verifica tus datos móviles o Wi-Fi e intenta de nuevo. (" + detalle + ")");
             }
         }
 
         function reiniciarFormulario() {
-            CACHE_ARCHIVOS.ineFile = null;
-            CACHE_ARCHIVOS.comprobanteFile = null;
-            CACHE_ARCHIVOS.vehiculoFile = null;
+            Object.keys(CACHE_ARCHIVOS).forEach((key) => { CACHE_ARCHIVOS[key] = null; PREPROCESOS_ARCHIVOS[key] = null; });
             document.getElementById('form-reclutamiento').reset();
             document.getElementById('form-reclutamiento').classList.remove('hidden');
             document.getElementById('pantalla-respuesta').classList.add('hidden');
