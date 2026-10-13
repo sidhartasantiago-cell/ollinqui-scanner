@@ -43,8 +43,21 @@ function enviarResumenDiarioRutaLEN() {
   }
 }
 
+var LEN_SUPERVISORES_DEFAULT = "sidharta.santiago@arauto.express,irvin.reyes@arauto.express";
+
+/** Autoconfigura LEN_SUPERVISORES_EMAILS si aún no existe. */
+function asegurarPropiedadSupervisoresLEN_() {
+  var props = PropertiesService.getScriptProperties();
+  var actual = props.getProperty("LEN_SUPERVISORES_EMAILS");
+  if (!actual) {
+    props.setProperty("LEN_SUPERVISORES_EMAILS", LEN_SUPERVISORES_DEFAULT);
+    actual = LEN_SUPERVISORES_DEFAULT;
+  }
+  return actual;
+}
+
 function obtenerDestinatariosLEN_() {
-  var prop = PropertiesService.getScriptProperties().getProperty("LEN_SUPERVISORES_EMAILS");
+  var prop = asegurarPropiedadSupervisoresLEN_();
   var lista = String(prop || LEN_SUPERVISORES_FALLBACK).split(",")
     .map(function (e) { return e.trim().toLowerCase(); })
     .filter(function (e) { return /@arauto\.express$/.test(e); });
@@ -74,7 +87,7 @@ function resumirFDPorUsuarioYDia_(datos) {
   var iChk = idxEncabezadoLEN_(cab, ["checkpoint"], 9);
   var iFecha = idxEncabezadoLEN_(cab, ["fecha en ruta", "fecha asignación", "fecha asignacion"], 12);
   var iFechaAlt = idxEncabezadoLEN_(cab, ["fecha asignación", "fecha asignacion"], 11);
-  var iUsuario = idxEncabezadoLEN_(cab, ["usuario", "chofer", "pochteca", "inter"], 18);
+  var iUsuario = idxEncabezadoLEN_(cab, ["id correo"], 14); // Columna O (idx 14) del esquema rígido
   var iPiezas = idxEncabezadoLEN_(cab, ["piezas"], 3);
 
   var porDia = {};
