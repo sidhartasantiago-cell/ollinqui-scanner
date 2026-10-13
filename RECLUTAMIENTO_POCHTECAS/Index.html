@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Reclutamiento y Evaluación Pochtecas v2.0 - Arauto Express</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-color: #09090b;
+            --panel-bg: #18181b;
+            --gold: #d4af37;
+        }
+        body {
+            background-color: #09090b;
+            color: #f4f4f5;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        .section-card {
+            background-color: rgba(24, 24, 27, 0.85);
+            border: 1px solid #27272a;
+            border-radius: 1rem;
+            padding: 1.25rem;
+        }
+        .input-field {
+            width: 100%;
+            background-color: #09090b;
+            border: 1px solid #27272a;
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            font-size: 0.875rem;
+            color: #e4e4e7;
+            transition: all 0.2s;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        }
+        label.required::after {
+            content: " *";
+            color: #10b981;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="min-h-screen py-6 px-3 md:px-6 flex justify-center items-start">
+
+    <div class="w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-3xl p-5 md:p-8 shadow-2xl relative overflow-hidden">
+
+        <!-- DECORACIÓN DE FONDO -->
+        <div class="absolute top-0 right-0 w-40 h-40 bg-emerald-500/5 blur-3xl rounded-full pointer-events-none"></div>
+        <div class="absolute bottom-0 left-0 w-40 h-40 bg-amber-500/5 blur-3xl rounded-full pointer-events-none"></div>
+
+        <!-- ENCABEZADO CORPORATIVO -->
+        <div class="text-center mb-6">
+            <div class="w-16 h-16 rounded-2xl bg-zinc-950 border border-emerald-500/30 flex items-center justify-center mx-auto mb-3 shadow-inner">
+                <span class="text-3xl">🚚</span>
+            </div>
+            <h1 class="text-2xl font-black tracking-tight text-zinc-50">ARAUTO EXPRESS</h1>
+            <p class="text-xs uppercase tracking-widest text-[#D4AF37] font-bold mt-1">Sistema de Reclutamiento y Evaluación Pochtecas v2.0</p>
+            <p class="text-xs text-zinc-400 mt-1.5">Completa tu expediente digital y evaluación operativa de ruta.</p>
+        </div>
+
+        <!-- FORMULARIO PRINCIPAL v2.0 -->
+        <form id="form-reclutamiento" onsubmit="enviarFormularioV2(event)" class="space-y-6">
+
+            <!-- ========================================================= -->
+            <!-- SECCIÓN 1: EXPEDIENTE DIGITAL Y DATOS PERSONALES          -->
+            <!-- ========================================================= -->
+            <div class="section-card space-y-4">
+                <div class="flex items-center gap-2 border-b border-zinc-800 pb-2.5">
+                    <span class="text-lg">🪪</span>
+                    <h2 class="text-sm font-black uppercase tracking-wider text-emerald-400">1. Datos Personales y Expediente Digital</h2>
+                </div>
+
+                <!-- Nombre Completo -->
+                <div class="flex flex-col gap-1">
+                    <label class="required text-[11px] uppercase font-bold text-zinc-300 tracking-wider">Nombre Completo:</label>
+                    <input type="text" id="nombre" name="nombre" required placeholder="Ej. Juan Pérez García" class="input-field" />
+                </div>
+
+                <!-- Teléfono y Correo en Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex flex-col gap-1">
+                        <label class="required text-[11px] uppercase font-bold text-zinc-300 tracking-wider">Teléfono / WhatsApp (10 dígitos):</label>
+                        <input type="tel" id="telefono" name="telefono" pattern="[0-9]{10}" maxlength="10" required placeholder="Ej. 4421234567"
+                               title="Ingresa los 10 dígitos de tu número sin espacios" class="input-field font-mono" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="required text-[11px] uppercase font-bold text-zinc-300 tracking-wider">Correo Electrónico:</label>
+                        <input type="email" id="correo" name="correo" required placeholder="ejemplo@correo.com" class="input-field" />
+                    </div>
+                </div>
+
+                <!-- INE / Identificación Oficial -->
+                <div class="flex flex-col gap-1">
+                    <label class="required text-[11px] uppercase font-bold text-zinc-300 tracking-wider">INE / Identificación Oficial (Cédula o Pasaporte):</label>
+                    <input type="file" id="ineFile" name="ineFile" accept="image/*,.pdf" required
+                           onchange="preprocesarEnCambio(this, 'status-ine')"
+                           class="input-field file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 cursor-pointer" />
+                    <span id="status-ine" class="text-[10px] text-zinc-500">Puedes tomar foto directa con tu cámara o adjuntar imagen / PDF.</span>
+                </div>
+
+                <!-- Comprobante de Domicilio -->
+                <div class="flex flex-col gap-1">
+                    <label class="required text-[11px] uppercase font-bold text-zinc-300 tracking-wider">Comprobante de Domicilio (Reciente):</label>
+                    <input type="file" id="comprobanteFile" name="comprobanteFile" accept="image/*,.pdf" required
+                           onchange="preprocesarEnCambio(this, 'status-comprobante')"
+                           class="input-field file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 cursor-pointer" />
+                    <span id="status-comprobante" class="text-[10px] text-zinc-500">Recibo de luz, agua, teléfono o estado de cuenta no mayor a 3 meses.</span>
+                </div>
+            </div>
+
+            <!-- ========================================================= -->
+            <!-- SECCIÓN 2: UNIDAD DE TRABAJO                              -->
+            <!-- ========================================================= -->
+            <div class="section-card space-y-4">
+                <div class="flex items-center gap-2 border-b border-zinc-800 pb-2.5">
+                    <span class="text-lg">🚐</span>
+                    <h2 class="text-sm font-black uppercase tracking-wider text-emerald-400">2. Unidad de Trabajo y Equipamiento</h2>
+                </div>
+
+                <!-- Tipo de Vehículo -->
+                <div class="flex flex-col gap-1">
+                    <label class="required text-[11px] uppercase font-bold text-zinc-300 tracking-wider">Tipo de Vehículo:</label>
+                    <select id="tipoVehiculo" name="tipoVehiculo" required class="input-field">
+                        <option value="">Seleccionar...</option>
+                        <option value="Pickup">Pickup</option>
+                        <option value="Van">Van</option>
+                        <option value="Camioneta de Carga">Camioneta de Carga</option>
+                        <option value="Tornado">Tornado / Pickup Compacta</option>
+                        <option value="Sedán / Compacto">Sedán / Compacto</option>
+                    </select>
+                </div>
+
+                <!-- Marca/Modelo y Año (Todos los años permitidos) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[11px] uppercase font-bold text-zinc-300 tracking-wider">Marca y Modelo:</label>
+                        <input type="text" id="marcaModelo" name="marcaModelo" placeholder="Ej. Ford Transit / Nissan NP300" class="input-field" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[11px] uppercase font-bold text-zinc-300 tracking-wider">Año de la Unidad:</label>
+                        <input type="number" id="anoUnidad" name="anoUnidad" min="1900" max="2027" placeholder="Ej. 2019" class="input-field font-mono" />
+                        <span class="text-[10px] text-emerald-400/80">✓ Todos los años de unidad son permitidos.</span>
+                    </div>
+                </div>
+
+                <!-- Fotografía de la Unidad -->
+                <div class="flex flex-col gap-1">
+                    <label class="text-[11px] uppercase font-bold text-zinc-300 tracking-wider">Fotografía de la Unidad:</label>
+                    <input type="file" id="vehiculoFile" name="vehiculoFile" accept="image/*"
+                           onchange="preprocesarEnCambio(this, 'status-vehiculo')"
+                           class="input-field file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-zinc-800 file:text-zinc-200 hover:file:bg-zinc-700 cursor-pointer" />
+                    <span id="status-vehiculo" class="text-[10px] text-zinc-500">Opcional: Foto exterior de tu vehículo de trabajo.</span>
+                </div>
+
+                <!-- Equipo de Seguridad Físico (Casillas Opcionales) -->
+                <div class="flex flex-col gap-2 pt-1">
+                    <label class="text-[11px] uppercase font-bold text-zinc-300 tracking-wider">Equipo de Seguridad Físico (Opcional):</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                        <label class="flex items-center gap-2.5 bg-zinc-950 border border-zinc-800 rounded-xl p-3 cursor-pointer hover:border-emerald-500/50 transition">
+                            <input type="checkbox" name="equipoSeguridad" value="Botas de casquillo" class="w-4 h-4 accent-emerald-500 rounded" />
+                            <span class="text-xs text-zinc-200">🥾 Botas de casquillo</span>
+                        </label>
+                        <label class="flex items-center gap-2.5 bg-zinc-950 border border-zinc-800 rounded-xl p-3 cursor-pointer hover:border-emerald-500/50 transition">
+                            <input type="checkbox" name="equipoSeguridad" value="Chaleco reflejante" class="w-4 h-4 accent-emerald-500 rounded" />
+                            <span class="text-xs text-zinc-200">🦺 Chaleco reflejante</span>
+                        </label>
+                        <label class="flex items-center gap-2.5 bg-zinc-950 border border-zinc-800 rounded-xl p-3 cursor-pointer hover:border-emerald-500/50 transition">
+                            <input type="checkbox" name="equipoSeguridad" value="Cargador continuo" class="w-4 h-4 accent-emerald-500 rounded" />
+                            <span class="text-xs text-zinc-200">🔌 Cargador continuo</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================================= -->
+            <!-- SECCIÓN 3: DOMINIO TERRITORIAL                            -->
+            <!-- ========================================================= -->
+            <div class="section-card space-y-4">
+                <div class="flex items-center gap-2 border-b border-zinc-800 pb-2.5">
+                    <span class="text-lg">🗺️</span>
+                    <h2 class="text-sm font-black uppercase tracking-wider text-emerald-400">3. Dominio Territorial y Zonas de Trabajo</h2>
+                </div>
+
+                <!-- Comunidades / Zonas de Preferencia (Abierto y Libre) -->
+                <div class="flex flex-col gap-1">
+                    <label class="required text-[11px] uppercase font-bold text-zinc-300 tracking-wider">Comunidades / Zonas de Preferencia:</label>
+                    <textarea id="comunidadesPreferencia" name="comunidadesPreferencia" rows="3" required
+                              placeholder="Escribe libremente las comunidades, colonias o municipios donde prefieres trabajar (ej. Santa Rosa Jáuregui, El Marqués, La Cañada, Sierra Gorda, etc.)..."
+                              class="input-field"></textarea>
+                </div>
+
+                <!-- Conocimiento de Carreteras Principales -->
+                <div class="flex flex-col gap-1">
+                    <label class="required text-[11px] uppercase font-bold text-zinc-300 tracking-wider">Conocimiento de Comunidades y Carreteras Principales:</label>
+                    <textarea id="conocimientoCarreteras" name="conocimientoCarreteras" rows="3" required
+                              placeholder="¿Qué comunidades conoces a detalle y cuáles son las carreteras o vialidades principales que las conectan entre sí?"
+                              class="input-field"></textarea>
+                </div>
+
+                <!-- Orientación con Baja Señal Celular -->
+                <div class="flex flex-col gap-1">
+                    <label class="required text-[11px] uppercase font-bold text-zinc-300 tracking-wider">Orientación y GPS en Zonas con Baja Señal Celular:</label>
+                    <textarea id="orientacionNavegacion" name="orientacionNavegacion" rows="2" required
+                              placeholder="¿Cómo te orientas y localizas domicilios cuando entregas en comunidades sin señal o con datos móviles intermitentes?"
+                              class="input-field"></textarea>
+                </div>
+            </div>
+
+            <!-- ========================================================= -->
+            <!-- SECCIÓN 4: PROCESO DE ENTREGA Y MANEJO DE INCIDENCIAS     -->
+            <!-- ========================================================= -->
+            <div class="section-card space-y-4">
+                <div class="flex items-center gap-2 border-b border-zinc-800 pb-2.5">
+                    <span class="text-lg">📦</span>
+                    <h2 class="text-sm font-black uppercase tracking-wider text-emerald-400">4. Proceso de Entrega y Manejo de Evidencias</h2>
+                </div>
+
+                <!-- Experiencia en Paquetería / Última Milla -->
+                <div class="flex flex-col gap-1">
+                    <label class="required text-[11px] uppercase font-bold text-zinc-300 tracking-wider">Experiencia en Paquetería / Última Milla:</label>
+                    <textarea id="experienciaMilla" name="experienciaMilla" rows="2" required
+                              placeholder="Describe tu experiencia previa en reparto o paquetería (o indica si es tu primera vez para programar tu capacitación relámpago)..."
+                              class="input-field"></textarea>
+                </div>
+
+                <!-- Procedimiento ante Cliente Ausente -->
+                <div class="flex flex-col gap-1">
+                    <label class="required text-[11px] uppercase font-bold text-zinc-300 tracking-wider">Procedimiento ante Cliente Ausente en Domicilio:</label>
+                    <textarea id="procClienteAusente" name="procClienteAusente" rows="3" required
+                              placeholder="¿Qué pasos realizas cuando llegas al domicilio y el cliente no sale? (Ej. Llamar al cliente, tomar foto de fachada y registrar código/nota de voz)..."
+                              class="input-field"></textarea>
+                </div>
+
+                <!-- Experiencia en Captura de Evidencias -->
+                <div class="flex flex-col gap-1">
+                    <label class="required text-[11px] uppercase font-bold text-zinc-300 tracking-wider">Experiencia en Captura de Evidencias Digitales:</label>
+                    <textarea id="evidenciasManejo" name="evidenciasManejo" rows="2" required
+                              placeholder="Comenta tu experiencia tomando foto de fachada, firma/nombre del receptor, foto de INE y notas de voz en aplicaciones móviles..."
+                              class="input-field"></textarea>
+                </div>
+            </div>
+
+            <!-- BARRA DE PROGRESO DE SUBIDA -->
+            <div id="status-bar" class="hidden bg-zinc-950 border border-emerald-500/40 rounded-xl p-3.5 text-center">
+                <p id="status-text" class="text-xs font-semibold text-emerald-400">Procesando expediente digital...</p>
+            </div>
+
+            <!-- BOTÓN DE ENVÍO -->
+            <button type="submit" id="btn-submit"
+                    class="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-zinc-50 rounded-2xl text-xs font-black tracking-widest uppercase transition-all shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 cursor-pointer">
+                <span>🚀</span> ENVIAR SOLICITUD Y EXPEDIENTE
+            </button>
+
+        </form>
+
+        <!-- PANTALLA DE CONFIRMACIÓN -->
+        <div id="pantalla-respuesta" class="hidden text-center py-10 space-y-4">
+            <div class="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center mx-auto">
+                <span class="text-4xl">✅</span>
+            </div>
+            <h2 class="text-xl font-bold text-zinc-100">¡Expediente v2.0 Registrado!</h2>
+            <p id="msg-respuesta" class="text-sm text-zinc-300 leading-relaxed max-w-md mx-auto"></p>
+            <div class="pt-4">
+                <button onclick="reiniciarFormulario()" class="px-6 py-2.5 bg-zinc-800 text-zinc-200 rounded-xl text-xs font-bold hover:bg-zinc-700 transition">
+                    Registrar otra solicitud
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- MOTOR DE CARGA INMEDIATA ANTI-EXPIRACIÓN ANDROID (SCOPED STORAGE FIX)    -->
+    <!-- ========================================================================= -->
+    <script>
+        const CACHE_ARCHIVOS = {
+            ineFile: null,
+            comprobanteFile: null,
+            vehiculoFile: null
+        };
+
+        function arrayBufferABase64(buffer, mimeType) {
+            let binary = '';
+            const bytes = new Uint8Array(buffer);
+            const chunkSize = 8192;
+            for (let i = 0; i < bytes.length; i += chunkSize) {
+                binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+            }
+            return 'data:' + (mimeType || 'application/octet-stream') + ';base64,' + btoa(binary);
+        }
+
+        function comprimirImagenDesdeUrl(url, fileName) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = function() {
+                    try {
+                        const maxDim = 1200;
+                        let width = img.width || 1000;
+                        let height = img.height || 1000;
+
+                        if (width > maxDim || height > maxDim) {
+                            if (width > height) {
+                                height = Math.round((height * maxDim) / width);
+                                width = maxDim;
+                            } else {
+                                width = Math.round((width * maxDim) / height);
+                                height = maxDim;
+                            }
+                        }
+
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.72);
+                        resolve({
+                            base64: compressedDataUrl,
+                            mimeType: 'image/jpeg',
+                            fileName: (fileName || 'foto').replace(/\.[^/.]+$/, "") + ".jpg"
+                        });
+                    } catch (errCanvas) {
+                        reject(errCanvas);
+                    }
+                };
+                img.onerror = function(errImg) {
+                    reject(errImg);
+                };
+                img.src = url;
+            });
+        }
+
+        async function leerArchivoSeguro(file) {
+            if (!file) return null;
+            const isImage = (file.type && file.type.startsWith('image/')) || /\.(jpg|jpeg|png|webp|heic)$/i.test(file.name || '');
+
+            if (isImage && typeof URL !== 'undefined' && URL.createObjectURL) {
+                let objUrl = null;
+                try {
+                    objUrl = URL.createObjectURL(file);
+                    const resImg = await comprimirImagenDesdeUrl(objUrl, file.name);
+                    URL.revokeObjectURL(objUrl);
+                    return resImg;
+                } catch (e1) {
+                    if (objUrl) {
+                        try { URL.revokeObjectURL(objUrl); } catch (_) {}
+                    }
+                }
+            }
+
+            if (typeof file.arrayBuffer === 'function') {
+                try {
+                    const buffer = await file.arrayBuffer();
+                    const dataUrl = arrayBufferABase64(buffer, file.type || (isImage ? 'image/jpeg' : 'application/pdf'));
+                    if (isImage) {
+                        try {
+                            return await comprimirImagenDesdeUrl(dataUrl, file.name);
+                        } catch (_) {
+                            return {
+                                base64: dataUrl,
+                                mimeType: file.type || 'image/jpeg',
+                                fileName: file.name || 'archivo.jpg'
+                            };
+                        }
+                    }
+                    return {
+                        base64: dataUrl,
+                        mimeType: file.type || 'application/pdf',
+                        fileName: file.name || 'documento.pdf'
+                    };
+                } catch (e2) {}
+            }
+
+            return await new Promise((resolve) => {
+                try {
+                    const reader = new FileReader();
+                    reader.onload = async function(e) {
+                        const rawDataUrl = e.target.result;
+                        if (isImage) {
+                            try {
+                                const comp = await comprimirImagenDesdeUrl(rawDataUrl, file.name);
+                                resolve(comp);
+                                return;
+                            } catch (_) {}
+                        }
+                        resolve({
+                            base64: rawDataUrl,
+                            mimeType: file.type || 'application/pdf',
+                            fileName: file.name || 'documento'
+                        });
+                    };
+                    reader.onerror = function() {
+                        resolve(null);
+                    };
+                    reader.readAsDataURL(file);
+                } catch (_) {
+                    resolve(null);
+                }
+            });
+        }
+
+        async function preprocesarEnCambio(fileInput, statusSpanId) {
+            const span = document.getElementById(statusSpanId);
+            const inputId = fileInput.id;
+
+            if (!fileInput.files || fileInput.files.length === 0) {
+                CACHE_ARCHIVOS[inputId] = null;
+                return;
+            }
+
+            const file = fileInput.files[0];
+            if (span) {
+                span.className = "text-[11px] font-semibold text-amber-400";
+                span.textContent = "⏳ Procesando y optimizando archivo...";
+            }
+
+            const procesado = await leerArchivoSeguro(file);
+            if (procesado && procesado.base64) {
+                CACHE_ARCHIVOS[inputId] = procesado;
+                if (span) {
+                    span.className = "text-[11px] font-semibold text-emerald-400";
+                    span.textContent = "✅ Archivo listo (" + procesado.fileName + ")";
+                }
+            } else {
+                CACHE_ARCHIVOS[inputId] = null;
+                if (span) {
+                    span.className = "text-[11px] font-semibold text-amber-300";
+                    span.textContent = "⚠️ Tu teléfono bloqueó la lectura de este archivo en la nube. Toma una foto directa con la cámara o continúa con el envío.";
+                }
+            }
+        }
+
+        async function obtenerArchivoFinal(inputId) {
+            if (CACHE_ARCHIVOS[inputId] && CACHE_ARCHIVOS[inputId].base64) {
+                return CACHE_ARCHIVOS[inputId];
+            }
+            const el = document.getElementById(inputId);
+            if (el && el.files && el.files.length > 0) {
+                const res = await leerArchivoSeguro(el.files[0]);
+                if (res && res.base64) {
+                    CACHE_ARCHIVOS[inputId] = res;
+                    return res;
+                }
+            }
+            return null;
+        }
+
+        async function enviarFormularioV2(event) {
+            event.preventDefault();
+
+            const form = document.getElementById('form-reclutamiento');
+            const btn = document.getElementById('btn-submit');
+            const statusBar = document.getElementById('status-bar');
+            const statusText = document.getElementById('status-text');
+
+            btn.setAttribute('disabled', 'true');
+            btn.innerHTML = `<span class="w-4 h-4 border-2 border-zinc-200 border-t-transparent rounded-full animate-spin"></span> SUBIENDO EXPEDIENTE DIGITAL...`;
+            statusBar.classList.remove('hidden');
+            statusText.textContent = "Preparando expediente digital de forma segura...";
+
+            try {
+                const ineObj = await obtenerArchivoFinal('ineFile');
+                const comprobanteObj = await obtenerArchivoFinal('comprobanteFile');
+                const vehiculoObj = await obtenerArchivoFinal('vehiculoFile');
+
+                const checkboxes = document.querySelectorAll('input[name="equipoSeguridad"]:checked');
+                const equipoSeleccionado = Array.from(checkboxes).map(cb => cb.value);
+
+                statusText.textContent = "Guardando en Bóveda Corporativa Arauto Express...";
+
+                const payload = {
+                    nombre: document.getElementById('nombre').value,
+                    telefono: document.getElementById('telefono').value,
+                    correo: document.getElementById('correo').value,
+                    ineFile: ineObj,
+                    comprobanteFile: comprobanteObj,
+                    tipoVehiculo: document.getElementById('tipoVehiculo').value,
+                    marcaModelo: document.getElementById('marcaModelo').value,
+                    anoUnidad: document.getElementById('anoUnidad').value,
+                    vehiculoFile: vehiculoObj,
+                    equipoSeguridad: equipoSeleccionado,
+                    comunidadesPreferencia: document.getElementById('comunidadesPreferencia').value,
+                    conocimientoCarreteras: document.getElementById('conocimientoCarreteras').value,
+                    orientacionNavegacion: document.getElementById('orientacionNavegacion').value,
+                    experienciaMilla: document.getElementById('experienciaMilla').value,
+                    procClienteAusente: document.getElementById('procClienteAusente').value,
+                    evidenciasManejo: document.getElementById('evidenciasManejo').value
+                };
+
+                const WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbwcqW3I9jAJUaHfl_n3DNAhnBtW1ZGbatYSTbp8OSORaBdcIoOdWmQgnlaGAttU-yUH4Q/exec";
+
+                if (typeof google !== 'undefined' && google.script && google.script.run) {
+                    google.script.run
+                        .withSuccessHandler(res => {
+                            btn.removeAttribute('disabled');
+                            btn.innerHTML = `<span>🚀</span> ENVIAR SOLICITUD Y EXPEDIENTE`;
+                            statusBar.classList.add('hidden');
+
+                            if (res && res.success) {
+                                form.classList.add('hidden');
+                                document.getElementById('pantalla-respuesta').classList.remove('hidden');
+                                document.getElementById('msg-respuesta').textContent = res.message;
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                            } else {
+                                alert("❌ Aviso del servidor: " + (res ? res.message : "Respuesta vacía"));
+                            }
+                        })
+                        .withFailureHandler(err => {
+                            btn.removeAttribute('disabled');
+                            btn.innerHTML = `<span>🚀</span> ENVIAR SOLICITUD Y EXPEDIENTE`;
+                            statusBar.classList.add('hidden');
+                            alert("❌ Error de red al subir expediente: " + (err && err.message ? err.message : JSON.stringify(err)));
+                        })
+                        .registrarAspirantePochteca(payload);
+                } else {
+                    const response = await fetch(WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify(payload)
+                    });
+                    const res = await response.json();
+                    btn.removeAttribute('disabled');
+                    btn.innerHTML = `<span>🚀</span> ENVIAR SOLICITUD Y EXPEDIENTE`;
+                    statusBar.classList.add('hidden');
+
+                    if (res && res.success) {
+                        form.classList.add('hidden');
+                        document.getElementById('pantalla-respuesta').classList.remove('hidden');
+                        document.getElementById('msg-respuesta').textContent = res.message;
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    } else {
+                        alert("❌ Aviso del servidor: " + (res ? res.message : "Respuesta vacía"));
+                    }
+                }
+
+            } catch (errEnvio) {
+                btn.removeAttribute('disabled');
+                btn.innerHTML = `<span>🚀</span> ENVIAR SOLICITUD Y EXPEDIENTE`;
+                statusBar.classList.add('hidden');
+                const detalle = errEnvio && errEnvio.message ? errEnvio.message : String(errEnvio);
+                alert("❌ Error de conexión al enviar. Verifica tus datos móviles o Wi-Fi e intenta de nuevo. (" + detalle + ")");
+            }
+        }
+
+        function reiniciarFormulario() {
+            CACHE_ARCHIVOS.ineFile = null;
+            CACHE_ARCHIVOS.comprobanteFile = null;
+            CACHE_ARCHIVOS.vehiculoFile = null;
+            document.getElementById('form-reclutamiento').reset();
+            document.getElementById('form-reclutamiento').classList.remove('hidden');
+            document.getElementById('pantalla-respuesta').classList.add('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
