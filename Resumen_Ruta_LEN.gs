@@ -33,9 +33,11 @@ function enviarResumenDiarioRutaLEN() {
       body: construirTextoResumenLEN_(resumen)
     });
 
+    var wa = enviarResumenLENPorWhatsApp_(resumen);
     return {
       exito: true,
-      mensaje: resumen.totalFD + " FD en " + resumen.dias.length + " día(s) enviados a " + destinatarios
+      mensaje: resumen.totalFD + " FD en " + resumen.dias.length + " día(s) enviados por correo a " +
+        destinatarios + " | WhatsApp: " + wa
     };
   } catch (err) {
     Logger.log("[Resumen LEN] " + err.toString());
@@ -54,6 +56,44 @@ function asegurarPropiedadSupervisoresLEN_() {
     actual = LEN_SUPERVISORES_DEFAULT;
   }
   return actual;
+}
+
+var LEN_WA_GATEWAY_DEFAULT = "http://100.69.207.81:3001/send-message";
+var LEN_WA_GRUPO_DEFAULT = "Delivery plus - Arauto Express";
+
+/**
+ * Envía el resumen al gateway Calpixqui (POST /send-message {to, message}).
+ * Propiedades opcionales: LEN_WA_GATEWAY_URL, LEN_WA_GRUPO_ID (chatId xxx@g.us).
+ * Nunca lanza error: el correo ya salió y el fallo de WhatsApp solo se reporta.
+ */
+function enviarResumenLENPorWhatsApp_(resumen) {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var url = props.getProperty("LEN_WA_GATEWAY_URL") || LEN_WA_GATEWAY_DEFAULT;
+    var grupo = props.getProperty("LEN_WA_GRUPO_ID") || LEN_WA_GRUPO_DEFAULT;
+    var resp = UrlFetchApp.fetch(url, {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify({ to: grupo, message: construirMensajeWhatsAppLEN_(resumen) }),
+      muteHttpExceptions: true
+    });
+    var code = resp.getResponseCode();
+    return code >= 200 && code < 300 ? "enviado" : "fallo HTTP " + code;
+  } catch (err) {
+    Logger.log("[Resumen LEN] WhatsApp: " + err.toString());
+    return "no alcanzable (" + err.message + ")";
+  }
+}
+
+function construirMensajeWhatsAppLEN_(resumen) {
+  var t = "🏛️ *RESUMEN RUTA LEN — FD por usuario y día*\n• *Total FD:* " + resumen.totalFD + "\n";
+  resumen.dias.forEach(function (d) {
+    t += "\n📅 *" + d.dia + "*\n";
+    d.usuarios.forEach(function (u) {
+      t += "• " + u.usuario + ": " + u.guias + " guías / " + u.piezas + " pzas\n";
+    });
+  });
+  return t + "\n🛡️ _Calpixqui | Arauto Express_";
 }
 
 function obtenerDestinatariosLEN_() {
