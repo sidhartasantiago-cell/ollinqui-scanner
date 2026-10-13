@@ -263,6 +263,10 @@
                 <i data-lucide="alert-triangle" class="w-3.5 h-3.5" id="icon-puente"></i>
                 ⚠️ Dispersar a RUTA (Puente Temporal)
               </button>
+              <button id="btn-resumen-len" onclick="ejecutarResumenRutaLEN()" class="w-full px-4 py-2 rounded-lg bg-sky-900/60 hover:bg-sky-800 border border-sky-500/50 active:scale-95 font-bold text-[10px] uppercase tracking-wider text-sky-200 transition-all flex items-center justify-center gap-2 shadow shadow-sky-900/50">
+                <i data-lucide="mail" class="w-3.5 h-3.5"></i>
+                📊 Enviar Resumen Ruta LEN (FD)
+              </button>
             </div>
           </div>
         </div>
@@ -4332,6 +4336,32 @@
     // ==========================================
     // 🚚 ENDPOINTS DE SERVIDOR (google.script.run)
     // ==========================================
+
+    function ejecutarResumenRutaLEN() {
+      const btn = document.getElementById('btn-resumen-len');
+      if (!btn) return;
+      if (!confirm("¿Enviar el resumen FD de Ruta LEN a los supervisores de León?")) return;
+      const liberar = () => { btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); };
+      btn.disabled = true;
+      btn.classList.add('opacity-50', 'cursor-not-allowed');
+      addLog("📊 Generando resumen Ruta LEN...", 'warn');
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            liberar();
+            addLog(res.exito ? `✅ Resumen LEN enviado: ${res.mensaje}` : `⚠️ Resumen LEN: ${res.mensaje}`, res.exito ? 'success' : 'error');
+          })
+          .withFailureHandler(function(err) {
+            liberar();
+            addLog("❌ ERROR enviando resumen LEN: " + err.message, 'error');
+          })
+          .enviarResumenDiarioRutaLEN();
+      } else {
+        liberar();
+        addLog("ℹ️ Modo offline simulado. Resumen LEN no enviado.", 'warn');
+      }
+    }
 
     function ejecutarPuenteTemporal() {
       const btn = document.getElementById('btn-puente-temporal');
