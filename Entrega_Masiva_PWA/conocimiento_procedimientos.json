@@ -1,0 +1,115 @@
+{
+  "version": "1.0.0",
+  "actualizado": "2026-10-14",
+  "procedimientos": [
+    {
+      "id": "BA_DIRECCION_INCORRECTA",
+      "titulo": "Dirección Incorrecta o Incompleta (BA)",
+      "claves": ["ba", "direccion", "mala", "incorrecta", "incompleta", "calle", "numero", "no existe", "colonia", "erronea"],
+      "respuesta_corta": "⚠️ Aplica Checkpoint BA únicamente si el cliente no contesta la llamada y la dirección es inubicable.",
+      "pasos": [
+        "1. Intenta llamar al número telefónico que viene en la tarjeta del paquete.",
+        "2. Si contesta, pide referencias claras y confirma si puedes acudir hoy mismo.",
+        "3. Si NO contesta o no hay teléfono, toma una fotografía clara de la calle, letrero de esquina o fachada aproximada como evidencia.",
+        "4. En Ollinqui PWA, selecciona el Checkpoint 'BA' y registra tu nota de voz Teoyolotl (13 seg) explicando el motivo exacto.",
+        "5. El paquete se resguarda en camioneta para retorno a rampa y reintento con Mesa de Ayuda."
+      ],
+      "advertencia": "DHL audita llamadas y fotos. No apliques BA sin haber intentado marcar al cliente."
+    },
+    {
+      "id": "NH_NADIE_EN_CASA",
+      "titulo": "Nadie en Casa / Cliente Ausente (NH)",
+      "claves": ["nh", "nadie", "ausente", "cerrado", "no hay nadie", "toco", "puerta", "vacio", "no responde"],
+      "respuesta_corta": "🏠 Aplica Checkpoint NH tras tocar al timbre 2 veces y llamar por teléfono sin respuesta.",
+      "pasos": [
+        "1. Toca timbre o puerta enérgicamente y espera al menos 60 segundos.",
+        "2. Llama al teléfono del destinatario registrado en la guía.",
+        "3. Si nadie atiende, toma foto obligatoria de la fachada completa donde se distinga el número exterior.",
+        "4. Selecciona Checkpoint 'NH' en Ollinqui PWA y graba nota de voz indicando 'Primer intento sin respuesta'.",
+        "5. El sistema programará reintento para el siguiente ciclo operativo."
+      ],
+      "advertencia": "Nunca dejes el paquete aventado en cocheras o patios sin autorización escrita y firma de quien recibe."
+    },
+    {
+      "id": "CA_CANCELADO_RECHAZADO",
+      "titulo": "Paquete Rechazado o Cancelado por Destinatario (CA)",
+      "claves": ["ca", "rechazado", "cancela", "cancelado", "no lo quiere", "devuelto", "no lo pidio", "inconforme"],
+      "respuesta_corta": "🚫 Aplica Checkpoint CA solo si el destinatario rechaza formalmente el paquete frente a ti.",
+      "pasos": [
+        "1. Pregunta respetuosamente el motivo del rechazo (ej: 'No lo ordené', 'Empaque dañado', 'Ya no lo necesito').",
+        "2. Solicita el nombre completo de quien te atiende y su parentesco con el destinatario.",
+        "3. Toma foto clara del paquete íntegro frente a la puerta del inmueble.",
+        "4. Selecciona Checkpoint 'CA' y en Teoyolotl Mic graba: 'Rechazado por [Nombre] debido a [Motivo]'.",
+        "5. El paquete se regresa cerrado a rampa para proceso de devolución a remitente DHL."
+      ],
+      "advertencia": "Si el cliente rechaza por cobro de aduanas no liquidado, ver el procedimiento de Cobro de Aduana."
+    },
+    {
+      "id": "COBRO_ADUANA_COD",
+      "titulo": "Cobro de Aduanas e Impuestos (COD / Aranceles)",
+      "claves": ["aduana", "cobro", "impuesto", "arancel", "cod", "dinero", "pagar", "dhl cobrar"],
+      "respuesta_corta": "💰 Los paquetes con badge 'COBRO DE ADUANA' requieren pago confirmado antes de la entrega.",
+      "pasos": [
+        "1. Informa al cliente que el paquete tiene un arancel de importación determinado por aduanas.",
+        "2. Muestra el folio y monto exacto desglosado en la guía de DHL.",
+        "3. Si el cliente paga en efectivo o transferencia verificada, procede con la entrega regular ('OK') y captura de firma.",
+        "4. Si el cliente NO tiene el dinero o se niega a pagar, NO entregues el paquete.",
+        "5. Aplica Checkpoint 'RD' o 'CA' especificando en audio: 'Pendiente de pago de aduana por $[Monto]'."
+      ],
+      "advertencia": "Entregar un paquete con arancel sin cobrar genera responsabilidad económica directa al chofer."
+    },
+    {
+      "id": "ENTREGA_VECINO_TERCERO",
+      "titulo": "Entrega con Vecino, Vigilancia o Tercero",
+      "claves": ["vecino", "tercero", "caseta", "vigilancia", "guardia", "mama", "hermano", "esposo", "familiar"],
+      "respuesta_corta": "👥 Permitido solo en domicilios residenciales si se recaba nombre completo, parentesco y firma digital.",
+      "pasos": [
+        "1. Verifica que la persona sea mayor de edad y se identifique plenamente.",
+        "2. Pregunta y anota su nombre completo y relación (ej: 'Pedro Gómez - Vecino casa #14' o 'Oficial Ruiz - Caseta').",
+        "3. Exige la firma digital en el pad de la pantalla.",
+        "4. Toma foto de fachada donde se aprecie el número del predio y el área de entrega.",
+        "5. Checkpoint final 'OK'."
+      ],
+      "advertencia": "En envíos bancarios (tarjetas de crédito) o de alto valor con firma requerida directa, NO se permite entrega a vecinos."
+    },
+    {
+      "id": "RESPONSABILIDAD_30_UMAS",
+      "titulo": "Límite Contractual de Responsabilidad (Tope 30 UMAs)",
+      "claves": ["30 umas", "responsabilidad", "tope", "perdida", "extravio", "dano", "demanda", "legal", "contrato"],
+      "respuesta_corta": "⚖️ Regla jurídica del Contrato DHL (Cap. XV): Responsabilidad máxima de 30 UMAs por guía ($3,257 MXN aprox en 2026).",
+      "pasos": [
+        "1. Si un paquete sufre un siniestro, daño severo o pérdida en ruta, repórtalo inmediatamente al supervisor.",
+        "2. No hagas acuerdos monetarios directos ni firmes pagarés con destinatarios.",
+        "3. La cobertura legal de Arauto Express está tasada en el límite contractual de 30 UMAs oficiales.",
+        "4. Canaliza al cliente al número oficial de atención DHL (55 5345 7000) con su número de guía de 10 dígitos."
+      ],
+      "advertencia": "Cualquier reporte de extravío debe levantarse en las primeras 2 horas hábiles ante Mesa de Control."
+    },
+    {
+      "id": "SOPORTE_CAMARA_ESCANER",
+      "titulo": "Fallas de Cámara o Escáner en la PWA",
+      "claves": ["camara", "no abre", "negra", "escaner", "bluetooth", "lector", "falla", "permiso", "no lee"],
+      "respuesta_corta": "🔧 Si la cámara no responde: revisa permisos del navegador, limpia caché o escribe el PID manual.",
+      "pasos": [
+        "1. Verifica que el navegador Chrome tenga permiso de 'Cámara' en Configuración del teléfono.",
+        "2. Cierra otras apps que puedan estar usando la cámara (WhatsApp, Cámara nativa).",
+        "3. En Ollinqui PWA, si la cámara falla, usa el botón 'Teclado Manual' para teclear el PID o Guía.",
+        "4. Si usas escáner Bluetooth de anillo o pistola, asegúrate de que esté emparejado como teclado HID."
+      ],
+      "advertencia": "No necesitas reiniciar el celular: basta con refrescar la pantalla en la PWA."
+    },
+    {
+      "id": "TEOYOLOTL_MIC_AUDIO",
+      "titulo": "Grabación de Evidencia de Voz (Teoyolotl Mic)",
+      "claves": ["audio", "teoyolotl", "voz", "microfono", "13 segundos", "grabar", "motivo", "explicacion"],
+      "respuesta_corta": "🎙️ Teoyolotl Mic graba hasta 13 segundos de testimonio en voz para blindar incidencias en calle.",
+      "pasos": [
+        "1. Mantén presionado o pulsa el botón del micrófono en la pantalla de entrega.",
+        "2. Habla con claridad indicando: Nombre del receptor, motivo de la incidencia o detalle de entrega.",
+        "3. Ejemplo: 'Entrego caja sellada a la Sra. Carmen, vecina del 24, porque el titular está de viaje'.",
+        "4. Pulsa detener o deja que corte a los 13 segundos. El audio se comprime y se sube en automático."
+      ],
+      "advertencia": "El audio es obligatorio en todos los checkpoints de incidencia (BA, NH, CA, RD) para evitar penalizaciones de DHL."
+    }
+  ]
+}

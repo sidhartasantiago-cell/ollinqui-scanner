@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🏛️ SALA DE GUERRA TRÍADA OLLIN — Centro de Mando Multi-Frente</title>
+  <script src="/ollin_thinking_orbs.js"></script>
+  <style>
+    :root {
+      --bg-deep: #060911;
+      --bg-panel: rgba(14, 20, 34, 0.88);
+      --bg-card: rgba(20, 29, 48, 0.78);
+      --bg-input: rgba(8, 12, 22, 0.92);
+      --gold: #D4AF37;
+      --gold-glow: rgba(212, 175, 55, 0.32);
+      --emerald: #10B981;
+      --emerald-glow: rgba(16, 185, 129, 0.28);
+      --cyan: #06B6D4;
+      --cyan-glow: rgba(6, 182, 212, 0.28);
+      --crimson: #EF4444;
+      --text-main: #F3F4F6;
+      --text-muted: #9CA3AF;
+      --border-subtle: rgba(255, 255, 255, 0.09);
+      --border-gold: rgba(212, 175, 55, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 15% 15%, #111a2e 0%, #060911 55%, #03050a 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* TOP HEADER */
+    .top-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      background: linear-gradient(180deg, rgba(18, 25, 43, 0.96) 0%, rgba(10, 15, 28, 0.92) 100%);
+      border-bottom: 1px solid var(--border-gold);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65), 0 0 20px rgba(212, 175, 55, 0.12);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(14px);
+    }
+
+    .brand-zone {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-title h1 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      background: linear-gradient(90deg, #FFF3B0 0%, #D4AF37 50%, #F59E0B 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+    }
+
+    .brand-title p {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      letter-spacing: 0.3px;
+    }
+
+    .radar-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .node-pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--border-subtle);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #E5E7EB;
+      box-shadow: inset 0 1px 1px rgba(255,255,255,0.06);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #6B7280;
+    }
+    .dot.online {
+      background: var(--emerald);
+      box-shadow: 0 0 8px var(--emerald);
+    }
+    .dot.gold {
+      background: var(--gold);
+      box-shadow: 0 0 8px var(--gold);
+    }
+
+    /* FRONTS BAR (MULTI-FRENTE) */
+    .fronts-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 24px;
+      background: rgba(9, 13, 24, 0.9);
+      border-bottom: 1px solid var(--border-subtle);
+      gap: 12px;
+    }
+
+    .fronts-tabs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+
+    .front-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 10px;
+      background: rgba(23, 33, 53, 0.65);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .front-tab:hover {
+      background: rgba(34, 48, 76, 0.85);
+      color: #fff;
+    }
+
+    .front-tab.active {
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.22) 0%, rgba(16, 24, 44, 0.95) 100%);
+      border-color: var(--gold);
+      color: #FFF;
+      box-shadow: 0 4px 15px rgba(212, 175, 55, 0.18);
+    }
+
+    .front-badge {
+      font-size: 0.68rem;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.08);
+    }
+
+    .btn-add-front {
+      padding: 7px 13px;
+      border-radius: 10px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px dashed var(--emerald);
+      color: #6EE7B7;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .btn-add-front:hover {
+      background: rgba(16, 185, 129, 0.28);
+      transform: translateY(-1px);
+    }
+
+    .mode-switcher {
+      display: flex;
+      background: rgba(6, 9, 17, 0.9);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .mode-btn {
+      padding: 6px 14px;
+      border-radius: 7px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .mode-btn.active {
+      background: linear-gradient(135deg, #D4AF37 0%, #B48A1E 100%);
+      color: #060911;
+      box-shadow: 0 2px 10px var(--gold-glow);
+    }
+
+    /* MAIN WORKSPACE */
+    .workspace {
+      flex: 1;
+      padding: 20px 24px;
+      max-width: 1750px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    /* COMMAND DECK */
+    .command-deck {
+      background: var(--bg-panel);
+      border: 1px solid rgba(212, 175, 55, 0.28);
+      border-radius: 16px;
+      padding: 18px 20px;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .deck-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .front-title-input {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      color: var(--gold);
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 7px 12px;
+      border-radius: 8px;
+      width: 340px;
+    }
+
+    .quick-templates {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tpl-chip {
+      padding: 5px 11px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      color: #D1D5DB;
+      font-size: 0.74rem;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    .tpl-chip:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+      background: rgba(212, 175, 55, 0.1);
+    }
+
+    .prompt-textarea {
+      width: 100%;
+      min-height: 92px;
+      background: var(--bg-input);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: #F9FAFB;
+      font-family: 'Cascadia Code', 'Consolas', monospace;
+      font-size: 0.85rem;
+      resize: vertical;
+      outline: none;
+      transition: border 0.2s;
+    }
+    .prompt-textarea:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 15px rgba(212, 175, 55, 0.15);
+    }
+
+    .deck-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .btn-primary-relay {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 22px;
+      border-radius: 11px;
+      border: none;
+      background: linear-gradient(135deg, #F59E0B 0%, #D4AF37 50%, #B48A1E 100%);
+      color: #050811;
+      font-weight: 800;
+      font-size: 0.88rem;
+      letter-spacing: 0.4px;
+      cursor: pointer;
+      box-shadow: 0 4px 20px var(--gold-glow);
+      transition: all 0.2s;
+    }
+    .btn-primary-relay:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 26px rgba(212, 175, 55, 0.55);
+    }
+    .btn-primary-relay:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .step-buttons {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-step {
+      padding: 8px 14px;
+      border-radius: 9px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(25, 36, 58, 0.85);
+      color: #E5E7EB;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .btn-step:hover {
+      border-color: var(--cyan);
+      background: rgba(6, 182, 212, 0.14);
+    }
+
+    /* 4 STATIONS GRID */
+    .stations-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+    }
+
+    @media (max-width: 1200px) {
+      .stations-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .station-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      transition: border-color 0.3s, box-shadow 0.3s;
+      min-height: 360px;
+    }
+
+    .station-card.active-gold {
+      border-color: var(--gold);
+      box-shadow: 0 0 28px rgba(212, 175, 55, 0.22);
+    }
+    .station-card.active-emerald {
+      border-color: var(--emerald);
+      box-shadow: 0 0 28px rgba(16, 185, 129, 0.22);
+    }
+    .station-card.active-cyan {
+      border-color: var(--cyan);
+      box-shadow: 0 0 28px rgba(6, 182, 212, 0.22);
+    }
+
+    .station-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: rgba(10, 15, 28, 0.85);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .station-id {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .station-id h3 {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #FFF;
+    }
+
+    .station-id span {
+      font-size: 0.73rem;
+      color: var(--text-muted);
+      display: block;
+    }
+
+    .station-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 4px 9px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .status-tag.running {
+      background: rgba(212, 175, 55, 0.2);
+      color: var(--gold);
+      border: 1px solid var(--gold);
+    }
+    .status-tag.done {
+      background: rgba(16, 185, 129, 0.2);
+      color: #6EE7B7;
+      border: 1px solid var(--emerald);
+    }
+    .status-tag.error {
+      background: rgba(239, 68, 68, 0.2);
+      color: #FCA5A5;
+      border: 1px solid var(--crimson);
+    }
+
+    .station-body {
+      flex: 1;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .code-area {
+      width: 100%;
+      flex: 1;
+      min-height: 230px;
+      background: #050811;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 12px;
+      color: #E2E8F0;
+      font-family: 'Cascadia Code', 'Consolas', monospace;
+      font-size: 0.81rem;
+      line-height: 1.48;
+      resize: vertical;
+      outline: none;
+    }
+
+    .sandbox-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn-run-sandbox {
+      padding: 9px 16px;
+      border-radius: 9px;
+      border: 1px solid var(--emerald);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.28) 0%, rgba(5, 150, 105, 0.45) 100%);
+      color: #A7F3D0;
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .btn-run-sandbox:hover {
+      background: rgba(16, 185, 129, 0.45);
+      color: #fff;
+    }
+
+    .btn-amoxcalli {
+      padding: 9px 16px;
+      border-radius: 9px;
+      border: 1px solid var(--gold);
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.25) 0%, rgba(180, 138, 30, 0.4) 100%);
+      color: #FDE68A;
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .btn-amoxcalli:hover {
+      background: rgba(212, 175, 55, 0.42);
+      color: #fff;
+    }
+
+    .terminal-box {
+      flex: 1;
+      min-height: 185px;
+      background: #03050a;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      padding: 12px;
+      font-family: 'Cascadia Code', 'Consolas', monospace;
+      font-size: 0.8rem;
+      color: #A7F3D0;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    .terminal-box.fail {
+      color: #FCA5A5;
+      border-color: var(--crimson);
+    }
+
+    /* MODO 2: MULTI-CHAT DIRECTO (4 COLUMNAS) */
+    .multichat-grid {
+      display: none;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      height: 68vh;
+    }
+
+    .multichat-grid.active {
+      display: grid;
+    }
+
+    .chat-col {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 14px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .msg-bubble {
+      padding: 10px 13px;
+      border-radius: 12px;
+      font-size: 0.82rem;
+      line-height: 1.45;
+      max-width: 92%;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .msg-user {
+      align-self: flex-end;
+      background: rgba(212, 175, 55, 0.22);
+      border: 1px solid rgba(212, 175, 55, 0.45);
+      color: #FEF3C7;
+    }
+    .msg-ai {
+      align-self: flex-start;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid var(--border-subtle);
+      color: #E2E8F0;
+      font-family: 'Cascadia Code', 'Segoe UI', sans-serif;
+    }
+
+    .chat-input-row {
+      display: flex;
+      padding: 10px;
+      background: rgba(8, 12, 22, 0.95);
+      border-top: 1px solid var(--border-subtle);
+      gap: 8px;
+    }
+
+    .chat-input-row input {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: #fff;
+      font-size: 0.82rem;
+      outline: none;
+    }
+
+    .chat-input-row button {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: none;
+      background: var(--gold);
+      color: #000;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .broadcast-bar {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg-panel);
+      padding: 14px 18px;
+      border-radius: 14px;
+      border: 1px solid var(--border-gold);
+    }
+    .broadcast-bar.active {
+      display: flex;
+    }
+    .broadcast-bar input {
+      flex: 1;
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #fff;
+      font-size: 0.88rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP HEADER -->
+  <header class="top-header">
+    <div class="brand-zone">
+      <ollin-orb id="orb-master" state="breathing" color="gold" size="42"></ollin-orb>
+      <div class="brand-title">
+        <h1>Sala de Guerra Tríada OLLIN v1.0</h1>
+        <p>Centro de Mando Multi-Frente • DeepSeek R1 + V3 + Qwen + Sandbox Local • Arauto Express</p>
+      </div>
+    </div>
+
+    <div class="radar-bar">
+      <div class="node-pill" title="Pool OpenRouter">
+        <span class="dot gold" id="dot-or"></span>
+        <span id="lbl-or">OpenRouter: Conectando...</span>
+      </div>
+      <div class="node-pill" title="100.107.18.69:8088">
+        <span class="dot" id="dot-calpixqui"></span>
+        <span>Calpixqui PC-B</span>
+      </div>
+      <div class="node-pill" title="100.88.199.126:8089">
+        <span class="dot" id="dot-tlacuilo"></span>
+        <span>Tlacuilo PC-C</span>
+      </div>
+      <div class="node-pill" title="100.116.189.87:8087">
+        <span class="dot" id="dot-chikahua"></span>
+        <span>Chikahua ARM</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- MULTI-FRENTE BAR -->
+  <nav class="fronts-bar">
+    <div class="fronts-tabs" id="fronts-tabs-container"></div>
+
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button class="btn-add-front" onclick="createNewFront()">+ Nuevo Frente Paralelo</button>
+      <div class="mode-switcher">
+        <button class="mode-btn active" id="btn-mode-relay" onclick="switchMode('relay')">⚡ Relevo Automático (4 Estaciones)</button>
+        <button class="mode-btn" id="btn-mode-chat" onclick="switchMode('chat')">💬 Chats simultáneos (Mesa Redonda)</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN WORKSPACE -->
+  <main class="workspace">
+
+    <!-- VISTA 1: RELEVO Y ESTACIONES -->
+    <div id="view-relay" style="display:flex; flex-direction:column; gap:18px;">
+      <section class="command-deck">
+        <div class="deck-top">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:0.8rem; color:var(--text-muted); font-weight:700;">FRENTE ACTIVO:</span>
+            <input type="text" id="front-title" class="front-title-input" onchange="updateActiveFrontTitle(this.value)" />
+          </div>
+          <div class="quick-templates">
+            <span style="font-size:0.74rem; color:var(--text-muted);">Herramientas & Plantillas:</span>
+            <button class="tpl-chip" style="border-color:var(--emerald); color:#6EE7B7; font-weight:700;" onclick="auditEcisLive()">📡 Auditar Subidas ECIS en Vivo (Calpixqui)</button>
+            <button class="tpl-chip" onclick="loadTemplate('pid')">📦 Sanitizador PID (Doble J)</button>
+            <button class="tpl-chip" onclick="loadTemplate('hwb')">🔢 Validador Guía HWB 10 dígitos</button>
+            <button class="tpl-chip" onclick="loadTemplate('cp')">🗺️ Validador CP Querétaro / Sierra</button>
+            <button class="tpl-chip" onclick="loadTemplate('nip')">🔐 Validador NIP Pochteca</button>
+          </div>
+        </div>
+
+        <textarea id="front-prompt" class="prompt-textarea" placeholder="Escribe o pega aquí la función, requerimiento o bug que deseas someter al Laboratorio Tríada..." oninput="saveCurrentFrontState()"></textarea>
+
+        <div class="deck-actions">
+          <button class="btn-primary-relay" id="btn-full-relay" onclick="runFullTriadaRelay()">
+            <span>🚀 LANZAR RELEVO AUTOMÁTICO COMPLETO (R1 ➔ V3 ➔ QWEN ➔ SANDBOX)</span>
+          </button>
+
+          <div class="step-buttons">
+            <button class="btn-step" onclick="runStationR1()">1️⃣ Solo Auditar con R1</button>
+            <button class="btn-step" onclick="runStationV3()">2️⃣ Solo Construir con V3</button>
+            <button class="btn-step" onclick="runStationQwen()">3️⃣ Solo Crear Tests con Qwen</button>
+            <button class="btn-step" onclick="runSandboxStation()">4️⃣ Ejecutar Tests Ahora</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4 ESTACIONES -->
+      <section class="stations-grid">
+        <!-- ESTACIÓN 1: DEEPSEEK R1 -->
+        <div class="station-card" id="card-r1">
+          <div class="station-header">
+            <div class="station-id">
+              <ollin-orb id="orb-r1" state="breathing" color="gold" size="34"></ollin-orb>
+              <div>
+                <h3>1. DeepSeek R1 — Auditor Lógico (Red Team)</h3>
+                <span>Desglosa casos borde, trampas lógicas y reglas de Arauto Express</span>
+              </div>
+            </div>
+            <div class="station-meta">
+              <span class="status-tag" id="status-r1">EN ESPERA</span>
+            </div>
+          </div>
+          <div class="station-body">
+            <textarea id="out-r1" class="code-area" placeholder="Aquí aparecerán los casos borde y trampas detectadas por DeepSeek R1..." oninput="saveCurrentFrontState()"></textarea>
+          </div>
+        </div>
+
+        <!-- ESTACIÓN 2: DEEPSEEK V3 -->
+        <div class="station-card" id="card-v3">
+          <div class="station-header">
+            <div class="station-id">
+              <ollin-orb id="orb-v3" state="breathing" color="emerald" size="34"></ollin-orb>
+              <div>
+                <h3>2. DeepSeek V3 — Constructor de Producción</h3>
+                <span>Escribe código limpio con contratos estrictos (TypeError / RangeError)</span>
+              </div>
+            </div>
+            <div class="station-meta">
+              <span class="status-tag" id="status-v3">EN ESPERA</span>
+            </div>
+          </div>
+          <div class="station-body">
+            <textarea id="out-v3" class="code-area" placeholder="Aquí aparecerá el código de producción blindado por DeepSeek V3..." oninput="saveCurrentFrontState()"></textarea>
+          </div>
+        </div>
+
+        <!-- ESTACIÓN 3: QWEN 2.5 CODER -->
+        <div class="station-card" id="card-qwen">
+          <div class="station-header">
+            <div class="station-id">
+              <ollin-orb id="orb-qwen" state="breathing" color="cyan" size="34"></ollin-orb>
+              <div>
+                <h3>3. Qwen 2.5 Coder 32B — Diseñador QA & Pruebas</h3>
+                <span>Genera batería de pruebas unitarias ejecutables (Con Auto-Fallback V3)</span>
+              </div>
+            </div>
+            <div class="station-meta">
+              <span class="status-tag" id="status-qwen">EN ESPERA</span>
+            </div>
+          </div>
+          <div class="station-body">
+            <textarea id="out-qwen" class="code-area" placeholder="Aquí aparecerá la suite de pruebas unitarias con node:assert/strict..." oninput="saveCurrentFrontState()"></textarea>
+          </div>
+        </div>
+
+        <!-- ESTACIÓN 4: SANDBOX LOCAL & AMOХCALLI -->
+        <div class="station-card" id="card-sandbox">
+          <div class="station-header">
+            <div class="station-id">
+              <ollin-orb id="orb-sandbox" state="breathing" color="gold" size="34"></ollin-orb>
+              <div>
+                <h3>4. Sandbox Ejecutor Local & Certificación Amoxcalli</h3>
+                <span>Corre Node.js / Python en tu PC y respalda en Google Drive sin gastar cuota</span>
+              </div>
+            </div>
+            <div class="station-meta">
+              <span class="status-tag" id="status-sandbox">LISTO</span>
+            </div>
+          </div>
+          <div class="station-body">
+            <div class="sandbox-controls">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <select id="sandbox-lang" style="background:#0b1120; color:#fff; border:1px solid var(--border-subtle); padding:7px 10px; border-radius:8px; font-size:0.78rem;">
+                  <option value="javascript">Node.js (JavaScript)</option>
+                  <option value="python">Python 3</option>
+                </select>
+                <button class="btn-run-sandbox" onclick="runSandboxStation()">🧪 Correr Código + Tests en PC</button>
+              </div>
+              <button class="btn-amoxcalli" onclick="saveToAmoxcalli()">📚 Certificar y Guardar en Amoxcalli (Drive)</button>
+            </div>
+            <div id="out-sandbox" class="terminal-box">Esperando ejecución de pruebas en terminal local...</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- VISTA 2: MESA REDONDA MULTI-CHAT -->
+    <div id="broadcast-bar" class="broadcast-bar">
+      <span style="font-weight:800; color:var(--gold); font-size:0.82rem;">📢 PREGUNTA SIMULTÁNEA A LOS 3 AGENTES:</span>
+      <input type="text" id="broadcast-input" placeholder="Escribe aquí para preguntarles a DeepSeek R1, DeepSeek V3 y Qwen al mismo tiempo..." onkeydown="if(event.key==='Enter') sendBroadcast()" />
+      <button class="btn-primary-relay" style="padding:9px 18px;" onclick="sendBroadcast()">Enviar a Todos</button>
+    </div>
+
+    <div id="view-chat" class="multichat-grid">
+      <!-- COL 1: R1 -->
+      <div class="chat-col">
+        <div class="station-header">
+          <div class="station-id">
+            <ollin-orb id="orb-chat-r1" state="breathing" color="gold" size="28"></ollin-orb>
+            <div>
+              <h3>DeepSeek R1 Auditor</h3>
+              <span>deepseek/deepseek-r1</span>
+            </div>
+          </div>
+        </div>
+        <div class="chat-messages" id="chat-msgs-r1"></div>
+        <div class="chat-input-row">
+          <input type="text" id="chat-in-r1" placeholder="Hablar directo con DeepSeek R1..." onkeydown="if(event.key==='Enter') sendSingleChat('r1')" />
+          <button onclick="sendSingleChat('r1')">Enviar</button>
+        </div>
+      </div>
+
+      <!-- COL 2: V3 -->
+      <div class="chat-col">
+        <div class="station-header">
+          <div class="station-id">
+            <ollin-orb id="orb-chat-v3" state="breathing" color="emerald" size="28"></ollin-orb>
+            <div>
+              <h3>DeepSeek V3 Coder</h3>
+              <span>deepseek/deepseek-chat</span>
+            </div>
+          </div>
+        </div>
+        <div class="chat-messages" id="chat-msgs-v3"></div>
+        <div class="chat-input-row">
+          <input type="text" id="chat-in-v3" placeholder="Hablar directo con DeepSeek V3..." onkeydown="if(event.key==='Enter') sendSingleChat('v3')" />
+          <button onclick="sendSingleChat('v3')">Enviar</button>
+        </div>
+      </div>
+
+      <!-- COL 3: QWEN -->
+      <div class="chat-col">
+        <div class="station-header">
+          <div class="station-id">
+            <ollin-orb id="orb-chat-qwen" state="breathing" color="cyan" size="28"></ollin-orb>
+            <div>
+              <h3>Qwen 2.5 Coder 32B</h3>
+              <span>qwen/qwen-2.5-coder-32b-instruct</span>
+            </div>
+          </div>
+        </div>
+        <div class="chat-messages" id="chat-msgs-qwen"></div>
+        <div class="chat-input-row">
+          <input type="text" id="chat-in-qwen" placeholder="Hablar directo con Qwen Coder..." onkeydown="if(event.key==='Enter') sendSingleChat('qwen')" />
+          <button onclick="sendSingleChat('qwen')">Enviar</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // ESTADO MULTI-FRENTE PERSISTENTE
+    const DEFAULT_FRONTS = [
+      {
+        id: 'frente-1',
+        title: '🛡️ Frente 1: Consola Maestra & Bóveda',
+        status: 'LISTO',
+        prompt: 'Diseña una función en JavaScript llamada validarGuiaDHL(guia) que valide guías HWB de 10 dígitos exactos para Bóveda. Debe limpiar espacios exteriores, rechazar letras, rechazar espacios intermedios, rechazar caracteres de control y lanzar TypeError o RangeError explícitos.',
+        r1: '',
+        v3: '',
+        qwen: '',
+        sandbox: 'Esperando ejecución de pruebas...',
+        chats: { r1: [], v3: [], qwen: [] }
+      },
+      {
+        id: 'frente-2',
+        title: '💬 Frente 2: Calpixqui / Hermes 24/7',
+        status: 'LISTO',
+        prompt: '',
+        r1: '',
+        v3: '',
+        qwen: '',
+        sandbox: 'Esperando ejecución de pruebas...',
+        chats: { r1: [], v3: [], qwen: [] }
+      },
+      {
+        id: 'frente-3',
+        title: '📱 Frente 3: Ollinqui PWA / Rampa',
+        status: 'LISTO',
+        prompt: '',
+        r1: '',
+        v3: '',
+        qwen: '',
+        sandbox: 'Esperando ejecución de pruebas...',
+        chats: { r1: [], v3: [], qwen: [] }
+      }
+    ];
+
+    let fronts = [];
+    let activeFrontId = 'frente-1';
+
+    function loadFrontsFromStorage() {
+      try {
+        const saved = localStorage.getItem('ollin_war_room_fronts_v1');
+        if (saved) {
+          fronts = JSON.parse(saved);
+        } else {
+          fronts = DEFAULT_FRONTS;
+        }
+      } catch (e) {
+        fronts = DEFAULT_FRONTS;
+      }
+      if (!fronts.length) fronts = DEFAULT_FRONTS;
+      activeFrontId = fronts[0].id;
+      renderFrontTabs();
+      loadActiveFrontToUI();
+    }
+
+    function persistFronts() {
+      try {
+        localStorage.setItem('ollin_war_room_fronts_v1', JSON.stringify(fronts));
+      } catch (e) {}
+    }
+
+    function getActiveFront() {
+      return fronts.find(f => f.id === activeFrontId) || fronts[0];
+    }
+
+    function renderFrontTabs() {
+      const container = document.getElementById('fronts-tabs-container');
+      container.innerHTML = '';
+      fronts.forEach(f => {
+        const btn = document.createElement('div');
+        btn.className = 'front-tab' + (f.id === activeFrontId ? ' active' : '');
+        btn.onclick = () => selectFront(f.id);
+        btn.innerHTML = `
+          <span>${f.title}</span>
+          <span class="front-badge">${f.status || 'LISTO'}</span>
+        `;
+        container.appendChild(btn);
+      });
+    }
+
+    function selectFront(id) {
+      saveCurrentFrontState();
+      activeFrontId = id;
+      renderFrontTabs();
+      loadActiveFrontToUI();
+    }
+
+    function createNewFront() {
+      saveCurrentFrontState();
+      const idx = fronts.length + 1;
+      const newFront = {
+        id: 'frente-' + Date.now(),
+        title: `⚡ Frente ${idx}: Nuevo Módulo`,
+        status: 'LISTO',
+        prompt: '',
+        r1: '',
+        v3: '',
+        qwen: '',
+        sandbox: 'Esperando ejecución de pruebas...',
+        chats: { r1: [], v3: [], qwen: [] }
+      };
+      fronts.push(newFront);
+      activeFrontId = newFront.id;
+      persistFronts();
+      renderFrontTabs();
+      loadActiveFrontToUI();
+    }
+
+    function updateActiveFrontTitle(val) {
+      const f = getActiveFront();
+      f.title = val || 'Frente sin título';
+      persistFronts();
+      renderFrontTabs();
+    }
+
+    function saveCurrentFrontState() {
+      const f = getActiveFront();
+      if (!f) return;
+      f.prompt = document.getElementById('front-prompt').value;
+      f.r1 = document.getElementById('out-r1').value;
+      f.v3 = document.getElementById('out-v3').value;
+      f.qwen = document.getElementById('out-qwen').value;
+      persistFronts();
+    }
+
+    function loadActiveFrontToUI() {
+      const f = getActiveFront();
+      document.getElementById('front-title').value = f.title;
+      document.getElementById('front-prompt').value = f.prompt || '';
+      document.getElementById('out-r1').value = f.r1 || '';
+      document.getElementById('out-v3').value = f.v3 || '';
+      document.getElementById('out-qwen').value = f.qwen || '';
+      document.getElementById('out-sandbox').textContent = f.sandbox || 'Esperando ejecución de pruebas...';
+      renderChatMessages();
+    }
+
+    function switchMode(mode) {
+      const relayView = document.getElementById('view-relay');
+      const chatView = document.getElementById('view-chat');
+      const bbar = document.getElementById('broadcast-bar');
+      document.getElementById('btn-mode-relay').classList.toggle('active', mode === 'relay');
+      document.getElementById('btn-mode-chat').classList.toggle('active', mode === 'chat');
+
+      if (mode === 'relay') {
+        relayView.style.display = 'flex';
+        chatView.classList.remove('active');
+        bbar.classList.remove('active');
+      } else {
+        relayView.style.display = 'none';
+        chatView.classList.add('active');
+        bbar.classList.add('active');
+        renderChatMessages();
+      }
+    }
+
+    function loadTemplate(key) {
+      const map = {
+        pid: 'Audita y construye en JavaScript la función sanitizarPID(pid) para Bóveda de Arauto Express. Debe aplicar la Ley de la Doble J (convertir prefijo inicial JJD a JD), recortar espacios exteriores, convertir a mayúsculas, y rechazar con TypeError/RangeError cadenas vacías, espacios internos, caracteres de control o prefijos distintos a JD/JJD.',
+        hwb: 'Audita y construye en JavaScript la función validarGuiaDHL(guia) que valide un número de guía HWB de exactamente 10 dígitos numéricos. Debe limpiar espacios exteriores, rechazar notación científica, letras, espacios internos o longitudes distintas a 10 con TypeError o RangeError.',
+        cp: 'Audita y construye en JavaScript la función clasificarZonaCP(cp) para Querétaro y Sierra Gorda. Debe validar que sea un CP válido de 5 dígitos en rango 37900-37919 (San Luis de la Paz -> Foráneo Sierra) o 76000-76999 (Querétaro -> Metrópoli), rechazando entradas malformadas.',
+        nip: 'Audita y construye en JavaScript la función validarNIPPochteca(nip) que valide un NIP de acceso de 4 a 6 dígitos numéricos, rechazando secuencias triviales repetidas (como 0000 o 1111), espacios internos o tipos no string.'
+      };
+      document.getElementById('front-prompt').value = map[key] || '';
+      saveCurrentFrontState();
+    }
+
+    function extractCodeBlock(text) {
+      if (!text) return '';
+      const match = text.match(/```(?:javascript|js|python|py)?\s*([\s\S]*?)```/i);
+      if (match && match[1]) return match[1].trim();
+      return text.trim();
+    }
+
+    function setStationVisual(station, statusText, statusClass, orbState) {
+      const tag = document.getElementById(`status-${station}`);
+      const orb = document.getElementById(`orb-${station}`);
+      const card = document.getElementById(`card-${station}`);
+      if (tag) {
+        tag.textContent = statusText;
+        tag.className = 'status-tag ' + (statusClass || '');
+      }
+      if (orb && orbState) {
+        orb.setAttribute('state', orbState);
+      }
+      if (card) {
+        card.classList.remove('active-gold', 'active-emerald', 'active-cyan');
+        if (statusClass === 'running') {
+          card.classList.add(station === 'v3' ? 'active-emerald' : station === 'qwen' ? 'active-cyan' : 'active-gold');
+        }
+      }
+    }
+
+    async function apiPost(url, payload) {
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      return await resp.json();
+    }
+
+    // ESTACIÓN 1: R1
+    async function runStationR1() {
+      const prompt = document.getElementById('front-prompt').value.trim();
+      if (!prompt) {
+        alert('Escribe primero el requerimiento o pega el código en el cuadro superior.');
+        return false;
+      }
+      setStationVisual('r1', 'RAZONANDO...', 'running', 'solving');
+      document.getElementById('orb-master').setAttribute('state', 'solving');
+
+      const sysPrompt = "Eres DeepSeek R1, el Auditor Lógico Senior del Laboratorio Tríada de Arauto Express. Analiza el requerimiento y devuelve en viñetas concisas: 1) 4 casos borde críticos, 2) Riesgos de tipado o caracteres invisibles, 3) Contrato exacto de entrada/salida y excepciones (TypeError/RangeError) que el constructor debe respetar. Sé directo y estructurado.";
+      const res = await apiPost('/api/chat', {
+        model: 'deepseek/deepseek-r1',
+        messages: [
+          { role: 'system', content: sysPrompt },
+          { role: 'user', content: prompt }
+        ]
+      });
+
+      document.getElementById('orb-master').setAttribute('state', 'breathing');
+      if (res.ok) {
+        document.getElementById('out-r1').value = res.content;
+        setStationVisual('r1', `LISTO (${(res.elapsed_ms/1000).toFixed(1)}s)`, 'done', 'breathing');
+        saveCurrentFrontState();
+        return true;
+      } else {
+        document.getElementById('out-r1').value = 'Error R1: ' + res.error;
+        setStationVisual('r1', 'ERROR', 'error', 'breathing');
+        return false;
+      }
+    }
+
+    // ESTACIÓN 2: V3
+    async function runStationV3() {
+      const prompt = document.getElementById('front-prompt').value.trim();
+      const r1Notes = document.getElementById('out-r1').value.trim();
+      if (!prompt) {
+        alert('Escribe el requerimiento en el cuadro superior.');
+        return false;
+      }
+      setStationVisual('v3', 'CONSTRUYENDO...', 'running', 'weaving');
+      document.getElementById('orb-master').setAttribute('state', 'weaving');
+
+      const sysPrompt = "Eres DeepSeek V3, el Constructor Senior de Producción de Arauto Express. Devuelve ÚNICAMENTE el bloque de código en JavaScript (sin pruebas unitarias aún y sin texto explicativo extra) implementando la función solicitada y cumpliendo rigurosamente las observaciones del Auditor R1.";
+      const userMsg = `REQUERIMIENTO:\n${prompt}\n\nOBSERVACIONES DEL AUDITOR R1:\n${r1Notes || 'Aplicar contrato defensivo estricto con TypeError y RangeError.'}`;
+
+      const res = await apiPost('/api/chat', {
+        model: 'deepseek/deepseek-chat',
+        messages: [
+          { role: 'system', content: sysPrompt },
+          { role: 'user', content: userMsg }
+        ]
+      });
+
+      document.getElementById('orb-master').setAttribute('state', 'breathing');
+      if (res.ok) {
+        document.getElementById('out-v3').value = extractCodeBlock(res.content);
+        setStationVisual('v3', `LISTO (${(res.elapsed_ms/1000).toFixed(1)}s)`, 'done', 'breathing');
+        saveCurrentFrontState();
+        return true;
+      } else {
+        document.getElementById('out-v3').value = '// Error V3: ' + res.error;
+        setStationVisual('v3', 'ERROR', 'error', 'breathing');
+        return false;
+      }
+    }
+
+    // ESTACIÓN 3: QWEN
+    async function runStationQwen() {
+      const prompt = document.getElementById('front-prompt').value.trim();
+      const v3Code = document.getElementById('out-v3').value.trim();
+      const r1Notes = document.getElementById('out-r1').value.trim();
+      if (!v3Code) {
+        alert('Primero debe existir el código en la Estación 2 (DeepSeek V3).');
+        return false;
+      }
+      setStationVisual('qwen', 'DISEÑANDO TESTS...', 'running', 'composing');
+      document.getElementById('orb-master').setAttribute('state', 'composing');
+
+      const sysPrompt = "Eres Qwen 2.5 Coder, el Diseñador de Pruebas Unitarias QA de Arauto Express. Devuelve ÚNICAMENTE código JavaScript ejecutable en Node.js usando const assert = require('node:assert/strict'); que pruebe exhaustivamente la función proporcionada (mínimo 5 casos válidos y 6 casos inválidos con assert.throws). NO vuelvas a declarar la función, solo escribe las pruebas y al final un console.log('✅ Todas las pruebas unitarias superadas con éxito');";
+      const userMsg = `CÓDIGO DE LA FUNCIÓN A PROBAR:\n${v3Code}\n\nCASOS BORDE A CUBRIR:\n${r1Notes || prompt}`;
+
+      const res = await apiPost('/api/chat', {
+        model: 'qwen/qwen-2.5-coder-32b-instruct',
+        messages: [
+          { role: 'system', content: sysPrompt },
+          { role: 'user', content: userMsg }
+        ]
+      });
+
+      document.getElementById('orb-master').setAttribute('state', 'breathing');
+      if (res.ok) {
+        const label = res.fallback_applied ? `LISTO (Fallback ${res.model_used})` : `LISTO (${(res.elapsed_ms/1000).toFixed(1)}s)`;
+        document.getElementById('out-qwen').value = extractCodeBlock(res.content);
+        setStationVisual('qwen', label, 'done', 'breathing');
+        saveCurrentFrontState();
+        return true;
+      } else {
+        document.getElementById('out-qwen').value = '// Error Qwen: ' + res.error;
+        setStationVisual('qwen', 'ERROR', 'error', 'breathing');
+        return false;
+      }
+    }
+
+    // ESTACIÓN 4: SANDBOX LOCAL
+    async function runSandboxStation() {
+      const v3Code = document.getElementById('out-v3').value.trim();
+      const qwenTests = document.getElementById('out-qwen').value.trim();
+      const lang = document.getElementById('sandbox-lang').value;
+      if (!v3Code && !qwenTests) {
+        alert('No hay código ni pruebas para ejecutar.');
+        return false;
+      }
+
+      setStationVisual('sandbox', 'EJECUTANDO...', 'running', 'working');
+      const combinedCode = `${v3Code}\n\n// --- SUITE DE PRUEBAS UNITARIAS ---\n${qwenTests}`;
+
+      const res = await apiPost('/api/run_tests', {
+        code: combinedCode,
+        language: lang
+      });
+
+      const box = document.getElementById('out-sandbox');
+      const f = getActiveFront();
+      if (res.ok) {
+        box.className = 'terminal-box';
+        const outText = `✅ CERTIFICACIÓN LOCAL EXITOSA (${res.elapsed_ms} ms)\n--------------------------------------------------\n${res.stdout || 'Ejecución limpia sin errores (Exit Code 0).'}`;
+        box.textContent = outText;
+        f.sandbox = outText;
+        f.status = '✅ CERTIFICADO';
+        setStationVisual('sandbox', `100% OK (${res.elapsed_ms}ms)`, 'done', 'breathing');
+      } else {
+        box.className = 'terminal-box fail';
+        const errText = `❌ FALLO EN PRUEBAS (Exit Code ${res.exit_code} - ${res.elapsed_ms} ms)\n--------------------------------------------------\n${res.stderr || res.stdout}`;
+        box.textContent = errText;
+        f.sandbox = errText;
+        f.status = '⚠️ REVISAR';
+        setStationVisual('sandbox', 'FALLO EN TESTS', 'error', 'breathing');
+      }
+      persistFronts();
+      renderFrontTabs();
+      return res.ok;
+    }
+
+    // RELEVO AUTOMÁTICO COMPLETO
+    async function runFullTriadaRelay() {
+      const btn = document.getElementById('btn-full-relay');
+      btn.disabled = true;
+      const f = getActiveFront();
+      f.status = '⏳ EN RELEVO...';
+      renderFrontTabs();
+
+      try {
+        const ok1 = await runStationR1();
+        if (!ok1) return;
+        const ok2 = await runStationV3();
+        if (!ok2) return;
+        const ok3 = await runStationQwen();
+        if (!ok3) return;
+        await runSandboxStation();
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // GUARDAR EN AMOXCALLI
+    async function saveToAmoxcalli() {
+      const f = getActiveFront();
+      setStationVisual('sandbox', 'GUARDANDO DRIVE...', 'running', 'connecting');
+      const res = await apiPost('/api/save_amoxcalli', {
+        title: f.title,
+        problem: document.getElementById('front-prompt').value,
+        r1_notes: document.getElementById('out-r1').value,
+        v3_code: document.getElementById('out-v3').value,
+        qwen_tests: document.getElementById('out-qwen').value,
+        test_output: document.getElementById('out-sandbox').textContent
+      });
+      setStationVisual('sandbox', 'GUARDADO AMOXCALLI', 'done', 'breathing');
+      if (res.ok) {
+        const box = document.getElementById('out-sandbox');
+        box.textContent += `\n\n📚 SINCRONIZADO CON ÉXITO EN AMOXCALLI:\n- Local: ${res.local_path}\n- Google Drive: ${res.drive_path}`;
+      }
+    }
+
+    // MODO 2: CHAT DIRECTO Y BROADCAST
+    const AGENT_MODELS = {
+      r1: 'deepseek/deepseek-r1',
+      v3: 'deepseek/deepseek-chat',
+      qwen: 'qwen/qwen-2.5-coder-32b-instruct'
+    };
+
+    function renderChatMessages() {
+      const f = getActiveFront();
+      if (!f.chats) f.chats = { r1: [], v3: [], qwen: [] };
+      ['r1', 'v3', 'qwen'].forEach(agent => {
+        const container = document.getElementById(`chat-msgs-${agent}`);
+        container.innerHTML = '';
+        (f.chats[agent] || []).forEach(m => {
+          const div = document.createElement('div');
+          div.className = 'msg-bubble ' + (m.role === 'user' ? 'msg-user' : 'msg-ai');
+          div.textContent = m.content;
+          container.appendChild(div);
+        });
+        container.scrollTop = container.scrollHeight;
+      });
+    }
+
+    async function sendSingleChat(agent, overrideText) {
+      const f = getActiveFront();
+      if (!f.chats) f.chats = { r1: [], v3: [], qwen: [] };
+      const input = document.getElementById(`chat-in-${agent}`);
+      const text = (overrideText !== undefined ? overrideText : input.value).trim();
+      if (!text) return;
+      if (overrideText === undefined) input.value = '';
+
+      f.chats[agent].push({ role: 'user', content: text });
+      renderChatMessages();
+
+      const orb = document.getElementById(`orb-chat-${agent}`);
+      if (orb) orb.setAttribute('state', 'solving');
+
+      const res = await apiPost('/api/chat', {
+        model: AGENT_MODELS[agent],
+        messages: f.chats[agent].slice(-10)
+      });
+
+      if (orb) orb.setAttribute('state', 'breathing');
+      if (res.ok) {
+        f.chats[agent].push({ role: 'assistant', content: res.content });
+      } else {
+        f.chats[agent].push({ role: 'assistant', content: '⚠️ Error: ' + res.error });
+      }
+      persistFronts();
+      renderChatMessages();
+    }
+
+    function sendBroadcast() {
+      const input = document.getElementById('broadcast-input');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      sendSingleChat('r1', text);
+      sendSingleChat('v3', text);
+      sendSingleChat('qwen', text);
+    }
+
+    // RADAR TELEMETRÍA
+    async function refreshRadarStatus() {
+      try {
+        const resp = await fetch('/api/status');
+        const data = await resp.json();
+        if (data.ok) {
+          const orDot = document.getElementById('dot-or');
+          const orLbl = document.getElementById('lbl-or');
+          if (data.openrouter && data.openrouter.online) {
+            orDot.className = 'dot online';
+            orLbl.textContent = `OpenRouter: ACTIVO ($${data.openrouter.usage.toFixed(3)} usado)`;
+          }
+          ['calpixqui', 'tlacuilo', 'chikahua'].forEach(k => {
+            const d = document.getElementById(`dot-${k}`);
+            if (d && data.nodes && data.nodes[k]) {
+              d.className = 'dot ' + (data.nodes[k].online ? 'online' : '');
+            }
+          });
+        }
+      } catch (e) {}
+    }
+
+    async function auditEcisLive() {
+      setStationVisual('sandbox', 'AUDITANDO ECIS...', 'running', 'searching');
+      const box = document.getElementById('out-sandbox');
+      box.textContent = '📡 Conectando en vivo con Nodo Calpixqui PC-B (100.107.18.69:8088) para inspeccionar subidas ECIS...';
+      try {
+        const resp = await fetch('/api/ecis_live');
+        const data = await resp.json();
+        if (data.ok) {
+          const filesList = (data.archivos_hoy || []).map(x => `  • [${x.hora}] ${x.archivo} ➔ ${x.eventos} paquetes`).join('\n');
+          const pidsList = (data.ultimos_pids || []).map(p => `  - ${p}`).join('\n');
+          const report = [
+            `✅ REPORTE EN VIVO ECIS — CALPIXQUI PC-B (${data.fecha})`,
+            `================================================================`,
+            `📦 Archivos CSV subidos hoy: ${data.total_archivos_hoy}`,
+            `🚀 Total paquetes/eventos subidos hoy: ${data.total_eventos_hoy}`,
+            `🏛️ Histórico acumulado sin duplicados: ${data.historico_acumulado} eventos`,
+            ``,
+            `📂 DESGLOSE DE CORTES SUBIDOS HOY:`,
+            filesList || '  (Ningún archivo hoy)',
+            ``,
+            `🔖 ÚLTIMOS 15 PIDs REGISTRADOS EN ECIS:`,
+            pidsList,
+            ``,
+            `📜 EXTRACTO EN VIVO DE planificador_ecis.log:`,
+            data.log_tail
+          ].join('\n');
+
+          box.className = 'terminal-box';
+          box.textContent = report;
+          document.getElementById('front-prompt').value = `Analiza este reporte real extraído en vivo de Calpixqui PC-B sobre las subidas a ECIS de hoy y dame un diagnóstico ejecutivo de operación:\n\n${report}`;
+          saveCurrentFrontState();
+          setStationVisual('sandbox', `ECIS: ${data.total_eventos_hoy} HOY`, 'done', 'breathing');
+        } else {
+          box.className = 'terminal-box fail';
+          box.textContent = '❌ Error al consultar ECIS: ' + data.error;
+          setStationVisual('sandbox', 'ERROR ECIS', 'error', 'breathing');
+        }
+      } catch (e) {
+        box.className = 'terminal-box fail';
+        box.textContent = '❌ Error de red consultando ECIS: ' + e;
+        setStationVisual('sandbox', 'ERROR RED', 'error', 'breathing');
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadFrontsFromStorage();
+      refreshRadarStatus();
+      setInterval(refreshRadarStatus, 15000);
+    });
+  </script>
+</body>
+</html>

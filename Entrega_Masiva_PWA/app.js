@@ -4469,3 +4469,576 @@ window.filtrarHojaDeRuta = function(filtro) {
   if (activo) activo.classList.add('active');
   renderHojaDeRutaAsistida();
 };
+
+// ====================================================================
+// 🤖 SECCIÓN 22: TLATOANI (ASISTENTE OPERATIVO & OJO IA DE RUTA)
+// Ingesta de Guías Físicas, Flujo de Autorización y Consultor de Procedimientos
+// ====================================================================
+
+let tlatoaniCurrentSolicitudId = null;
+let tlatoaniPollingInterval = null;
+let tlatoaniActiveTab = 'vision';
+let PROCEDIMIENTOS_TLATOANI = [];
+
+// Carga asíncrona de conocimiento de procedimientos en Tier 1 local ($0 tokens)
+async function cargarProcedimientosLocales() {
+  try {
+    const res = await fetch('conocimiento_procedimientos.json');
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.procedimientos) {
+        PROCEDIMIENTOS_TLATOANI = data.procedimientos;
+        console.log('✅ Base de Conocimiento Tlatoani Tier 1 cargada:', PROCEDIMIENTOS_TLATOANI.length, 'procedimientos');
+      }
+    }
+  } catch (err) {
+    console.warn('⚠️ No se pudo cargar conocimiento_procedimientos.json local:', err);
+  }
+}
+cargarProcedimientosLocales();
+
+window.abrirModalTlatoani = function() {
+  playBeep('select');
+  const modal = document.getElementById('modal-tlatoani');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+};
+
+window.cerrarModalTlatoani = function() {
+  playBeep('click');
+  const modal = document.getElementById('modal-tlatoani');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+  if (tlatoaniPollingInterval) {
+    clearInterval(tlatoaniPollingInterval);
+    tlatoaniPollingInterval = null;
+  }
+};
+
+window.cambiarTabTlatoani = function(tab) {
+  playBeep('click');
+  tlatoaniActiveTab = tab;
+  const btnVision = document.getElementById('tab-btn-vision');
+  const btnChat = document.getElementById('tab-btn-chat');
+  const contentVision = document.getElementById('tab-content-vision');
+  const contentChat = document.getElementById('tab-content-chat');
+
+  if (tab === 'vision') {
+    if (btnVision) btnVision.classList.add('active');
+    if (btnChat) btnChat.classList.remove('active');
+    if (contentVision) contentVision.style.display = 'flex';
+    if (contentChat) contentChat.style.display = 'none';
+  } else {
+    if (btnChat) btnChat.classList.add('active');
+    if (btnVision) btnVision.classList.remove('active');
+    if (contentChat) contentChat.style.display = 'flex';
+    if (contentVision) contentVision.style.display = 'none';
+  }
+};
+
+// Captura, compresión y llamada a tlatoani_vision
+window.capturarFotoTlatoani = async function(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  playBeep('beep');
+  const previewImg = document.getElementById('tlatoani-preview-img');
+  const placeholder = document.getElementById('tlatoani-preview-placeholder');
+  const scanOverlay = document.getElementById('tlatoani-scan-overlay');
+  const extractedCard = document.getElementById('tlatoani-extracted-card');
+  const pendingBadge = document.getElementById('tlatoani-status-badge-pending');
+  const approvedBadge = document.getElementById('tlatoani-status-badge-approved');
+  const rejectedBadge = document.getElementById('tlatoani-status-badge-rejected');
+
+  if (extractedCard) extractedCard.style.display = 'none';
+  if (pendingBadge) pendingBadge.style.display = 'none';
+  if (approvedBadge) approvedBadge.style.display = 'none';
+  if (rejectedBadge) rejectedBadge.style.display = 'none';
+
+  // Redimensionar y comprimir usando Canvas para transferencias instantáneas (< 200KB)
+  try {
+    const base64Data = await comprimirImagenParaIA(file, 1280, 1280, 0.72);
+    if (previewImg) {
+      previewImg.src = base64Data;
+      previewImg.style.display = 'block';
+    }
+    if (placeholder) placeholder.style.display = 'none';
+    if (scanOverlay) scanOverlay.style.display = 'flex';
+
+    // Obtener GPS del chofer
+    let gpsCoords = '';
+    if (navigator.geolocation) {
+      try {
+        const pos = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 4000, enableHighAccuracy: true });
+        });
+        gpsCoords = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
+      } catch (gpsErr) {
+        gpsCoords = '';
+      }
+    }
+
+    // Determinar Plaza
+    const plazaOp = (typeof PLAZA_OPERATIVA !== 'undefined' && PLAZA_OPERATIVA) ? PLAZA_OPERATIVA : 'QRO';
+
+    // Llamar a Netlify Function tlatoani_vision
+    const resp = await fetch('/.netlify/functions/tlatoani_vision', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image: base64Data,
+        pochteca: CURRENT_USER,
+        pochtecaNombre: (typeof DIRECTORIO_POCHTECAS !== 'undefined' && DIRECTORIO_POCHTECAS[CURRENT_USER] && DIRECTORIO_POCHTECAS[CURRENT_USER].nombre) || CURRENT_USER.split('@')[0],
+        plaza: plazaOp,
+        gps: gpsCoords
+      })
+    });
+
+    if (scanOverlay) scanOverlay.style.display = 'none';
+
+    if (!resp.ok) {
+      const errText = await resp.text();
+      showToast('Error escaneando etiqueta con IA', '⚠️');
+      throw new Error(`Error en servidor: ${resp.status} ${errText}`);
+    }
+
+    const resultado = await resp.json();
+    if (!resultado.exito) {
+      showToast(resultado.error || 'No se reconocieron datos de la guía', '⚠️');
+      return;
+    }
+
+    playBeep('success');
+    tlatoaniCurrentSolicitudId = resultado.solicitudId;
+
+    // Poblar campos editables
+    const d = resultado.datos || {};
+    const inHwb = document.getElementById('tlatoani-in-hwb');
+    const inPid = document.getElementById('tlatoani-in-pid');
+    const inDest = document.getElementById('tlatoani-in-dest');
+    const inDir = document.getElementById('tlatoani-in-dir');
+    const inCp = document.getElementById('tlatoani-in-cp');
+    const inTel = document.getElementById('tlatoani-in-tel');
+
+    if (inHwb) inHwb.value = d.hwb || '';
+    if (inPid) inPid.value = d.pid || '';
+    if (inDest) inDest.value = d.destinatario || '';
+    if (inDir) inDir.value = d.direccion || '';
+    if (inCp) inCp.value = d.cp || '';
+    if (inTel) inTel.value = d.telefono || '';
+
+    if (extractedCard) extractedCard.style.display = 'flex';
+    showToast('Guía extraída con éxito por IA', '⚡');
+
+  } catch (err) {
+    if (scanOverlay) scanOverlay.style.display = 'none';
+    console.error('❌ Error capturando foto en Tlatoani:', err);
+    showToast('Falla al procesar foto con Visión IA', '❌');
+  }
+};
+
+// Utilidad Canvas para compresión de imagen
+function comprimirImagenParaIA(file, maxW, maxH, calidad) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxW || height > maxH) {
+          if (width > height) {
+            height = Math.round((height * maxW) / width);
+            width = maxW;
+          } else {
+            width = Math.round((width * maxH) / height);
+            height = maxH;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', calidad || 0.75));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Enviar solicitud de autorización y comenzar sondeo
+window.enviarAutorizacionTlatoani = async function() {
+  playBeep('select');
+  const inHwb = document.getElementById('tlatoani-in-hwb');
+  const inPid = document.getElementById('tlatoani-in-pid');
+  const inDest = document.getElementById('tlatoani-in-dest');
+  const inDir = document.getElementById('tlatoani-in-dir');
+  const inCp = document.getElementById('tlatoani-in-cp');
+  const inTel = document.getElementById('tlatoani-in-tel');
+
+  const hwb = inHwb ? inHwb.value.trim() : '';
+  let pid = inPid ? inPid.value.trim().toUpperCase() : '';
+  const destinatario = inDest ? inDest.value.trim() : '';
+  const direccion = inDir ? inDir.value.trim() : '';
+  const cp = inCp ? inCp.value.trim() : '';
+  const telefono = inTel ? inTel.value.trim() : '';
+
+  if (!hwb || hwb.length < 8) {
+    showToast('Ingresa una guía HWB válida', '⚠️');
+    if (inHwb) inHwb.focus();
+    return;
+  }
+
+  // Ley de la Doble J para AppSheet / PWA
+  if (pid.startsWith('JD') && !pid.startsWith('JJD')) {
+    pid = 'J' + pid;
+  } else if (!pid.startsWith('JJD')) {
+    pid = 'JJD' + (pid || hwb);
+  }
+  if (inPid) inPid.value = pid;
+
+  const btnSubmit = document.getElementById('btn-tlatoani-autorizar');
+  const pendingBadge = document.getElementById('tlatoani-status-badge-pending');
+  const approvedBadge = document.getElementById('tlatoani-status-badge-approved');
+  const rejectedBadge = document.getElementById('tlatoani-status-badge-rejected');
+
+  if (btnSubmit) btnSubmit.disabled = true;
+  if (pendingBadge) pendingBadge.style.display = 'flex';
+  if (approvedBadge) approvedBadge.style.display = 'none';
+  if (rejectedBadge) rejectedBadge.style.display = 'none';
+
+  showToast('Enviado a Google Chat del supervisor...', '📤');
+
+  // Iniciar Polling de Autorización
+  if (tlatoaniPollingInterval) clearInterval(tlatoaniPollingInterval);
+
+  let intentos = 0;
+  tlatoaniPollingInterval = setInterval(async () => {
+    intentos++;
+    if (!tlatoaniCurrentSolicitudId || intentos > 60) {
+      clearInterval(tlatoaniPollingInterval);
+      tlatoaniPollingInterval = null;
+      if (btnSubmit) btnSubmit.disabled = false;
+      return;
+    }
+
+    try {
+      const checkResp = await fetch(`/.netlify/functions/tlatoani_autorizar?id=${encodeURIComponent(tlatoaniCurrentSolicitudId)}`);
+      if (checkResp.ok) {
+        const checkData = await checkResp.json();
+        if (checkData && checkData.estado === 'APROBADO') {
+          clearInterval(tlatoaniPollingInterval);
+          tlatoaniPollingInterval = null;
+
+          playBeep('success');
+          if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
+
+          if (pendingBadge) pendingBadge.style.display = 'none';
+          if (approvedBadge) approvedBadge.style.display = 'flex';
+          if (btnSubmit) btnSubmit.disabled = false;
+
+          // Inyectar en caliente en el manifiesto activo y la ruta
+          inyectarPaqueteAutorizadoEnCaliente({
+            hwb,
+            pid,
+            destinatario: destinatario || 'Cliente Autorizado',
+            direccion: direccion || 'Dirección en ruta',
+            cp: cp || '76000',
+            telefono,
+            piezas: 1,
+            peso: 1.0,
+            chofer: CURRENT_USER,
+            a_bordo: true,
+            escaneo_validacion: 'A_BORDO'
+          });
+
+          showToast(`✅ Guía ${hwb} autorizada e inyectada en tu ruta`, '🎉');
+        } else if (checkData && checkData.estado === 'RECHAZADO') {
+          clearInterval(tlatoaniPollingInterval);
+          tlatoaniPollingInterval = null;
+
+          playBeep('error');
+          if (pendingBadge) pendingBadge.style.display = 'none';
+          if (rejectedBadge) rejectedBadge.style.display = 'flex';
+          if (btnSubmit) btnSubmit.disabled = false;
+
+          showToast(`❌ Asignación rechazada por el supervisor`, '🚫');
+        }
+      }
+    } catch (pollErr) {
+      console.warn('⚠️ Error en sondeo de autorización Tlatoani:', pollErr);
+    }
+  }, 3500);
+};
+
+// Inyección en caliente en el Manifiesto Activo de la PWA
+function inyectarPaqueteAutorizadoEnCaliente(nuevoPaquete) {
+  try {
+    if (!MANIFIESTO_GLOBAL) {
+      MANIFIESTO_GLOBAL = {
+        fecha: new Date().toISOString(),
+        total_pids: 0,
+        pids_lookup: {},
+        choferes: {}
+      };
+    }
+    if (!MANIFIESTO_GLOBAL.pids_lookup) {
+      MANIFIESTO_GLOBAL.pids_lookup = {};
+    }
+
+    const pid = nuevoPaquete.pid;
+    MANIFIESTO_GLOBAL.pids_lookup[pid] = {
+      pid: pid,
+      hwb: nuevoPaquete.hwb,
+      piezas: nuevoPaquete.piezas || 1,
+      destinatario: nuevoPaquete.destinatario,
+      direccion: nuevoPaquete.direccion,
+      cp: nuevoPaquete.cp,
+      telefono: nuevoPaquete.telefono,
+      chofer: CURRENT_USER,
+      a_bordo: true,
+      escaneo_validacion: 'A_BORDO',
+      edd: new Date().toISOString().split('T')[0]
+    };
+    MANIFIESTO_GLOBAL.total_pids = Object.keys(MANIFIESTO_GLOBAL.pids_lookup).length;
+
+    // Agregar a choferes
+    if (!MANIFIESTO_GLOBAL.choferes) MANIFIESTO_GLOBAL.choferes = {};
+    if (!MANIFIESTO_GLOBAL.choferes[CURRENT_USER]) {
+      MANIFIESTO_GLOBAL.choferes[CURRENT_USER] = [];
+    }
+    const yaExiste = MANIFIESTO_GLOBAL.choferes[CURRENT_USER].some(p => p.pid === pid);
+    if (!yaExiste) {
+      MANIFIESTO_GLOBAL.choferes[CURRENT_USER].push(MANIFIESTO_GLOBAL.pids_lookup[pid]);
+    }
+
+    // Persistir en LocalStorage
+    try {
+      localStorage.setItem('ollin_manifiesto_global', JSON.stringify(MANIFIESTO_GLOBAL));
+      let asignadasLocal = [];
+      try {
+        asignadasLocal = JSON.parse(localStorage.getItem('ollin_guias_huerfanas_asignadas') || '[]');
+      } catch (e) {}
+      asignadasLocal.push(MANIFIESTO_GLOBAL.pids_lookup[pid]);
+      localStorage.setItem('ollin_guias_huerfanas_asignadas', JSON.stringify(asignadasLocal));
+    } catch (eStorage) {}
+
+    // Agregar a bultosABordo si no está
+    if (typeof bultosABordo !== 'undefined' && Array.isArray(bultosABordo)) {
+      if (!bultosABordo.includes(pid)) {
+        bultosABordo.push(pid);
+        try {
+          localStorage.setItem('ollin_bultos_a_bordo', JSON.stringify(bultosABordo));
+        } catch (e) {}
+      }
+    }
+
+    // Refrescar vistas en caliente
+    if (typeof actualizarManifiestoChoferActual === 'function') {
+      actualizarManifiestoChoferActual();
+    }
+    if (typeof optimizarYGenerarHojaDeRuta === 'function') {
+      optimizarYGenerarHojaDeRuta();
+    }
+    if (typeof renderHojaDeRutaAsistida === 'function') {
+      renderHojaDeRutaAsistida();
+    }
+    if (typeof renderTablaLote === 'function') {
+      renderTablaLote();
+    }
+    if (typeof actualizarContadoresUI === 'function') {
+      actualizarContadoresUI();
+    }
+
+    console.log(`✅ Guía huérfana ${nuevoPaquete.hwb} (${pid}) agregada exitosamente a la ruta.`);
+  } catch (err) {
+    console.error('❌ Error inyectando guía autorizada en caliente:', err);
+  }
+}
+
+// ==========================================================
+// CONSULTOR DE PROCEDIMIENTOS & TIER 1 ($0 TOKENS EN 5MS)
+// ==========================================================
+
+function agregarMensajeChat(remitente, texto) {
+  const box = document.getElementById('tlatoani-chat-messages');
+  if (!box) return;
+
+  const msgDiv = document.createElement('div');
+  msgDiv.className = `chat-bubble ${remitente}`;
+
+  const header = document.createElement('div');
+  header.className = 'bubble-header';
+  header.textContent = remitente === 'tlatoani' ? '🤖 TLATOANI' : '👤 TÚ';
+
+  const body = document.createElement('div');
+  body.className = 'bubble-text';
+  body.innerHTML = texto.replace(/\n/g, '<br>');
+
+  msgDiv.appendChild(header);
+  msgDiv.appendChild(body);
+  box.appendChild(msgDiv);
+  box.scrollTop = box.scrollHeight;
+}
+
+window.consultarProcedimientoRapido = function(clave) {
+  playBeep('select');
+  const claveNorm = clave.toLowerCase().trim();
+
+  // Buscar en PROCEDIMIENTOS_TLATOANI
+  let proc = PROCEDIMIENTOS_TLATOANI.find(p => {
+    return p.id.toLowerCase().includes(claveNorm) ||
+      (p.claves && p.claves.some(c => c.toLowerCase() === claveNorm || claveNorm.includes(c.toLowerCase())));
+  });
+
+  agregarMensajeChat('user', `Procedimiento: ${clave.toUpperCase()}`);
+
+  if (proc) {
+    let contenido = `<b>${proc.titulo}</b><br><br>${proc.respuesta_corta}<br><br>`;
+    if (proc.pasos && proc.pasos.length > 0) {
+      contenido += `<b>Pasos de Acción:</b><br>` + proc.pasos.join('<br>') + `<br><br>`;
+    }
+    if (proc.advertencia) {
+      contenido += `⚠️ <i>${proc.advertencia}</i>`;
+    }
+    agregarMensajeChat('tlatoani', contenido);
+  } else {
+    // Si no está cargado aún, respuesta rápida fija
+    let textoFijo = '';
+    if (claveNorm.includes('ba')) textoFijo = '⚠️ <b>BA (Dirección Incorrecta):</b> Llama al cliente. Si no atiende, toma foto de fachada y graba audio Teoyolotl de 13s. Resguarda el paquete.';
+    else if (claveNorm.includes('nh')) textoFijo = '🏠 <b>NH (Nadie en Casa):</b> Toca timbre 2 veces, espera 60s, llama al teléfono. Toma foto de fachada con número exterior y graba audio.';
+    else if (claveNorm.includes('ca')) textoFijo = '🚫 <b>CA (Rechazado):</b> Pide nombre y motivo exacto. Foto del paquete frente al predio y audio. Nunca dejes paquete abandonado.';
+    else if (claveNorm.includes('aduana')) textoFijo = '💰 <b>Cobro de Aduanas:</b> Exige cobro antes de entregar. Si no paga, no entregues y marca RD/CA con audio.';
+    else if (claveNorm.includes('vecino')) textoFijo = '👥 <b>Entrega con Vecino:</b> Solo mayores de edad con identificación. Recaba nombre completo, relación y firma obligatoria.';
+    else if (claveNorm.includes('30umas')) textoFijo = '⚖️ <b>Límite 30 UMAs:</b> Cobertura máxima de responsabilidad contractual ($3,257 MXN aprox). Reporta extravío a mesa en < 2h.';
+    else textoFijo = '⚠️ Consulta con tu supervisor en Google Chat para validar este procedimiento.';
+
+    agregarMensajeChat('tlatoani', textoFijo);
+  }
+};
+
+window.enviarPreguntaTlatoani = async function() {
+  const input = document.getElementById('tlatoani-chat-input');
+  if (!input) return;
+  const texto = input.value.trim();
+  if (!texto) return;
+
+  playBeep('click');
+  input.value = '';
+  agregarMensajeChat('user', texto);
+
+  // 1. TIER 1 LOCAL: Búsqueda heurística por palabras clave ($0 tokens, 5ms)
+  const textoLow = texto.toLowerCase();
+  const match = PROCEDIMIENTOS_TLATOANI.find(p => {
+    if (p.claves && Array.isArray(p.claves)) {
+      return p.claves.some(k => textoLow.includes(k.toLowerCase()));
+    }
+    return false;
+  });
+
+  if (match) {
+    let contenido = `<b>${match.titulo}</b><br><br>${match.respuesta_corta}<br><br>`;
+    if (match.pasos && match.pasos.length > 0) {
+      contenido += `<b>Pasos de Acción:</b><br>` + match.pasos.join('<br>') + `<br><br>`;
+    }
+    if (match.advertencia) {
+      contenido += `⚠️ <i>${match.advertencia}</i>`;
+    }
+    agregarMensajeChat('tlatoani', contenido);
+    return;
+  }
+
+  // 2. TIER 2 SERVERLESS: Consulta a Gemini Flash
+  agregarMensajeChat('tlatoani', '<i>Consultando directrices operativas... ⏳</i>');
+
+  try {
+    const activePkg = (typeof currentHwb !== 'undefined' && currentHwb && MANIFIESTO_GLOBAL && MANIFIESTO_GLOBAL.pids_lookup)
+      ? Object.values(MANIFIESTO_GLOBAL.pids_lookup).find(p => p.hwb === currentHwb)
+      : null;
+
+    const plazaOp = (typeof PLAZA_OPERATIVA !== 'undefined' && PLAZA_OPERATIVA) ? PLAZA_OPERATIVA : 'QRO';
+
+    const resp = await fetch('/.netlify/functions/tlatoani_chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pregunta: texto,
+        pochteca: CURRENT_USER,
+        plaza: plazaOp,
+        paqueteActivo: activePkg || {},
+        accion: 'pregunta'
+      })
+    });
+
+    // Remover mensaje de carga
+    const box = document.getElementById('tlatoani-chat-messages');
+    if (box && box.lastElementChild) {
+      box.removeChild(box.lastElementChild);
+    }
+
+    if (resp.ok) {
+      const data = await resp.json();
+      agregarMensajeChat('tlatoani', data.respuesta || '⚠️ Consulta al supervisor en Google Chat para este caso.');
+    } else {
+      agregarMensajeChat('tlatoani', '⚠️ No se pudo conectar con el copiloto IA. Usa los botones rápidos o escala al supervisor.');
+    }
+  } catch (err) {
+    const box = document.getElementById('tlatoani-chat-messages');
+    if (box && box.lastElementChild) {
+      box.removeChild(box.lastElementChild);
+    }
+    agregarMensajeChat('tlatoani', '⚠️ Error de red. Recuerda: No aventar bultos, pedir firma obligatoria y en incidencias grabar audio Teoyolotl.');
+  }
+};
+
+window.escalarSupervisorTlatoani = async function() {
+  playBeep('alert');
+  const input = document.getElementById('tlatoani-chat-input');
+  const dudaTexto = input ? input.value.trim() : '';
+
+  // Determinar paquete activo en pantalla
+  let activePkg = null;
+  if (typeof currentHwb !== 'undefined' && currentHwb && MANIFIESTO_GLOBAL && MANIFIESTO_GLOBAL.pids_lookup) {
+    activePkg = Object.values(MANIFIESTO_GLOBAL.pids_lookup).find(p => String(p.hwb).trim() === String(currentHwb).trim());
+  }
+
+  const plazaOp = (typeof PLAZA_OPERATIVA !== 'undefined' && PLAZA_OPERATIVA) ? PLAZA_OPERATIVA : 'QRO';
+
+  agregarMensajeChat('user', `🚨 *Escalando alerta a Supervisor:* "${dudaTexto || 'Solicito apoyo inmediato en esta parada'}"`);
+
+  showToast('Despachando alerta a Google Chat...', '🚨');
+
+  try {
+    const resp = await fetch('/.netlify/functions/tlatoani_chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pregunta: dudaTexto || 'El chofer reporta incidencia en ruta y requiere apoyo del supervisor.',
+        pochteca: CURRENT_USER,
+        plaza: plazaOp,
+        paqueteActivo: activePkg || {},
+        accion: 'escalar_supervisor'
+      })
+    });
+
+    if (resp.ok) {
+      playBeep('success');
+      agregarMensajeChat('tlatoani', '✅ <b>Alerta despachada con éxito.</b> El supervisor recibió tu notificación interactiva en Google Chat y te contactará en breve.');
+      showToast('Alerta enviada al supervisor en Google Chat', '✅');
+      if (input) input.value = '';
+    } else {
+      showToast('Error despachando alerta al supervisor', '⚠️');
+      agregarMensajeChat('tlatoani', '⚠️ Hubo un problema despachando la alerta a Google Chat. Intenta nuevamente.');
+    }
+  } catch (err) {
+    showToast('Error de red al escalar al supervisor', '❌');
+    agregarMensajeChat('tlatoani', '❌ Error de conexión al escalar alerta.');
+  }
+};
+

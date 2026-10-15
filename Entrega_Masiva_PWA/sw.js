@@ -1,10 +1,11 @@
-const CACHE_NAME = 'ollin-pure-pwa-v3-30';
+const CACHE_NAME = 'ollin-pure-pwa-v3-31';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './styles.css',
   './app.js',
   './manifiesto_activo.json',
+  './conocimiento_procedimientos.json',
   './html5-qrcode.min.js',
   './manifest.json',
   './icon-192.png',

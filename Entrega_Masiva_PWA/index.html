@@ -1007,6 +1007,154 @@
 
   </div>
 
+  <!-- ================================================================ -->
+  <!-- BOTÓN FLOTANTE (FAB) TLATOANI: COPILOTO & OJO IA DE RUTA          -->
+  <!-- ================================================================ -->
+  <button id="btn-fab-tlatoani" class="fab-tlatoani" onclick="abrirModalTlatoani()" title="Abrir Asistente Tlatoani">
+    <span class="fab-icon">🤖</span>
+    <span class="fab-text">TLATOANI</span>
+  </button>
+
+  <!-- ================================================================ -->
+  <!-- MODAL BOTTOM-SHEET: ASISTENTE OPERATIVO TLATOANI                 -->
+  <!-- ================================================================ -->
+  <div id="modal-tlatoani" class="modal-tlatoani-overlay" style="display:none;">
+    <div class="modal-tlatoani-sheet">
+      <!-- Encabezado del Modal -->
+      <div class="tlatoani-header">
+        <div class="tlatoani-header-left">
+          <div class="tlatoani-avatar">🤖</div>
+          <div>
+            <div class="tlatoani-title">TLATOANI • Ojo IA de Ruta</div>
+            <div class="tlatoani-subtitle">Copiloto Inteligente Arauto Express</div>
+          </div>
+        </div>
+        <button type="button" class="btn-close-tlatoani" onclick="cerrarModalTlatoani()" title="Cerrar">✕</button>
+      </div>
+
+      <!-- Barra de Pestañas -->
+      <div class="tlatoani-tabs">
+        <button type="button" id="tab-btn-vision" class="tlatoani-tab-btn active" onclick="cambiarTabTlatoani('vision')">
+          <span>📷</span> Asignar Guía Física
+        </button>
+        <button type="button" id="tab-btn-chat" class="tlatoani-tab-btn" onclick="cambiarTabTlatoani('chat')">
+          <span>💬</span> Procedimientos
+        </button>
+      </div>
+
+      <!-- PESTAÑA 1: INGESTA POR VISIÓN IA -->
+      <div id="tab-content-vision" class="tlatoani-tab-content">
+        <!-- Input de cámara nativo -->
+        <input type="file" id="tlatoani-camera-input" capture="environment" accept="image/*" style="display:none;" onchange="capturarFotoTlatoani(event)">
+
+        <!-- Contenedor de captura / visor -->
+        <div id="tlatoani-capture-zone" class="tlatoani-capture-box" onclick="document.getElementById('tlatoani-camera-input').click()">
+          <div id="tlatoani-preview-placeholder">
+            <span style="font-size:2.4rem;">📷</span>
+            <div style="font-weight:700;margin-top:6px;color:#F3F4F6;">Toma Foto de la Guía Física</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">Enfoca la etiqueta de DHL completa y legible</div>
+          </div>
+          <img id="tlatoani-preview-img" src="" alt="Vista previa de guía" style="display:none;width:100%;max-height:180px;object-fit:contain;border-radius:10px;">
+          
+          <!-- Overlay de Escaneo Láser OCR -->
+          <div id="tlatoani-scan-overlay" class="tlatoani-scan-laser" style="display:none;">
+            <div class="laser-beam"></div>
+            <div class="scan-spinner-text">⚡ Escaneando HWB y PID con Visión IA...</div>
+          </div>
+        </div>
+
+        <button type="button" class="btn-tlatoani-capture" onclick="document.getElementById('tlatoani-camera-input').click()">
+          <span>📸</span> Tomar Otra Foto / Reintentar
+        </button>
+
+        <!-- Tarjeta de Datos Extraídos (Editable para ajuste rápido del Pochteca) -->
+        <div id="tlatoani-extracted-card" class="tlatoani-preview-card" style="display:none;">
+          <div class="preview-card-header">
+            <span>📋 DATOS EXTRAÍDOS DE LA GUÍA</span>
+            <span id="badge-vision-ok" class="badge-mini-emerald">LISTO PARA ASIGNAR</span>
+          </div>
+
+          <div class="tlatoani-form-grid">
+            <div class="form-group-tlatoani">
+              <label>📄 GUÍA HWB (10 DÍGITOS):</label>
+              <input type="text" id="tlatoani-in-hwb" placeholder="Ej. 1234567890" maxlength="10">
+            </div>
+            <div class="form-group-tlatoani">
+              <label>🏷️ PID (DOBLE J):</label>
+              <input type="text" id="tlatoani-in-pid" placeholder="JJD014600..." style="font-family:monospace;color:#FDE047;">
+            </div>
+            <div class="form-group-tlatoani full-width">
+              <label>👤 DESTINATARIO:</label>
+              <input type="text" id="tlatoani-in-dest" placeholder="Nombre completo">
+            </div>
+            <div class="form-group-tlatoani full-width">
+              <label>🏠 DIRECCIÓN DE ENTREGA:</label>
+              <input type="text" id="tlatoani-in-dir" placeholder="Calle, número y colonia">
+            </div>
+            <div class="form-group-tlatoani">
+              <label>📮 CÓDIGO POSTAL:</label>
+              <input type="text" id="tlatoani-in-cp" placeholder="76000" maxlength="5">
+            </div>
+            <div class="form-group-tlatoani">
+              <label>📞 TELÉFONO:</label>
+              <input type="text" id="tlatoani-in-tel" placeholder="10 dígitos">
+            </div>
+          </div>
+
+          <!-- Botón de Envío a Autorización -->
+          <button type="button" id="btn-tlatoani-autorizar" class="btn-tlatoani-submit" onclick="enviarAutorizacionTlatoani()">
+            <span>📤</span> Enviar a Autorización de Supervisor
+          </button>
+
+          <!-- Badges de Estado Dinámicos -->
+          <div id="tlatoani-status-badge-pending" class="tlatoani-status-badge pending" style="display:none;">
+            <div class="spinner-mini"></div>
+            <span>🟡 Esperando autorización de supervisor en Google Chat...</span>
+          </div>
+          <div id="tlatoani-status-badge-approved" class="tlatoani-status-badge approved" style="display:none;">
+            <span>🟢 ¡Autorizado! Paquete agregado a tu ruta en caliente.</span>
+          </div>
+          <div id="tlatoani-status-badge-rejected" class="tlatoani-status-badge rejected" style="display:none;">
+            <span>🔴 Rechazado por supervisor. Mantener resguardado en camioneta.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- PESTAÑA 2: PROCEDIMIENTOS & CONSULTOR COGNITIVO -->
+      <div id="tab-content-chat" class="tlatoani-tab-content" style="display:none;">
+        <!-- Chips Rápidos de 1-Clic -->
+        <div class="tlatoani-chips-bar">
+          <button type="button" class="tlatoani-chip" onclick="consultarProcedimientoRapido('BA')">⚠️ BA Dirección</button>
+          <button type="button" class="tlatoani-chip" onclick="consultarProcedimientoRapido('NH')">🏠 NH Ausente</button>
+          <button type="button" class="tlatoani-chip" onclick="consultarProcedimientoRapido('CA')">🚫 CA Rechazo</button>
+          <button type="button" class="tlatoani-chip" onclick="consultarProcedimientoRapido('ADUANA')">💰 Aduanas COD</button>
+          <button type="button" class="tlatoani-chip" onclick="consultarProcedimientoRapido('VECINO')">👥 Vecinos</button>
+          <button type="button" class="tlatoani-chip" onclick="consultarProcedimientoRapido('30UMAS')">⚖️ 30 UMAs</button>
+        </div>
+
+        <!-- Área de Conversación / Respuestas -->
+        <div id="tlatoani-chat-messages" class="tlatoani-chat-box">
+          <div class="chat-bubble tlatoani">
+            <div class="bubble-header">🤖 TLATOANI</div>
+            <div class="bubble-text">¡Hola Pochteca! Estoy listo para resolver dudas de procedimientos de DHL en ruta al instante o escalar a tu supervisor. ¿Qué incidencia tienes?</div>
+          </div>
+        </div>
+
+        <!-- Formulario de Entrada y Botón de Escalamiento -->
+        <div class="tlatoani-chat-input-row">
+          <input type="text" id="tlatoani-chat-input" placeholder="Pregunta algo (ej: ¿Puedo dejar con vecino?)" onkeydown="if(event.key==='Enter') enviarPreguntaTlatoani()">
+          <button type="button" class="btn-tlatoani-send" onclick="enviarPreguntaTlatoani()" title="Enviar">➤</button>
+        </div>
+
+        <!-- Botón de Escalamiento Inmediato a Supervisor -->
+        <button type="button" class="btn-tlatoani-escalar" onclick="escalarSupervisorTlatoani()">
+          <span>🚨</span> Escalar a Supervisor (Alerta en Google Chat)
+        </button>
+      </div>
+
+    </div>
+  </div>
+
   <!-- Script del Controlador Autónomo v3.8.4 -->
   <script src="./app.js?v=3.8.5"></script>
 </body>

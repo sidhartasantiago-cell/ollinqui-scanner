@@ -2770,3 +2770,496 @@ body::before {
   font-size: 0.82rem;
   cursor: pointer;
 }
+
+/* ==================================================================== */
+/* 🤖 TLATOANI: FLOATING ACTION BUTTON (FAB) & ASISTENTE BOTTOM-SHEET   */
+/* ==================================================================== */
+.fab-tlatoani {
+  position: fixed;
+  bottom: 84px;
+  right: 16px;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(14, 19, 31, 0.92);
+  border: 1.8px solid #D4AF37;
+  border-radius: 30px;
+  padding: 10px 16px;
+  color: #FDE047;
+  font-family: var(--font-stack);
+  font-size: 0.85rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 20px rgba(212, 175, 55, 0.4), 0 0 12px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease;
+}
+
+.fab-tlatoani:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 6px 25px rgba(212, 175, 55, 0.6);
+}
+
+.fab-tlatoani:active {
+  transform: scale(0.96);
+}
+
+.fab-tlatoani .fab-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+/* Modal Overlay & Bottom-Sheet */
+.modal-tlatoani-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-tlatoani-sheet {
+  background: #0E131F;
+  border: 1.8px solid rgba(212, 175, 55, 0.4);
+  border-bottom: none;
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 -10px 45px rgba(0, 0, 0, 0.85);
+  max-height: 90vh;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* Header */
+.tlatoani-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tlatoani-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tlatoani-avatar {
+  font-size: 1.8rem;
+  background: rgba(212, 175, 55, 0.15);
+  border: 1.5px solid #D4AF37;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 14px rgba(212, 175, 55, 0.3);
+}
+
+.tlatoani-title {
+  color: #FDE047;
+  font-weight: 900;
+  font-size: 1.05rem;
+  letter-spacing: 0.3px;
+}
+
+.tlatoani-subtitle {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.btn-close-tlatoani {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #CBD5E1;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Tabs */
+.tlatoani-tabs {
+  display: flex;
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 4px 12px;
+  gap: 8px;
+}
+
+.tlatoani-tab-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-weight: 800;
+  font-size: 0.82rem;
+  padding: 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.tlatoani-tab-btn.active {
+  background: rgba(212, 175, 55, 0.15);
+  color: #FDE047;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+}
+
+/* Tab Contents */
+.tlatoani-tab-content {
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: calc(88vh - 120px);
+}
+
+/* Capture Box & Laser Scan */
+.tlatoani-capture-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px dashed rgba(212, 175, 55, 0.4);
+  border-radius: 16px;
+  padding: 24px 16px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.tlatoani-capture-box:hover {
+  border-color: #D4AF37;
+}
+
+.tlatoani-scan-laser {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.75);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.laser-beam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #10B981, #F59E0B, transparent);
+  box-shadow: 0 0 15px #10B981, 0 0 25px #F59E0B;
+  animation: laserSweep 1.6s ease-in-out infinite alternate;
+}
+
+@keyframes laserSweep {
+  0% { top: 10%; }
+  100% { top: 90%; }
+}
+
+.scan-spinner-text {
+  color: #FDE047;
+  font-weight: 800;
+  font-size: 0.85rem;
+  z-index: 2;
+  text-shadow: 0 0 10px rgba(0,0,0,0.8);
+}
+
+.btn-tlatoani-capture {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-main);
+  padding: 10px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+/* Preview Card & Form */
+.tlatoani-preview-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.preview-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #FDE047;
+}
+
+.badge-mini-emerald {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34D399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.tlatoani-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.form-group-tlatoani {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-group-tlatoani.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-group-tlatoani label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.form-group-tlatoani input {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #FFFFFF;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.form-group-tlatoani input:focus {
+  border-color: #D4AF37;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
+}
+
+.btn-tlatoani-submit {
+  background: linear-gradient(135deg, #F59E0B, #D97706);
+  color: #000000;
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
+  font-weight: 900;
+  font-size: 0.92rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.4);
+}
+
+/* Dynamic Status Badges */
+.tlatoani-status-badge {
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tlatoani-status-badge.pending {
+  background: rgba(245, 158, 11, 0.15);
+  color: #FDE047;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  animation: pulse 1.5s infinite;
+}
+
+.tlatoani-status-badge.approved {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34D399;
+  border: 1.5px solid #10B981;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+.tlatoani-status-badge.rejected {
+  background: rgba(239, 68, 68, 0.2);
+  color: #F87171;
+  border: 1.5px solid #EF4444;
+}
+
+.spinner-mini {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(245, 158, 11, 0.3);
+  border-top-color: #F59E0B;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Chips Bar */
+.tlatoani-chips-bar {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.tlatoani-chip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #CBD5E1;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tlatoani-chip:active, .tlatoani-chip:hover {
+  background: rgba(212, 175, 55, 0.2);
+  color: #FDE047;
+  border-color: #D4AF37;
+}
+
+/* Chat Messages */
+.tlatoani-chat-box {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 12px;
+  height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chat-bubble {
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  max-width: 85%;
+}
+
+.chat-bubble.tlatoani {
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  color: #F3F4F6;
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+
+.chat-bubble.tlatoani .bubble-header {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #FDE047;
+  margin-bottom: 4px;
+}
+
+.chat-bubble.user {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #FFFFFF;
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+
+/* Chat Input Row */
+.tlatoani-chat-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.tlatoani-chat-input-row input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: #FFFFFF;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.tlatoani-chat-input-row input:focus {
+  border-color: #D4AF37;
+}
+
+.btn-tlatoani-send {
+  background: #D4AF37;
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  padding: 0 16px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Escalar Button */
+.btn-tlatoani-escalar {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1.5px solid #EF4444;
+  color: #FCA5A5;
+  border-radius: 12px;
+  padding: 12px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-tlatoani-escalar:hover {
+  background: rgba(239, 68, 68, 0.25);
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+}

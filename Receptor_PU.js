@@ -77,6 +77,11 @@ function receptorPU_doGet(e) {
       return ContentService.createTextOutput(JSON.stringify(resBordoGet)).setMimeType(ContentService.MimeType.JSON);
     }
 
+    if (accion === "auto_asignar_guia_huerfana") {
+      var resAsigGet = procesarAutoAsignacionHuerfana_(params);
+      return ContentService.createTextOutput(JSON.stringify(resAsigGet)).setMimeType(ContentService.MimeType.JSON);
+    }
+
     return ContentService.createTextOutput(JSON.stringify({ status: "OK", mensaje: "🏛️ Webhook Receptor_PU Activo (OLLIN v77.0 PROD)" }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch(err) {
@@ -85,8 +90,139 @@ function receptorPU_doGet(e) {
   }
 }
 
+// El registro vive en el libro contenedor del script para mantener una sola fuente de verdad.
+var IDEMPOTENCIA_SHEET_NAME_ = "_IDEMPOTENCIA_EVENTOS";
+var IDEMPOTENCIA_HEADERS_ = [
+  "Evento_Key",
+  "Payload_SHA256",
+  "Estado",
+  "Resultado_JSON",
+  "Iniciado",
+  "Completado",
+  "Error"
+];
+
+function calcularHuellaIdempotencia_(payload) {
+  var bytes = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    JSON.stringify(payload),
+    Utilities.Charset.UTF_8
+  );
+  return bytes.map(function(byte) {
+    return ("0" + ((byte + 256) % 256).toString(16)).slice(-2);
+  }).join("");
+}
+
+function obtenerHojaIdempotencia_(spreadsheet) {
+  var sheet = spreadsheet.getSheetByName(IDEMPOTENCIA_SHEET_NAME_);
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet(IDEMPOTENCIA_SHEET_NAME_);
+    sheet.getRange(1, 1, 1, IDEMPOTENCIA_HEADERS_.length).setValues([IDEMPOTENCIA_HEADERS_]);
+    sheet.setFrozenRows(1);
+    sheet.hideSheet();
+  } else {
+    var actualHeaders = sheet.getLastColumn() > 0
+      ? sheet.getRange(1, 1, 1, IDEMPOTENCIA_HEADERS_.length).getValues()[0]
+      : [];
+    var encabezadosValidos = IDEMPOTENCIA_HEADERS_.every(function(header, index) {
+      return actualHeaders[index] === header;
+    });
+    if (!encabezadosValidos) {
+      throw new Error("La pestaña técnica " + IDEMPOTENCIA_SHEET_NAME_ + " tiene encabezados incompatibles.");
+    }
+    if (!sheet.isSheetHidden()) sheet.hideSheet();
+  }
+  return sheet;
+}
+
+function iniciarEventoIdempotente_(spreadsheet, tipo, id, payload, eventosAbiertos) {
+  var eventId = String(id || "").trim();
+  if (!eventId) {
+    return { estado: "INVALIDO", error: "Falta el identificador estable del evento." };
+  }
+
+  var sheet = obtenerHojaIdempotencia_(spreadsheet);
+  var eventKey = String(tipo).trim() + ":" + eventId;
+  var payloadHash = calcularHuellaIdempotencia_(payload);
+  var lastRow = sheet.getLastRow();
+  var existing = lastRow > 1
+    ? sheet.getRange(2, 1, lastRow - 1, 1).createTextFinder(eventKey).matchEntireCell(true).findNext()
+    : null;
+
+  if (existing) {
+    var row = existing.getRow();
+    var values = sheet.getRange(row, 1, 1, IDEMPOTENCIA_HEADERS_.length).getValues()[0];
+    if (values[1] !== payloadHash) {
+      return { estado: "CONFLICTO", error: "El identificador ya fue usado con un payload diferente." };
+    }
+    if (values[2] === "COMPLETADO") {
+      var resultado = JSON.parse(String(values[3] || "{}"));
+      resultado.duplicado = true;
+      return { estado: "COMPLETADO", resultado: resultado };
+    }
+    return {
+      estado: values[2] === "ERROR" ? "REQUIERE_REVISION" : "EN_PROCESO",
+      error: String(values[6] || "El evento previo no tiene confirmación de finalización.")
+    };
+  }
+
+  var claimRow = sheet.getLastRow() + 1;
+  sheet.getRange(claimRow, 1, 1, IDEMPOTENCIA_HEADERS_.length).setValues([[
+    eventKey,
+    payloadHash,
+    "EN_PROCESO",
+    "",
+    new Date(),
+    "",
+    ""
+  ]]);
+  SpreadsheetApp.flush();
+
+  var claim = { sheet: sheet, row: claimRow, key: eventKey };
+  eventosAbiertos.push(claim);
+  return { estado: "NUEVO", claim: claim };
+}
+
+function completarEventoIdempotente_(claim, resultado, eventosAbiertos) {
+  claim.sheet.getRange(claim.row, 3, 1, 5).setValues([[
+    "COMPLETADO",
+    JSON.stringify(resultado),
+    claim.sheet.getRange(claim.row, 5).getValue(),
+    new Date(),
+    ""
+  ]]);
+  quitarEventoAbierto_(claim, eventosAbiertos);
+}
+
+function fallarEventoIdempotente_(claim, error, eventosAbiertos) {
+  claim.sheet.getRange(claim.row, 3).setValue("ERROR");
+  claim.sheet.getRange(claim.row, 7).setValue(String(error && error.message || error));
+  quitarEventoAbierto_(claim, eventosAbiertos);
+}
+
+function quitarEventoAbierto_(claim, eventosAbiertos) {
+  for (var i = eventosAbiertos.length - 1; i >= 0; i--) {
+    if (eventosAbiertos[i].row === claim.row && eventosAbiertos[i].sheet.getSheetId() === claim.sheet.getSheetId()) {
+      eventosAbiertos.splice(i, 1);
+      return;
+    }
+  }
+}
+
+function respuestaIdempotente_(claimResult) {
+  if (claimResult.estado === "COMPLETADO") {
+    return claimResult.resultado;
+  }
+  return {
+    exito: false,
+    status: claimResult.estado,
+    error: claimResult.error || "No se pudo reclamar el evento."
+  };
+}
+
 function receptorPU_doPost(e) {
   var lock = LockService.getScriptLock();
+  var eventosIdempotenciaAbiertos = [];
   try {
     if (!lock.tryLock(30000)) {
       return ContentService.createTextOutput(JSON.stringify({ exito: false, error: "⚠️ Servidor ocupado." })).setMimeType(ContentService.MimeType.JSON);
@@ -166,11 +302,44 @@ function receptorPU_doPost(e) {
     }
 
     // ==========================================
+    // CANAL TLATOANI: AUTO-ASIGNACIÓN DUAL DE GUÍAS HUÉRFANAS
+    // ==========================================
+    if (datos && (datos.accion === "auto_asignar_guia_huerfana" || datos.action === "auto_asignar_guia_huerfana")) {
+      var resAsigHuerfana = procesarAutoAsignacionHuerfana_(datos);
+      return ContentService.createTextOutput(JSON.stringify(resAsigHuerfana)).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // ==========================================
     // CANAL PWA: SINCRONIZACIÓN OFFLINE DE ENTREGA MASIVA (POKA-YOKE)
     // ==========================================
     if (datos && (datos.accion === "sincronizar_entrega_masiva_offline" || datos.action === "sincronizar_entrega_masiva_offline" || datos.action === "guardar_entrega_masiva" || datos.accion === "guardar_entrega_masiva")) {
       var lotePayload = datos.lote || datos.payload || datos;
-      var resSync = procesarSincronizacionEntregaMasivaOffline_(lotePayload);
+      var idMasivo = String(lotePayload.idMasivo || "").trim();
+      if (!idMasivo) {
+        return ContentService.createTextOutput(JSON.stringify({
+          exito: false,
+          status: "ID_REQUIRED",
+          error: "El lote requiere un idMasivo estable para sincronizarse sin duplicados."
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+      var ssEntrega = SpreadsheetApp.openById("1Rj7Ce6jWIFTXTamfcgO2h-uhFKBuNhSB8m_tBY_g__w");
+      var eventoEntrega = iniciarEventoIdempotente_(
+        libro,
+        "ENTREGA_MASIVA",
+        idMasivo,
+        lotePayload,
+        eventosIdempotenciaAbiertos
+      );
+      if (eventoEntrega.estado !== "NUEVO") {
+        return ContentService.createTextOutput(JSON.stringify(respuestaIdempotente_(eventoEntrega)))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+      var resSync = procesarSincronizacionEntregaMasivaOffline_(lotePayload, ssEntrega);
+      if (resSync && resSync.exito === true) {
+        completarEventoIdempotente_(eventoEntrega.claim, resSync, eventosIdempotenciaAbiertos);
+      } else {
+        fallarEventoIdempotente_(eventoEntrega.claim, "El procesamiento no confirmó éxito.", eventosIdempotenciaAbiertos);
+      }
       return ContentService.createTextOutput(JSON.stringify(resSync)).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -267,6 +436,13 @@ function receptorPU_doPost(e) {
       var auditor = datos.auditor || "Irvin Reyes";
       var declaradasDhl = parseInt(datos.piezas_declaradas || datos.total_declaradas) || 0;
       var subtipo = datos.subtipo || "LOTE_BATCH";
+      if (subtipo === "CIERRE_RECEPCION" && !String(datos.id_recepcion || "").trim()) {
+        return ContentService.createTextOutput(JSON.stringify({
+          exito: false,
+          status: "ID_REQUIRED",
+          error: "El cierre requiere el id_recepcion estable de la sesión de rampa."
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
       var fechaHoy = new Date();
       var horaServidor = Utilities.formatDate(fechaHoy, "America/Mexico_City", "dd/MM/yyyy HH:mm:ss");
 
@@ -304,6 +480,17 @@ function receptorPU_doPost(e) {
       }
 
       if (subtipo === "CIERRE_RECEPCION") {
+        var eventoCierre = iniciarEventoIdempotente_(
+          libro,
+          "CIERRE_RECEPCION",
+          idRecepcion,
+          datos,
+          eventosIdempotenciaAbiertos
+        );
+        if (eventoCierre.estado !== "NUEVO") {
+          return ContentService.createTextOutput(JSON.stringify(respuestaIdempotente_(eventoCierre)))
+            .setMimeType(ContentService.MimeType.JSON);
+        }
         var totalRecibidas = parseInt(datos.total_recibidas) || 0;
         var diferencia = totalRecibidas - declaradasDhl;
         var estatusDictamen = diferencia < 0 ? ("FALTANTE_" + Math.abs(diferencia)) : (diferencia === 0 ? "EXACTO" : ("EXCEDENTE_" + diferencia));
@@ -390,7 +577,7 @@ function receptorPU_doPost(e) {
           Logger.log("Error al notificar Google Chat: " + eChat.message);
         }
 
-        return ContentService.createTextOutput(JSON.stringify({
+        var resultadoCierre = {
           exito: true,
           status: "OK",
           mensaje: "✅ Cierre de proceso en rampa registrado exitosamente.",
@@ -398,7 +585,9 @@ function receptorPU_doPost(e) {
           total_declaradas: declaradasDhl,
           total_recibidas: totalRecibidas,
           diferencia: diferencia
-        })).setMimeType(ContentService.MimeType.JSON);
+        };
+        completarEventoIdempotente_(eventoCierre.claim, resultadoCierre, eventosIdempotenciaAbiertos);
+        return ContentService.createTextOutput(JSON.stringify(resultadoCierre)).setMimeType(ContentService.MimeType.JSON);
       }
 
       // =====================================================================
@@ -406,7 +595,25 @@ function receptorPU_doPost(e) {
       // =====================================================================
       if (subtipo === "REGISTRAR_INCIDENCIA_FOTO") {
         var base64Img = datos.foto_base64 || "";
-        var folioIncidencia = datos.folio_incidencia || ("PID_INC_" + Math.floor(1000 + Math.random() * 9000));
+        var folioIncidencia = String(datos.folio_incidencia || "").trim();
+        if (!folioIncidencia) {
+          folioIncidencia = "PID_INC_" + calcularHuellaIdempotencia_({
+            id_recepcion: idRecepcion,
+            foto_base64: base64Img,
+            timestamp: datos.timestamp || ""
+          }).substring(0, 16).toUpperCase();
+        }
+        var eventoIncidencia = iniciarEventoIdempotente_(
+          libro,
+          "INCIDENCIA_FOTO",
+          folioIncidencia,
+          datos,
+          eventosIdempotenciaAbiertos
+        );
+        if (eventoIncidencia.estado !== "NUEVO") {
+          return ContentService.createTextOutput(JSON.stringify(respuestaIdempotente_(eventoIncidencia)))
+            .setMimeType(ContentService.MimeType.JSON);
+        }
         var fileUrl = "";
 
         // 1. Guardar foto en Google Drive (Carpeta PAINANI_INCIDENCIAS_RAMPA)
@@ -486,7 +693,7 @@ function receptorPU_doPost(e) {
           fechaHora: horaServidor
         });
 
-        return ContentService.createTextOutput(JSON.stringify({
+        var resultadoIncidencia = {
           exito: true,
           status: "OK",
           mensaje: "✅ Incidencia fotográfica procesada por IA y guardada en Bóveda.",
@@ -495,7 +702,9 @@ function receptorPU_doPost(e) {
           ia_resultado: lecturaIA,
           pid_boveda: pidParaBoveda,
           conteo_servidor: lastRowActual
-        })).setMimeType(ContentService.MimeType.JSON);
+        };
+        completarEventoIdempotente_(eventoIncidencia.claim, resultadoIncidencia, eventosIdempotenciaAbiertos);
+        return ContentService.createTextOutput(JSON.stringify(resultadoIncidencia)).setMimeType(ContentService.MimeType.JSON);
       }
 
       // Procesar escaneos (Individual o en Lote Batch)
@@ -520,6 +729,9 @@ function receptorPU_doPost(e) {
       }
 
       var filasParaInsertar = [];
+      var claimsEscaneos = [];
+      var escaneosDuplicados = 0;
+      var erroresIdempotencia = [];
       var conteoBase = Math.max(0, hojaRampa.getLastRow() - 1); // Descontar cabecera
 
       for (var s = 0; s < listaEscaneos.length; s++) {
@@ -529,6 +741,39 @@ function receptorPU_doPost(e) {
         var tipoCod = item.tipo || (codigoRaw.length === 10 && /^\d+$/.test(codigoRaw) ? "AWB" : (codigoRaw.indexOf("PID_INC_") === 0 ? "PID_INC_FOTO" : "PID"));
         var eddFis = item.edd || datos.edd_predominante || "";
         var tsEscaneo = item.timestamp || horaServidor;
+        var idEscaneo = String(item.id_escaneo || "").trim();
+        if (!idEscaneo) {
+          idEscaneo = "ESC-" + calcularHuellaIdempotencia_({
+            id_recepcion: idRecepcion,
+            codigo: codigoRaw,
+            tipo: tipoCod,
+            edd: eddFis,
+            timestamp: tsEscaneo
+          }).substring(0, 24).toUpperCase();
+        }
+        var eventoEscaneo = iniciarEventoIdempotente_(
+          libro,
+          "RAMPA_ESCANEO",
+          idRecepcion + ":" + idEscaneo,
+          {
+            id_recepcion: idRecepcion,
+            id_escaneo: idEscaneo,
+            codigo: codigoRaw,
+            tipo: tipoCod,
+            edd: eddFis,
+            timestamp: tsEscaneo
+          },
+          eventosIdempotenciaAbiertos
+        );
+        if (eventoEscaneo.estado === "COMPLETADO") {
+          escaneosDuplicados++;
+          continue;
+        }
+        if (eventoEscaneo.estado !== "NUEVO") {
+          erroresIdempotencia.push(eventoEscaneo.error || eventoEscaneo.estado);
+          continue;
+        }
+        claimsEscaneos.push(eventoEscaneo.claim);
 
         var estatusRec = (tipoCod === "PID_INC_FOTO" || codigoRaw.indexOf("PID_INC_") === 0) ? "INCIDENCIA_FOTO_LOTE" : "RECIBIDO_EN_RAMPA";
         if (item.awb_asociada) estatusRec += " [AWB:" + item.awb_asociada + "]";
@@ -544,7 +789,7 @@ function receptorPU_doPost(e) {
           auditor,
           asistenteDhl,
           declaradasDhl,
-          conteoBase + s + 1,
+          conteoBase + filasParaInsertar.length + 1,
           estatusRec,
           fechaHoy
         ]);
@@ -552,14 +797,25 @@ function receptorPU_doPost(e) {
 
       // Inyección masiva ultra-eficiente en una sola operación de bloque
       var lastRowActual = hojaRampa.getLastRow();
-      hojaRampa.getRange(lastRowActual + 1, 1, filasParaInsertar.length, filasParaInsertar[0].length).setValues(filasParaInsertar);
+      if (filasParaInsertar.length > 0) {
+        hojaRampa.getRange(lastRowActual + 1, 1, filasParaInsertar.length, filasParaInsertar[0].length).setValues(filasParaInsertar);
+        for (var c = 0; c < claimsEscaneos.length; c++) {
+          completarEventoIdempotente_(claimsEscaneos[c], {
+            exito: true,
+            status: "OK",
+            id_recepcion: idRecepcion
+          }, eventosIdempotenciaAbiertos);
+        }
+      }
 
       return ContentService.createTextOutput(JSON.stringify({
-        exito: true,
-        status: "OK",
-        mensaje: "✅ Registrados " + filasParaInsertar.length + " bultos en RECEPCION_RAMPA.",
+        exito: erroresIdempotencia.length === 0,
+        status: erroresIdempotencia.length === 0 ? "OK" : "REQUIERE_REVISION",
+        mensaje: "Registrados " + filasParaInsertar.length + " bultos; " + escaneosDuplicados + " reintentos omitidos.",
         id_recepcion: idRecepcion,
-        conteo_servidor: lastRowActual + filasParaInsertar.length - 1
+        conteo_servidor: hojaRampa.getLastRow() - 1,
+        duplicados_omitidos: escaneosDuplicados,
+        errores_idempotencia: erroresIdempotencia
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -1176,6 +1432,13 @@ function receptorPU_doPost(e) {
 
     throw new Error("⚠️ Formato de payload no identificado por el receptor de rampa.");
   } catch(error) {
+    for (var idm = eventosIdempotenciaAbiertos.length - 1; idm >= 0; idm--) {
+      try {
+        fallarEventoIdempotente_(eventosIdempotenciaAbiertos[idm], error, eventosIdempotenciaAbiertos);
+      } catch(errIdempotencia) {
+        Logger.log("Error marcando evento idempotente para revisión: " + errIdempotencia.message);
+      }
+    }
     return ContentService.createTextOutput(JSON.stringify({ exito: false, error: "❌ Error: " + error.toString() })).setMimeType(ContentService.MimeType.JSON);
   } finally {
     lock.releaseLock();
@@ -2233,9 +2496,9 @@ function getHeaderIndex_(headers, name, fallbackIdx) {
   return fallbackIdx !== undefined ? fallbackIdx : -1;
 }
 
-function procesarSincronizacionEntregaMasivaOffline_(loteData) {
+function procesarSincronizacionEntregaMasivaOffline_(loteData, spreadsheet) {
   var ID_BD_APP_RUTA_2025 = "1Rj7Ce6jWIFTXTamfcgO2h-uhFKBuNhSB8m_tBY_g__w";
-  var ss = SpreadsheetApp.openById(ID_BD_APP_RUTA_2025);
+  var ss = spreadsheet || SpreadsheetApp.openById(ID_BD_APP_RUTA_2025);
   
   var idMasivo = String(loteData.idMasivo || ("MASIVO_" + Utilities.formatDate(new Date(), "America/Mexico_City", "yyyyMMdd_HHmmss"))).trim();
   var chofer = String(loteData.chofer || "").trim();
@@ -3616,4 +3879,131 @@ function procesarCargaABordo_(payload) {
   };
 }
 
+/**
+ * 🏛️ CANAL TLATOANI: AUTO-ASIGNACIÓN DUAL DE GUÍAS HUÉRFANAS (OLLIN v87.0 PROD)
+ * Inyecta sincrónicamente en:
+ * 1. BD Central 2023 (hoja 'Ruta' o 'Ruta LEN')
+ * 2. OLLIN_OPERACIONES_2026 (hojas 'RUTA_OLLINQUI' e 'INGESTA_DIARIA')
+ * 3. BOVEDA_BATCH_MAESTRO (hoja 'RAW_PIECE' / '1_BATCH_DHL_PLAN')
+ * Asegura la Ley de la Doble J y el Checkpoint 'FD'.
+ */
+function procesarAutoAsignacionHuerfana_(datos) {
+  try {
+    var guia = String(datos.guia || datos.hwb || "").trim();
+    var pidRaw = String(datos.pid || "").trim();
+    var choferEmail = String(datos.choferEmail || datos.chofer || datos.correo || "").trim().toLowerCase();
+    var supervisorEmail = String(datos.supervisorEmail || datos.supervisor || "").trim().toLowerCase();
+    var plaza = String(datos.plaza || "QRO").trim().toUpperCase();
+    var direccion = String(datos.direccion || "").trim();
+    var destinatario = String(datos.destinatario || "Cliente en sistema").trim();
+    var cp = String(datos.cp || "").trim();
+    var piezas = parseInt(datos.piezas) || 1;
+    var peso = parseFloat(datos.peso) || 1.0;
+    var telefono = String(datos.telefono || datos.tel || "").trim();
+    var urlEvidencia = String(datos.urlEvidencia || datos.url_foto || "").trim();
+    var gps = String(datos.gps || "").trim();
 
+    if (!guia || guia.length < 9) {
+      return { exito: false, error: "Guía HWB inválida (debe tener al menos 9 o 10 dígitos)." };
+    }
+    if (!choferEmail) {
+      return { exito: false, error: "Falta el correo del Pochteca solicitante." };
+    }
+
+    // Ley de la Doble J
+    var pidBoveda = pidRaw;
+    var pidAppSheet = pidRaw;
+    if (pidRaw.toUpperCase().startsWith("JJD")) {
+      pidBoveda = "JD" + pidRaw.substring(3);
+      pidAppSheet = pidRaw.toUpperCase();
+    } else if (pidRaw.toUpperCase().startsWith("JD")) {
+      pidBoveda = pidRaw.toUpperCase();
+      pidAppSheet = "J" + pidRaw.toUpperCase();
+    } else if (pidRaw) {
+      pidBoveda = "JD" + pidRaw;
+      pidAppSheet = "JJD" + pidRaw;
+    }
+
+    var fechaHoyStr = Utilities.formatDate(new Date(), "America/Mexico_City", "yyyy-MM-dd");
+    var timestampServidor = Utilities.formatDate(new Date(), "America/Mexico_City", "dd/MM/yyyy HH:mm:ss");
+    var idEvento = "ASIG-" + guia + "-" + Utilities.getUuid().substring(0, 6);
+
+    // 1. Inyección en BD Central (Ruta o Ruta LEN)
+    var libroCentralId = (plaza === "LEN") ? "1Qu9q7LCBIY5PcWYqKwroIRX9b57NCOwmvbP-cQJ_hGQ" : "1osolxYzL12I05J2CUy5PBAGpPD2Z3XeU37RzUlFPPO8";
+    var ssCentral = SpreadsheetApp.openById(libroCentralId);
+    var hojaNombreRuta = (plaza === "LEN") ? "Ruta LEN" : "Ruta";
+    var hojaRuta = ssCentral.getSheetByName(hojaNombreRuta) || ssCentral.getSheetByName("RUTA");
+
+    var inyectadoEnCentral = false;
+    if (hojaRuta) {
+      var keyUUID = Utilities.getUuid().substring(0, 8);
+      hojaRuta.appendRow([
+        guia, pidAppSheet, cp, piezas,
+        direccion, "", "",
+        destinatario, "", "FD", "Auto-Asignación Tlatoani (" + (supervisorEmail || "PENDIENTE") + ")", fechaHoyStr, timestampServidor, "", choferEmail,
+        fechaHoyStr, "", keyUUID, "", urlEvidencia, "", telefono
+      ]);
+      inyectadoEnCentral = true;
+    }
+
+    // 2. Inyección en OLLIN_OPERACIONES_2026 (RUTA_OLLINQUI)
+    var inyectadoEnOperaciones = false;
+    try {
+      var ssOps = SpreadsheetApp.openById("1njJIZBtYVqwtyNS-1SkeTMxDh7y6RctH2yoL0vXltbk");
+      var hojaRutaOps = ssOps.getSheetByName("RUTA_OLLINQUI");
+      if (hojaRutaOps) {
+        hojaRutaOps.appendRow([
+          idEvento, pidBoveda, guia, "FD", destinatario,
+          "", urlEvidencia, "", gps, choferEmail, timestampServidor, timestampServidor
+        ]);
+        inyectadoEnOperaciones = true;
+      }
+      var hojaIngesta = ssOps.getSheetByName("INGESTA_DIARIA");
+      if (hojaIngesta) {
+        hojaIngesta.appendRow([
+          timestampServidor, guia, pidBoveda, piezas, destinatario,
+          direccion, cp, telefono, choferEmail, "ASIGNACION_TLATOANI", plaza, supervisorEmail
+        ]);
+      }
+    } catch (eOps) {
+      Logger.log("Aviso OLLIN_OPERACIONES_2026: " + eOps.message);
+    }
+
+    // 3. Inyección en BÓVEDA / Caja Negra
+    var inyectadoEnBoveda = false;
+    try {
+      var libroBovedaId = (plaza === "LEN") ? "1UPoGsJCXamRKcrMxleHp8b7XEMn_gHplcE1ZdcYITFM" : "1wIz5YlSbpOLtDY9UNShZ9LHdcez_Vyxlu1wYxBZKTkw";
+      var ssBoveda = SpreadsheetApp.openById(libroBovedaId);
+      var hojaBov = ssBoveda.getSheetByName("RAW_PIECE") || ssBoveda.getSheetByName("1_BATCH_DHL_PLAN") || ssBoveda.getSheetByName("1_BATCH_DHL_PLAN_LEN");
+      if (hojaBov) {
+        hojaBov.appendRow([
+          timestampServidor, guia, pidBoveda, piezas, destinatario,
+          direccion, cp, telefono, choferEmail, "TLATOANI_VISION_OK"
+        ]);
+        inyectadoEnBoveda = true;
+      }
+    } catch (eBov) {
+      Logger.log("Aviso Bóveda: " + eBov.message);
+    }
+
+    SpreadsheetApp.flush();
+
+    return {
+      exito: true,
+      mensaje: "✅ Guía " + guia + " asignada e inyectada con éxito a " + choferEmail,
+      guia: guia,
+      pid: pidAppSheet,
+      pidBoveda: pidBoveda,
+      chofer: choferEmail,
+      supervisor: supervisorEmail,
+      idEvento: idEvento,
+      timestamp: timestampServidor,
+      inyectadoCentral: inyectadoEnCentral,
+      inyectadoOperaciones: inyectadoEnOperaciones,
+      inyectadoBoveda: inyectadoEnBoveda
+    };
+  } catch (err) {
+    Logger.log("❌ Error en procesarAutoAsignacionHuerfana_: " + err.message);
+    return { exito: false, error: err.message };
+  }
+}

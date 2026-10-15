@@ -1,45 +1,33 @@
-# 📜 REGLA MAESTRA: ESQUEMA RÍGIDO DE 25 COLUMNAS Y DOBLE J (OLLIN v77.0 PROD)
+# 📜 REGLA MAESTRA: ESQUEMA MODERNO OLLINQUI PWA Y BÓVEDA FACTURACIÓN (OLLIN v84.0 PROD)
 
 ## Propósito
-Evitar la regresión más destructiva del andén de Querétaro: el **Column Shifting**.
-Define la estructura rígida de 25 columnas de `VALIDACIÓN_QRO_2025` y la regla de
-transformación de bultos "Doble J".
+Define la estructura moderna de 15 columnas de `VALIDACIÓN_QRO_2025` alineada 1:1 a Ollinqui PWA y el flujo automatizado de visto bueno hacia `FACTURADOS_PROD_2026` en `BOVEDA_BATCH_MAESTRO`, eliminando la necesidad de auditoría manual directa en hojas de cálculo.
 
-## Esquema de 25 Columnas (Base 0 — JavaScript)
+## Esquema Moderno de 15 Columnas de VALIDACIÓN_QRO_2025
 
-| Idx | Columna              | Col  | Tipo          |
-|:---:|:---------------------|:----:|:-------------:|
-|  0  | Guia                 |  A   | Texto         |
-|  1  | PID                  |  B   | Texto         |
-|  2  | C.P.                 |  C   | Texto/Número  |
-|  3  | Piezas               |  D   | Número        |
-|  4  | Rcvr Addr 1          |  E   | Texto         |
-|  5  | Rcvr Addr 2          |  F   | Texto         |
-|  6  | Rcvr Addr 3          |  G   | Texto         |
-|  7  | Receiver Name        |  H   | Texto         |
-|  8  | GPS                  |  I   | Texto         |
-|  9  | Checkpoint           |  J   | Texto         |
-| 10  | Comentarios          |  K   | Texto         |
-| 11  | Fecha asignación     |  L   | Fecha         |
-| 12  | Fecha en ruta        |  M   | Fecha/Hora    |
-| 13  | Imagen fachada       |  N   | URL Imagen    |
-| 14  | ID correo            |  O   | Texto         |
-| 15  | EDD                  |  P   | Fecha         |
-| 16  | KEY                  |  Q   | Texto         |
-| 17  | Tipo de servicio     |  R   | Texto         |
-| 18  | Inter                |  S   | Texto         |
-| 19  | Firma                |  T   | URL Imagen    |
-| 20  | Telefono             |  U   | Texto         |
-| 21  | Hora de llegada      |  V   | Fecha/Hora    |
-| 22  | Aprobación Auditor   |  W   | Checkbox      |
-| 23  | Motivo de Rechazo    |  X   | Texto         |
-| 24  | Marca de Tiempo      |  Y   | Fecha/Hora    |
+| Idx | Columna             | Col | Tipo         | Descripción                                        |
+|:---:|:--------------------|:---:|:------------:|:---------------------------------------------------|
+|  0  | Guia                |  A  | Texto        | HWB de 10 dígitos                                  |
+|  1  | PID                 |  B  | Texto        | Formato Doble J (`JJD...`)                         |
+|  2  | CP                  |  C  | Texto/Número | Código Postal de entrega                           |
+|  3  | Checkpoint          |  D  | Texto        | `OK`, `BA`, `NH`, `CA`, `RD`, etc.                 |
+|  4  | Receptor            |  E  | Texto        | Nombre de quien recibe                             |
+|  5  | Firma               |  F  | URL / Ruta   | Evidencia de firma digital                         |
+|  6  | Foto_Fachada        |  G  | URL / Ruta   | Evidencia fotográfica de fachada / inmueble        |
+|  7  | Audio_Teoyolotl     |  H  | URL / Ruta   | Evidencia de audio por voz (Teoyolotl Mic)         |
+|  8  | GPS                 |  I  | Coordenadas  | Latitud, Longitud                                  |
+|  9  | Pochteca            |  J  | Email        | Correo del operador asignado                       |
+| 10  | Fecha_Entrega       |  K  | Fecha/Hora   | Marca de tiempo local de entrega                   |
+| 11  | Aprobacion_Auditor  |  L  | Estado       | `PENDIENTE` / `APROBADO` / `RECHAZADO`             |
+| 12  | Motivo_Rechazo      |  M  | Texto        | Observaciones del auditor                          |
+| 13  | Auditor_Validador   |  N  | Email        | Correo del auditor (Irvin)                         |
+| 14  | Marca_Tiempo        |  O  | Fecha/Hora   | Timestamp del sistema al auditar                   |
 
-## Candados Inmutables
-
-1. La columna `Actualización` (antiguo índice 16) está **extinta**. No restaurar.
-2. `KEY` reside fija en **índice 16 (Columna Q)**. No mover.
-3. `Telefono` reside en **índice 20 (Columna U)**. No inyectar firma aquí.
+## Destino Definitivo de Facturación: `FACTURADOS_PROD_2026`
+Al otorgar el "Visto Bueno" en la Consola Maestra:
+- La tabla de facturación histórica `"2025 Tabla de facturacion QRO 2.0"` queda estrictamente como **archivo histórico**.
+- Los registros validados se inyectan en caliente a `BOVEDA_BATCH_MAESTRO` (`FACTURADOS_PROD_2026`) listos para liquidación semanal y cobro a DHL.
+- El PID se sanitiza automáticamente al estándar canónico de Bóveda (`JD...`).
 
 ## Ley de la Doble J (Formato de PIDs)
 

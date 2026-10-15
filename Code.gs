@@ -35,10 +35,16 @@ function doGet(e) {
   // 1. Delegación a Receptor_PU para webhooks de AppSheet / Ollinqui PWA
   var accionPU = (e && e.parameter && (e.parameter.accion || e.parameter.action)) || '';
   if (accionPU && typeof receptorPU_doGet === 'function') {
-    var accionesLocales = ['auditar_duplicados', 'procesar_aclaraciones', 'escanear_reclamos_gmail', 'depurar_gmail_historico', 'escanear_reclamos_en_vivo', 'clasificar_y_archivar_gmail', 'consulta_historica', 'inyectar_referencias_previas'];
+    var accionesLocales = ['auditar_duplicados', 'procesar_aclaraciones', 'escanear_reclamos_gmail', 'depurar_gmail_historico', 'escanear_reclamos_en_vivo', 'clasificar_y_archivar_gmail', 'consulta_historica', 'inyectar_referencias_previas', 'resumen_len_wa'];
     if (accionesLocales.indexOf(accionPU.toLowerCase()) === -1 && !page) {
       return receptorPU_doGet(e);
     }
+  }
+
+  if (page.toLowerCase() === 'resumen_len_wa' || (e && e.parameter && (e.parameter.action === 'resumen_len_wa' || e.parameter.accion === 'resumen_len_wa'))) {
+    // Ruta desactivada: el resumen se envía por trigger diario (enviarResumenLENDiario) y outbox.
+    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: 'Ruta desactivada' }))
+      .setMimeType(ContentService.MimeType.JSON);
   }
 
   if (page.toLowerCase() === 'auditar_duplicados' || (e && e.parameter && e.parameter.action === 'auditar_duplicados')) {
