@@ -11,7 +11,7 @@
   <meta name="theme-color" content="#0B0F19">
   
   <!-- Estilos Visuales Obsidiana Náhuatl Premium & Glassmorphism -->
-  <link rel="stylesheet" href="./styles.css?v=3.3">
+  <link rel="stylesheet" href="./styles.css?v=3.8.6">
 
   <!-- Carga Html5Qrcode local para escaneo de cámara sin dependencias externas -->
   <script src="./html5-qrcode.min.js"></script>
@@ -41,6 +41,7 @@
           <option value="fernando.maestro.1991@gmail.com">Fernando Maestro [QRO Metrópoli]</option>
           <option value="xichudaniel@gmail.com">Daniel Juárez [Xichú / Sierra]</option>
           <option value="fmsanluispaq@gmail.com">Gregorio Adonai [San Luis de la Paz]</option>
+          <option value="mickeyroglez@gmail.com">Miguel Rojas [San Luis de la Paz / Pochteca]</option>
           <option value="fmpaqueteriatvsm@gmail.com">Lyonnet Ramírez [Jalpan / SJI]</option>
           <option value="yesigonzg1827@gmail.com">Maria Rosi [Pinal de Amoles]</option>
           <option value="victor18amadorm@gmail.com">Víctor Amador [Comodín Sierra]</option>
@@ -475,12 +476,18 @@
         </button>
         <div class="stage-nav-center">
           <div class="stage-badge-operador" id="stage-user-pill">Edgar R.</div>
+          <button type="button" class="btn-nav-tlatoani" onclick="abrirModalTlatoani()" title="Abrir Asistente Tlatoani">
+            <span>🤖</span> <span class="nav-tlatoani-text">TLATOANI</span>
+          </button>
         </div>
         <div class="stage-lote-counter" id="counter-bultos">0 Bultos</div>
       </div>
 
-      <!-- Escenario Superior de Escaneo Dual -->
-      <div class="compact-scan-stage">
+      <!-- Contenedor Central con Scroll Ergonómico Poka-Yoke -->
+      <div class="stage-scrollable-body" id="stage-scroll-body">
+
+        <!-- Escenario Superior de Escaneo Dual -->
+        <div class="compact-scan-stage">
         <!-- Botón Táctil Prominente para Abrir/Cerrar Cámara -->
         <button type="button" class="btn-trigger-camera-touch" id="btn-trigger-cam" onclick="toggleCamaraPorToque()">
           <span id="cam-trigger-icon">📷</span>
@@ -639,7 +646,8 @@
             ✏️ Corregir
           </button>
         </div>
-      </div>
+      </div> <!-- Fin ia-copilot-card -->
+      </div> <!-- Fin stage-scrollable-body -->
 
       <!-- Dock Inferior Fijo: Teoyolotl Mic + Botones de Acción -->
       <div class="static-dock-bottom">
@@ -1155,7 +1163,7 @@
     </div>
   </div>
 
-  <!-- Script del Controlador Autónomo v3.8.4 -->
-  <script src="./app.js?v=3.8.5"></script>
+  <!-- Script del Controlador Autónomo v3.8.6 -->
+  <script src="./app.js?v=3.8.6"></script>
 </body>
 </html>

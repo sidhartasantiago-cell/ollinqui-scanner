@@ -20,6 +20,7 @@ const DIRECTORIO_POCHTECAS = {
   "yesigonzg1827@gmail.com": { nombre: "Rosi", tiene_7ca: false, rol: "POCHTECA", telefono: "" },
   "edgar.rodriguez.arauto@gmail.com": { nombre: "Edgar", tiene_7ca: true, rol: "POCHTECA", telefono: "" },
   "fernando.maestro.1991@gmail.com": { nombre: "Fernando", tiene_7ca: false, rol: "POCHTECA", telefono: "" },
+  "mickeyroglez@gmail.com": { nombre: "Miguel", tiene_7ca: false, rol: "POCHTECA", telefono: "" },
   "irvin.reyes@arauto.express": { nombre: "Irvin", tiene_7ca: false, rol: "TLACHIXQUI", telefono: "" },
   "sidharta.santiago@arauto.express": { nombre: "Sidharta", tiene_7ca: false, rol: "TLAYACANQUI", telefono: "" }
 };
@@ -908,6 +909,15 @@ window.navegarA = function(vistaId) {
   const targetView = document.getElementById(vistaId);
   if (targetView) targetView.classList.add('active');
   currentActiveView = vistaId;
+
+  // Control Poka-Yoke de FAB TLATOANI: en view-entrega vive en la barra superior
+  if (document.body) {
+    if (vistaId === 'view-entrega') {
+      document.body.classList.add('in-view-entrega');
+    } else {
+      document.body.classList.remove('in-view-entrega');
+    }
+  }
 
   // En la vista de entrega: El láser queda listo y enfocado inmediatamente
   if (vistaId === 'view-entrega') {

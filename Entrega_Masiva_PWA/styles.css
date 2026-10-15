@@ -1752,6 +1752,12 @@ body::before {
   transform: scale(0.95);
 }
 
+.stage-nav-center {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .stage-badge-operador {
   font-size: 0.72rem;
   font-weight: 800;
@@ -1762,6 +1768,27 @@ body::before {
   border-radius: 12px;
 }
 
+.btn-nav-tlatoani {
+  background: rgba(212, 175, 55, 0.15);
+  border: 1.2px solid var(--gold-primary);
+  color: #FDE047;
+  border-radius: 12px;
+  padding: 3px 8px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.25);
+}
+
+.btn-nav-tlatoani:active {
+  transform: scale(0.95);
+  background: rgba(212, 175, 55, 0.3);
+}
+
 .stage-lote-counter {
   font-size: 0.75rem;
   font-weight: 800;
@@ -1770,6 +1797,32 @@ body::before {
   border: 1px solid rgba(16, 185, 129, 0.3);
   padding: 3px 8px;
   border-radius: 12px;
+}
+
+/* Contenedor Central con Scroll Ergonómico Poka-Yoke */
+.stage-scrollable-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 6px;
+  min-height: 0;
+}
+
+.stage-scrollable-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.stage-scrollable-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.stage-scrollable-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
 }
 
 /* Escenario Superior: Botón Táctil de Cámara y Visor Dinámico */
@@ -2061,16 +2114,16 @@ body::before {
 
 /* Rejilla Ergonómica 2 Columnas de Checkpoints Obsidian */
 .checkpoints-stage-card {
-  flex: 1;
+  flex: none;
   display: flex;
   flex-direction: column;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   backdrop-filter: blur(12px);
   border-radius: 14px;
-  padding: 8px 12px;
-  margin-top: 6px;
-  overflow: hidden;
+  padding: 8px 10px;
+  margin-top: 4px;
+  overflow: visible;
 }
 
 .cp-header-row {
@@ -2096,26 +2149,27 @@ body::before {
 .grid-cp-2col {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  flex: 1;
+  gap: 6px;
+  flex: none;
 }
 
 .btn-cp-obsidian {
   background: linear-gradient(145deg, rgba(30, 41, 59, 0.75), rgba(15, 23, 42, 0.85));
   border: 1.5px solid rgba(255, 255, 255, 0.14);
-  border-radius: 14px;
-  padding: 12px 10px;
+  border-radius: 12px;
+  padding: 8px 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 3px;
   cursor: pointer;
   transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: center;
   user-select: none;
   touch-action: manipulation;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  min-height: 60px;
 }
 
 .btn-cp-obsidian:active {
@@ -2123,7 +2177,7 @@ body::before {
 }
 
 .btn-cp-obsidian .cp-icon {
-  font-size: 2.3rem;
+  font-size: 1.75rem;
   line-height: 1;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
   transition: transform 0.15s ease;
@@ -2137,32 +2191,32 @@ body::before {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 1px;
 }
 
 .btn-cp-obsidian .cp-title {
-  font-size: 1.45rem;
+  font-size: 1.22rem;
   font-weight: 900;
   color: #FFFFFF;
-  letter-spacing: 1px;
-  line-height: 1.1;
+  letter-spacing: 0.5px;
+  line-height: 1;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
 }
 
 .btn-cp-obsidian .cp-sub {
-  font-size: 0.88rem;
+  font-size: 0.76rem;
   font-weight: 700;
   color: #CBD5E1;
-  line-height: 1.2;
+  line-height: 1.1;
   white-space: nowrap;
 }
 
 .btn-cp-obsidian .cp-desc {
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 600;
   color: #94A3B8;
-  line-height: 1.15;
-  margin-top: 2px;
+  line-height: 1.1;
+  margin-top: 1px;
 }
 
 .btn-cp-obsidian.active .cp-desc {
@@ -2287,22 +2341,23 @@ body::before {
   flex: none;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 0 4px 0;
-  height: 64px;
+  gap: 6px;
+  padding: 6px 0 2px 0;
+  height: 58px;
   box-sizing: border-box;
 }
 
 .capsule-teoyolotl-compact {
-  flex: 1.2;
-  height: 48px;
+  flex: 1;
+  min-width: 0;
+  height: 46px;
   background: rgba(245, 158, 11, 0.1);
   border: 1px solid rgba(245, 158, 11, 0.35);
   border-radius: 12px;
-  padding: 0 8px;
+  padding: 0 6px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   cursor: pointer;
   transition: all 0.18s ease;
 }
@@ -2315,50 +2370,61 @@ body::before {
 
 .capsule-text-wrap {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .capsule-title {
-  font-size: 0.75rem;
+  font-size: 0.73rem;
   font-weight: 800;
   color: #FFFFFF;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .capsule-sub {
-  font-size: 0.62rem;
+  font-size: 0.6rem;
   color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .btn-dock-evidence {
-  height: 48px;
+  height: 46px;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: #FFFFFF;
   border-radius: 12px;
-  padding: 0 10px;
-  font-size: 0.75rem;
+  padding: 0 8px;
+  font-size: 0.72rem;
   font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
+  flex: none;
+  white-space: nowrap;
 }
 
 .btn-dock-submit {
-  flex: 1.5;
-  height: 48px;
+  flex: 1.4;
+  min-width: 0;
+  height: 46px;
   background: linear-gradient(135deg, #10B981, #059669);
   border: none;
   color: #FFFFFF;
   border-radius: 12px;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: 900;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
   transition: all 0.15s ease;
+  white-space: nowrap;
+  padding: 0 6px;
 }
 
 .btn-dock-submit:active {
@@ -2366,17 +2432,18 @@ body::before {
 }
 
 .btn-dock-clear {
-  height: 48px;
-  width: 42px;
+  height: 46px;
+  width: 36px;
   background: rgba(239, 68, 68, 0.12);
   border: 1px solid rgba(239, 68, 68, 0.3);
   color: #F87171;
   border-radius: 12px;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex: none;
 }
 
 /* 3. BOTTOM SHEET MODAL (EVIDENCIA / FIRMA / FOTO) */
@@ -2776,8 +2843,8 @@ body::before {
 /* ==================================================================== */
 .fab-tlatoani {
   position: fixed;
-  bottom: 84px;
-  right: 16px;
+  bottom: 76px;
+  right: 14px;
   z-index: 900;
   display: flex;
   align-items: center;
@@ -2785,10 +2852,10 @@ body::before {
   background: rgba(14, 19, 31, 0.92);
   border: 1.8px solid #D4AF37;
   border-radius: 30px;
-  padding: 10px 16px;
+  padding: 8px 14px;
   color: #FDE047;
   font-family: var(--font-stack);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 900;
   letter-spacing: 0.5px;
   box-shadow: 0 4px 20px rgba(212, 175, 55, 0.4), 0 0 12px rgba(0, 0, 0, 0.6);
@@ -2796,6 +2863,11 @@ body::before {
   -webkit-backdrop-filter: blur(16px);
   cursor: pointer;
   transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease;
+}
+
+/* En la estación de entrega, el asistente TLATOANI vive en la barra superior (stage-nav-bar) */
+body.in-view-entrega .fab-tlatoani {
+  display: none !important;
 }
 
 .fab-tlatoani:hover {
