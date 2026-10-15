@@ -4730,3 +4730,12 @@ Se generó el archivo CSV canónico de 14 columnas con los **37 PIDs hermanos fa
   - Google Apps Script: Despliegue activo AKfycbwCKdmeHHqRwsNAMJTjxaEDiznvYdPggPchlrVhQcd5kbW7LfLn_qub-fCn6w6JmyRw actualizado a la versión **@254**.
   - Netlify Production: Despliegue exitoso ID 6ad0537ee2fafeb79789917a en https://entrega.arauto.express (4 Serverless Functions activas: session, 	latoani_vision, 	latoani_autorizar, 	latoani_chat).
   - Pruebas en Vivo: Verificación HTTP 200 de sondeo de autorización y respuesta de IA en tiempo real (< 3s).
+
+### Addendum 2: Calibración Cognitiva y Buzón de Aprendizaje Continuo (v87.1 PROD)
+- **Causa Raíz Identificada:** Falta de procedimiento estándar de 'Entrega Regular / PID' en la base local, glosario incompleto en la nube y consumo excesivo de tokens por 'thinking tokens' en Gemini Flash que truncaba respuestas a medias.
+- **Mejoras Implementadas:**
+  1. *Ampliación de Base Local:* Crecimiento de 8 a 14 procedimientos canónicos en conocimiento_procedimientos.json (incluyendo flujo de entrega de PID, carga a bordo, multipiezas, daños, cheques y modo offline).
+  2. *Buscador Heurístico:* Algoritmo de ponderación léxica en pp.js capaz de reconocer modismos y raíces de palabras de choferes en calle a 5ms y 0 tokens.
+  3. *Buzón de Aprendizaje Continuo:* Sistema de captura en 	latoani_buzon_aprendizaje.json para acumular dudas no resueltas de la semana para análisis y expansión con AXO o Antigravity.
+  4. *Calibración de Thinking Budget:* Configurado 	hinkingConfig: { thinkingBudget: 0 } y maxOutputTokens: 1500 en 	latoani_chat.js, resolviendo definitivamente los truncamientos y logrando respuestas directas, estructuradas y con reglas Poka-Yoke.
+  5. *Despliegue Productivo:* Desplegado en Netlify bajo ID 6ad06a6f636d0d53b0d7d9fd en https://entrega.arauto.express. 18/18 tests unitarios en PASS.
