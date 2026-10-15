@@ -4887,15 +4887,82 @@ function agregarMensajeChat(remitente, texto) {
   box.scrollTop = box.scrollHeight;
 }
 
+function buscarProcedimientoHeuristico(texto, procedimientos = PROCEDIMIENTOS_TLATOANI) {
+  if (!texto || !Array.isArray(procedimientos) || procedimientos.length === 0) return null;
+  const textoNorm = String(texto).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  const palabrasUsuario = textoNorm
+    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()¿?¡!"']/g, " ")
+    .split(/\s+/)
+    .filter(w => w.length > 0);
+
+  if (palabrasUsuario.length === 0) return null;
+
+  const validShortTokens = new Set(['ba', 'nh', 'ca', 'rd', 'wc', 'cp', 'ok', 'pu', '13s', 'pid', 'hwb', 'cod']);
+  const stopWords = new Set(['el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'de', 'del', 'a', 'al', 'en', 'para', 'por', 'con', 'y', 'o', 'que', 'se', 'su', 'mi', 'tu', 'si', 'no', 'lo']);
+
+  let mejorMatch = null;
+  let maxPuntos = 0;
+
+  for (const proc of procedimientos) {
+    if (!proc) continue;
+    let puntos = 0;
+
+    // 0. Coincidencia directa con ID
+    const idNorm = String(proc.id || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (textoNorm === idNorm || idNorm.includes(textoNorm)) {
+      puntos += 15;
+    }
+
+    // 1. Coincidencias en claves
+    if (proc.claves && Array.isArray(proc.claves)) {
+      for (const claveRaw of proc.claves) {
+        const claveNorm = String(claveRaw).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        if (!claveNorm) continue;
+
+        // Coincidencia exacta de frase completa
+        if (textoNorm.includes(claveNorm)) {
+          puntos += claveNorm.includes(' ') ? 10 : 5;
+        }
+
+        // Coincidencias por palabras individuales
+        const palabrasClave = claveNorm
+          .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()¿?¡!"']/g, " ")
+          .split(/\s+/)
+          .filter(w => w.length > 0);
+
+        for (const w of palabrasClave) {
+          if (w.length <= 2 && !validShortTokens.has(w)) continue;
+          if (stopWords.has(w)) continue;
+
+          if (palabrasUsuario.includes(w)) {
+            puntos += 3;
+          } else if (w.length >= 4) {
+            // Coincidencia parcial por prefijo/raíz
+            if (palabrasUsuario.some(pu => pu.length >= 4 && (pu.startsWith(w.slice(0, 4)) || w.startsWith(pu.slice(0, 4))))) {
+              puntos += 2;
+            }
+          }
+        }
+      }
+    }
+
+    if (puntos > maxPuntos) {
+      maxPuntos = puntos;
+      mejorMatch = proc;
+    }
+  }
+
+  return maxPuntos >= 3 ? mejorMatch : null;
+}
+
+window.buscarProcedimientoHeuristico = buscarProcedimientoHeuristico;
+
 window.consultarProcedimientoRapido = function(clave) {
   playBeep('select');
   const claveNorm = clave.toLowerCase().trim();
 
   // Buscar en PROCEDIMIENTOS_TLATOANI
-  let proc = PROCEDIMIENTOS_TLATOANI.find(p => {
-    return p.id.toLowerCase().includes(claveNorm) ||
-      (p.claves && p.claves.some(c => c.toLowerCase() === claveNorm || claveNorm.includes(c.toLowerCase())));
-  });
+  let proc = buscarProcedimientoHeuristico(claveNorm, PROCEDIMIENTOS_TLATOANI);
 
   agregarMensajeChat('user', `Procedimiento: ${clave.toUpperCase()}`);
 
@@ -4934,13 +5001,7 @@ window.enviarPreguntaTlatoani = async function() {
   agregarMensajeChat('user', texto);
 
   // 1. TIER 1 LOCAL: Búsqueda heurística por palabras clave ($0 tokens, 5ms)
-  const textoLow = texto.toLowerCase();
-  const match = PROCEDIMIENTOS_TLATOANI.find(p => {
-    if (p.claves && Array.isArray(p.claves)) {
-      return p.claves.some(k => textoLow.includes(k.toLowerCase()));
-    }
-    return false;
-  });
+  const match = buscarProcedimientoHeuristico(texto, PROCEDIMIENTOS_TLATOANI);
 
   if (match) {
     let contenido = `<b>${match.titulo}</b><br><br>${match.respuesta_corta}<br><br>`;
@@ -4951,6 +5012,12 @@ window.enviarPreguntaTlatoani = async function() {
       contenido += `⚠️ <i>${match.advertencia}</i>`;
     }
     agregarMensajeChat('tlatoani', contenido);
+    return;
+  }
+
+  // 1.1 Si no hay red y no hubo coincidencia local, avisar amablemente
+  if (!navigator.onLine) {
+    agregarMensajeChat('tlatoani', '📡 Sin señal celular en esta zona: revisa los botones rápidos de arriba o recupera conexión para consultar a la IA.');
     return;
   }
 

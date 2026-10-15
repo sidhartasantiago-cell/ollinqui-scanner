@@ -110,6 +110,90 @@
         "4. Pulsa detener o deja que corte a los 13 segundos. El audio se comprime y se sube en automático."
       ],
       "advertencia": "El audio es obligatorio en todos los checkpoints de incidencia (BA, NH, CA, RD) para evitar penalizaciones de DHL."
+    },
+    {
+      "id": "FLUJO_ENTREGA_REGULAR_PID",
+      "titulo": "Procedimiento de Entrega de un PID (Paso a Paso)",
+      "claves": ["entregar", "entrega", "pid", "antes de entregar", "primer paso", "como entregar", "procedimiento entrega", "pasos entrega", "hacer primero", "regla de oro", "dar paquete", "recibir"],
+      "respuesta_corta": "📦 Protocolo obligatorio Poka-Yoke de entrega paso a paso para garantizar la liquidación y cobro a DHL.",
+      "pasos": [
+        "1. Validar identidad del receptor (titular o mayor de edad).",
+        "2. Cobrar arancel si tiene badge 'Aduanas/COD' antes de soltar la caja.",
+        "3. Escanear código de barras PID/HWB en la app.",
+        "4. Recabar firma digital en el pad táctil con nombre completo.",
+        "5. Foto de fachada con número exterior visible y confirmar OK."
+      ],
+      "advertencia": "Regla de Oro Poka-Yoke: NUNCA entregues el paquete físico en manos del cliente sin haber capturado la firma en la pantalla."
+    },
+    {
+      "id": "CARGA_A_BORDO_MATUTINA",
+      "titulo": "Carga a Bordo y Validación de Bultos",
+      "claves": ["carga", "a bordo", "subir", "rampa", "manana", "escanear rampa", "camioneta", "bultos", "andene"],
+      "respuesta_corta": "🚚 Validación obligatoria de bultos en andén antes del despacho a ruta en Ollinqui PWA.",
+      "pasos": [
+        "1. En andén de rampa, abre Ollinqui PWA y sitúate en el modo de Carga a Bordo.",
+        "2. Escanea cada bulto físico (código de barras JJD...) con la cámara o escáner Bluetooth al subirlo a la camioneta.",
+        "3. Verifica que la app confirme el PID en verde como 'A BORDO' dentro de tu manifiesto.",
+        "4. Si detectas un paquete ajeno a tu ruta o mal asignado, repórtalo de inmediato al supervisor de rampa antes de salir.",
+        "5. Valida que el total de bultos físicos coincida al 100% con el total cargado en sistema."
+      ],
+      "advertencia": "Nunca salgas a ruta con bultos sin escanear a bordo; un bulto no validado no existirá en tu hoja de ruta."
+    },
+    {
+      "id": "PAQUETES_MULTIPIEZA",
+      "titulo": "Paquetes Multipieza (1 de 2, 1 de 3)",
+      "claves": ["multipieza", "varias piezas", "1 de 2", "1 de 3", "falta una caja", "incompleto", "piezas"],
+      "respuesta_corta": "📦📦 Regla de entrega completa para envíos amparados bajo una misma guía madre (HWB).",
+      "pasos": [
+        "1. Verifica en la tarjeta de la guía el indicador multipieza (ej: 'Pieza 1 de 2', 'Pieza 2 de 2').",
+        "2. Ubica y agrupa físicamente la totalidad de las piezas en la camioneta antes de descender al domicilio.",
+        "3. Escanea todos los PIDs pertenecientes a la guía en Ollinqui PWA.",
+        "4. Si falta alguna caja en tu unidad, NO realices entrega parcial sin autorización expresa de Mesa de Control.",
+        "5. Recaba una sola firma digital y fotografía de fachada que ampare todas las piezas entregadas juntas."
+      ],
+      "advertencia": "Entregar guías multipieza incompletas sin reporte genera penalización inmediata de faltante con DHL."
+    },
+    {
+      "id": "PAQUETES_DANADOS_VIOLADOS",
+      "titulo": "Paquete Dañado o Cinta Violada",
+      "claves": ["danado", "roto", "abierto", "cinta", "violado", "mojado", "aplastado", "golpeado"],
+      "respuesta_corta": "📦💥 Protocolo de protección y deslinde de responsabilidad ante empaques siniestrados o vulnerados.",
+      "pasos": [
+        "1. Si el paquete presenta roturas, cinta de seguridad violada, aplastamiento o humedad, notifícalo al destinatario antes de abrir o entregar.",
+        "2. Si el cliente acepta recibirlo en esas condiciones, toma fotos detalladas del daño exterior del empaque.",
+        "3. Anota en las observaciones de la app el estado del paquete y recaba la firma de conformidad del cliente.",
+        "4. Si el cliente rechaza el paquete, aplica Checkpoint 'CA' (Rechazado), toma foto de evidencia y graba audio Teoyolotl de 13s explicando el daño.",
+        "5. Resguarda el paquete cerrado en camioneta y da aviso inmediato a tu supervisor."
+      ],
+      "advertencia": "El tope máximo de responsabilidad contractual es de 30 UMAs ($3,257 MXN). Levanta siempre evidencia fotográfica y de audio para proteger a Arauto Express."
+    },
+    {
+      "id": "MODO_OFFLINE_SIN_RED",
+      "titulo": "Operación en Zonas sin Señal Celular",
+      "claves": ["sin internet", "sin senal", "offline", "no hay red", "no sube", "sincronizar", "datos"],
+      "respuesta_corta": "📡 Continuidad operativa garantizada: Ollinqui PWA almacena todas tus entregas localmente en IndexedDB.",
+      "pasos": [
+        "1. Continúa operando con normalidad: la PWA escanea códigos, captura firmas y fotos incluso sin datos ni WiFi.",
+        "2. Cada entrega se guarda de forma segura en la cola local de IndexedDB del dispositivo.",
+        "3. Observa el indicador superior: mostrará '● EN LÍNEA (X pend. sync)' indicando los registros en cola.",
+        "4. Al regresar a una zona con cobertura 4G/WiFi, el sistema sincronizará los paquetes automáticamente por lotes.",
+        "5. Nunca cierres la pestaña ni borres el historial del navegador mientras haya registros pendientes de sincronizar."
+      ],
+      "advertencia": "No te detengas si te quedas sin red: la PWA es 100% offline y tus evidencias no se perderán."
+    },
+    {
+      "id": "PAGO_TRANSFERENCIA_CHEQUE",
+      "titulo": "Formas de Pago de Aduana (COD)",
+      "claves": ["cheque", "transferencia", "deposito", "tarjeta", "como cobrar", "comprobante", "pago"],
+      "respuesta_corta": "💳 Lineamientos de cobro de impuestos y aranceles (COD) en efectivo, transferencia o cheque.",
+      "pasos": [
+        "1. Confirma el monto exacto en pesos desglosado en el badge 'COBRO DE ADUANA' de la guía.",
+        "2. Si el cliente paga por transferencia o depósito, exige el comprobante con clave de rastreo SPEI liquidada.",
+        "3. Verifica que la cuenta de depósito corresponda exclusivamente a las cuentas oficiales autorizadas de DHL / Arauto.",
+        "4. Si paga con cheque, debe ser cheque de caja o certificado a favor de DHL (no cheques personales sin certificar).",
+        "5. Toma fotografía nítida del comprobante bancario o cheque como evidencia y recaba la firma del receptor antes de entregar el paquete."
+      ],
+      "advertencia": "Nunca entregues la mercancía basándote en comprobantes en trámite o pantallas falsas. El cobro no liquidado es responsabilidad del chofer."
     }
   ]
 }
