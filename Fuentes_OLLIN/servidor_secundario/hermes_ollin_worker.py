@@ -451,7 +451,7 @@ def despachar_via_gateway_headless(telefono: str, mensaje: str,
     try:
         res = http_post_json(gateway_url, payload=payload, timeout=15)
         http_code = res.get("status_code", 0)
-        body = res.get("body", {}) or {}
+        body = res.get("json", {}) or res.get("body", {}) or {}
 
         if http_code == 200 and (body.get("ok") or body.get("estatus") == "ENVIADO_HEADLESS_WHATSAPP"):
             logger.info(f"✅ [WhatsApp Headless] Mensaje entregado exitosamente. MsgID: {body.get('message_id', 'ok')}")
@@ -689,6 +689,7 @@ else:
             self.routes.append(DummyRoute(path))
             return lambda f: f
         def add_middleware(self, *args, **kwargs): pass
+        def on_event(self, event_name): return lambda f: f
     app = DummyApp()
 
 gemini_client = GeminiMultimodalClient(api_key=GEMINI_API_KEY)
@@ -1137,9 +1138,10 @@ def actualizar_reaccion_whatsapp(message_id: str, reaccion: str = "✅"):
 
 def procesar_asignacion_imagen_en_segundo_plano(datos: Dict[str, Any]):
     """Procesa en segundo plano la extracción multimodal, resolución de zona y persistencia dual."""
+    message_id = datos.get("message_id", "")
     try:
         from calpixqui_vision_router import CalpixquiVisionRouter
-        from calpixqui_dual_writer import encolar_asignacion_outbox
+        from calpixqui_dual_writer import encolar_asignacion_outbox, actualizar_estado_inbox
         from calpixqui_gobernanza import pochtecas_global, matriz_cp_global
 
         vision_router = CalpixquiVisionRouter(
@@ -1157,14 +1159,18 @@ def procesar_asignacion_imagen_en_segundo_plano(datos: Dict[str, Any]):
             caption=datos.get("caption", "")
         )
 
-        message_id = datos.get("message_id", "")
         chat_id = datos["chat_id"]
 
         # 1. Si falló la extracción OCR
         if not res.get("exito"):
-            msg_error = res.get("mensaje_usuario", "⚠️ No se detectó una guía legible.")
-            despachar_whatsapp_headless(chat_id, msg_error)
-            actualizar_reaccion_whatsapp(message_id, "⚠️")
+            msg_error = res.get("mensaje_usuario", "")
+            # Si está marcado como silencioso (ej. ruido o imagen sin guía en grupo), no emitir spam
+            if msg_error and not res.get("silencioso"):
+                despachar_whatsapp_headless(chat_id, msg_error)
+                actualizar_reaccion_whatsapp(message_id, "⚠️")
+            else:
+                logger.info(f"Centinela: Modo silencioso activo para imagen en chat {chat_id} (motivo: {res.get('motivo')}). Cero spam.")
+            actualizar_estado_inbox(message_id, "DESCARTADO" if res.get("silencioso") else "ERROR_EXTRACCION", res.get("motivo", ""))
             return
 
         # 2. Si es duplicado reciente
@@ -1173,11 +1179,25 @@ def procesar_asignacion_imagen_en_segundo_plano(datos: Dict[str, Any]):
             msg_dup = f"ℹ️ La guía *{hwb}* ya fue procesada y asignada previamente a tu ruta."
             despachar_whatsapp_headless(chat_id, msg_dup)
             actualizar_reaccion_whatsapp(message_id, "✅")
+            actualizar_estado_inbox(message_id, "DUPLICADO", f"Guía {hwb} duplicada reciente")
+            return
+
+        # 2.5 Si la regla de intención determinó NO encolar asignación (Consulta, Incidencia o Modo Silencioso en Grupo)
+        if not res.get("debe_encolar_asignacion", True):
+            msg_usuario = res.get("mensaje_usuario", "")
+            if msg_usuario:
+                despachar_whatsapp_headless(chat_id, msg_usuario)
+                actualizar_reaccion_whatsapp(message_id, "ℹ️")
+            actualizar_estado_inbox(message_id, "NO_ENCOLAR", res.get("motivo", "Intención no asignable"))
             return
 
         # 3. Guardar en Outbox Local WAL SQLite (inserción inmediata <15ms)
         res["message_id"] = message_id
-        encolar_asignacion_outbox(res)
+        outbox_id = encolar_asignacion_outbox(res)
+        if outbox_id > 0:
+            actualizar_estado_inbox(message_id, "COMPLETADO")
+        else:
+            actualizar_estado_inbox(message_id, "DUPLICADO_OUTBOX", "Asignación ya existía en outbox")
 
         hwb = res.get("hwb", "")
         pid_app = res.get("pid_appsheet", "")
@@ -1245,6 +1265,104 @@ def procesar_asignacion_imagen_en_segundo_plano(datos: Dict[str, Any]):
 
     except Exception as exGeneral:
         logger.error(f"Error procesando asignación imagen en segundo plano: {exGeneral}", exc_info=True)
+        try:
+            from calpixqui_dual_writer import actualizar_estado_inbox
+            actualizar_estado_inbox(message_id, "FALLIDO", str(exGeneral))
+        except Exception:
+            pass
+
+def recuperar_inbox_pendientes(
+    worker_id: Optional[str] = None,
+    ejecutar_en_background: bool = True,
+    despachar: bool = True
+) -> List[Any]:
+    """
+    Reclama atómicamente y despacha tareas que hayan quedado en 'PENDIENTE' en outbox_multimodal_inbox.
+    Usa BEGIN IMMEDIATE y actualiza a 'EN_PROCESO' dentro de la misma transacción para evitar
+    carreras si hay múltiples instancias de Hermes arrancando a la vez.
+    Retorna la lista de hilos creados (si despachar=True y ejecutar_en_background=True),
+    o la lista de filas reclamadas (si despachar=False o ejecutar_en_background=False).
+    """
+    if worker_id is None:
+        worker_id = f"hermes_{os.getpid()}_{int(time.time()*1000)}"
+    hilos_o_filas = []
+    try:
+        import sqlite3
+        from calpixqui_dual_writer import get_db_connection
+        now_iso = datetime.now().isoformat()
+        filas = []
+        with get_db_connection() as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            try:
+                cursor.execute("BEGIN IMMEDIATE;")
+                cursor.execute("""
+                    SELECT id, message_id, chat_id, sender, is_group, caption, mimetype, image_base64
+                    FROM outbox_multimodal_inbox
+                    WHERE estatus = 'PENDIENTE' AND intentos < 5
+                    ORDER BY id ASC LIMIT 50;
+                """)
+                filas = [dict(r) for r in cursor.fetchall()]
+                if filas:
+                    ids = [r["id"] for r in filas]
+                    placeholders = ",".join("?" * len(ids))
+                    cursor.execute(f"""
+                        UPDATE outbox_multimodal_inbox
+                        SET estatus = 'EN_PROCESO', worker_id = ?, actualizado_en = ?, intentos = intentos + 1
+                        WHERE id IN ({placeholders})
+                    """, [worker_id, now_iso] + ids)
+                conn.commit()
+            finally:
+                cursor.close()
+
+        if not filas:
+            return []
+
+        logger.info(f"🔄 Reclamadas atómicamente {len(filas)} tareas de inbox (Worker: {worker_id}).")
+        if not despachar:
+            return filas
+
+        for fila in filas:
+            datos_recup = {
+                "message_id": fila["message_id"],
+                "chat_id": fila["chat_id"],
+                "sender": fila["sender"],
+                "is_group": bool(fila["is_group"]),
+                "caption": fila["caption"] or "",
+                "mimetype": fila["mimetype"] or "image/jpeg",
+                "image_base64": fila["image_base64"] or ""
+            }
+            if ejecutar_en_background:
+                t = threading.Thread(
+                    target=procesar_asignacion_imagen_en_segundo_plano,
+                    args=(datos_recup,),
+                    daemon=True,
+                    name=f"RecuperarInbox-{fila['message_id']}"
+                )
+                t.start()
+                hilos_o_filas.append(t)
+            else:
+                procesar_asignacion_imagen_en_segundo_plano(datos_recup)
+                hilos_o_filas.append(fila)
+        return hilos_o_filas
+    except Exception as e:
+        logger.error(f"Error en recuperar_inbox_pendientes: {e}")
+        return []
+
+@app.on_event("startup")
+def on_hermes_startup():
+    """Inicializa demonio flusher y rescata tareas pendientes de SQLite al arrancar Hermes."""
+    try:
+        from calpixqui_dual_writer import obtener_o_iniciar_flusher_daemon
+        obtener_o_iniciar_flusher_daemon()
+        logger.info("🚀 Demonio OutboxFlusher inicializado en startup de Hermes.")
+    except Exception as eD:
+        logger.warning(f"Aviso iniciando demonio flusher: {eD}")
+
+    try:
+        recuperar_inbox_pendientes()
+    except Exception as eR:
+        logger.warning(f"Aviso recuperando tareas de inbox: {eR}")
 
 @app.post("/webhook/whatsapp_imagen_asignacion", status_code=status.HTTP_202_ACCEPTED)
 async def webhook_whatsapp_imagen_asignacion(
@@ -1256,6 +1374,7 @@ async def webhook_whatsapp_imagen_asignacion(
     Endpoint asíncrono para ingesta de imágenes de WhatsApp desde gateway.js:
     - Valida token interno X-OLLIN-TOKEN para peticiones externas.
     - Persiste inmediatamente en SQLite WAL outbox_multimodal_inbox antes de responder (Durabilidad Cero-Pérdida).
+    - Si la petición es duplicada, retorna DUPLICADO_IGNORADO sin encolar tareas redundantes.
     - Retorna 202 Accepted en <50ms.
     - Despacha procesamiento pesado (Gemini OCR, Bóveda, Outbox) a BackgroundTasks.
     """
@@ -1266,12 +1385,25 @@ async def webhook_whatsapp_imagen_asignacion(
 
     datos = payload.dict() if hasattr(payload, "dict") else payload.__dict__
     
-    # 💾 Persistencia durable en Outbox SQLite WAL ANTES de responder HTTP 202
+    # 💾 Persistencia durable en Outbox SQLite WAL ANTES de responder HTTP 202 (Cero pérdida de tareas)
     try:
         from calpixqui_dual_writer import guardar_multimodal_inbox
-        guardar_multimodal_inbox(datos)
+        ok_inbox, msg_inbox, es_duplicado = guardar_multimodal_inbox(datos)
+        if not ok_inbox:
+            logger.error(f"Fallo crítico persistiendo en outbox multimodal: {msg_inbox}")
+            raise HTTPException(status_code=500, detail=f"Fallo de persistencia durable: {msg_inbox}")
+        if es_duplicado:
+            logger.info(f"⚡ Solicitud duplicada ignorada (message_id: {msg_inbox}). Cero reprocesamiento.")
+            return {
+                "status": "DUPLICADO_IGNORADO",
+                "mensaje": "Solicitud ya recibida previamente. Descartando reenvío duplicado.",
+                "message_id": payload.message_id
+            }
+    except HTTPException:
+        raise
     except Exception as eInbox:
-        logger.warning(f"Advertencia guardando en outbox inbox: {eInbox}")
+        logger.error(f"Fallo crítico guardando en outbox inbox: {eInbox}")
+        raise HTTPException(status_code=500, detail=f"Fallo de persistencia durable: {eInbox}")
 
     background_tasks.add_task(procesar_asignacion_imagen_en_segundo_plano, datos)
     return {

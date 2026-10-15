@@ -694,6 +694,7 @@
           <div class="quick-templates">
             <span style="font-size:0.74rem; color:var(--text-muted);">Herramientas & Plantillas:</span>
             <button class="tpl-chip" style="border-color:var(--emerald); color:#6EE7B7; font-weight:700;" onclick="auditEcisLive()">📡 Auditar Subidas ECIS en Vivo (Calpixqui)</button>
+            <button class="tpl-chip" style="border-color:var(--cyan); color:#67E8F9; font-weight:700;" onclick="promptTrackHwb()">🔍 Rastrear Guía HWB (Verificada)</button>
             <button class="tpl-chip" onclick="loadTemplate('pid')">📦 Sanitizador PID (Doble J)</button>
             <button class="tpl-chip" onclick="loadTemplate('hwb')">🔢 Validador Guía HWB 10 dígitos</button>
             <button class="tpl-chip" onclick="loadTemplate('cp')">🗺️ Validador CP Querétaro / Sierra</button>
@@ -947,10 +948,12 @@
         const btn = document.createElement('div');
         btn.className = 'front-tab' + (f.id === activeFrontId ? ' active' : '');
         btn.onclick = () => selectFront(f.id);
-        btn.innerHTML = `
-          <span>${f.title}</span>
-          <span class="front-badge">${f.status || 'LISTO'}</span>
-        `;
+        const titleSpan = document.createElement('span');
+        titleSpan.textContent = f.title;
+        const badgeSpan = document.createElement('span');
+        badgeSpan.className = 'front-badge';
+        badgeSpan.textContent = f.status || 'LISTO';
+        btn.append(titleSpan, badgeSpan);
         container.appendChild(btn);
       });
     }
@@ -1067,10 +1070,15 @@
       }
     }
 
+    const WAR_ROOM_TOKEN = "__WAR_ROOM_SESSION_TOKEN__";
+
     async function apiPost(url, payload) {
       const resp = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-War-Room-Token': WAR_ROOM_TOKEN
+        },
         body: JSON.stringify(payload)
       });
       return await resp.json();
@@ -1325,7 +1333,9 @@
     // RADAR TELEMETRÍA
     async function refreshRadarStatus() {
       try {
-        const resp = await fetch('/api/status');
+        const resp = await fetch('/api/status', {
+          headers: { 'X-War-Room-Token': WAR_ROOM_TOKEN }
+        });
         const data = await resp.json();
         if (data.ok) {
           const orDot = document.getElementById('dot-or');
@@ -1349,7 +1359,9 @@
       const box = document.getElementById('out-sandbox');
       box.textContent = '📡 Conectando en vivo con Nodo Calpixqui PC-B (100.107.18.69:8088) para inspeccionar subidas ECIS...';
       try {
-        const resp = await fetch('/api/ecis_live');
+        const resp = await fetch('/api/ecis_live', {
+          headers: { 'X-War-Room-Token': WAR_ROOM_TOKEN }
+        });
         const data = await resp.json();
         if (data.ok) {
           const filesList = (data.archivos_hoy || []).map(x => `  • [${x.hora}] ${x.archivo} ➔ ${x.eventos} paquetes`).join('\n');
@@ -1384,6 +1396,43 @@
       } catch (e) {
         box.className = 'terminal-box fail';
         box.textContent = '❌ Error de red consultando ECIS: ' + e;
+        setStationVisual('sandbox', 'ERROR RED', 'error', 'breathing');
+      }
+    }
+
+    async function promptTrackHwb() {
+      const guia = (prompt('Ingresa la guía a rastrear (HWB de 10 dígitos o PID JD/JJD):', '') || '').trim().toUpperCase();
+      if (!guia) return;
+      if (!/^(\d{10}|J{1,2}D\d{6,})$/.test(guia)) {
+        alert('Usa un HWB de 10 dígitos o un PID que empiece con JD/JJD.');
+        return;
+      }
+      setStationVisual('sandbox', 'RASTREANDO...', 'running', 'searching');
+      const box = document.getElementById('out-sandbox');
+      box.className = 'terminal-box';
+      box.textContent = `🔍 Rastreo integral de ${guia}: ingesta DHL, asignación, ECIS, Bóveda, facturación y Carta Porte...\n(La primera búsqueda puede tardar; incluye consulta a la PC de Calpixqui y Google Sheets.)`;
+      try {
+        const resp = await fetch(`/api/track_hwb?guia=${encodeURIComponent(guia)}`, {
+          headers: { 'X-War-Room-Token': WAR_ROOM_TOKEN }
+        });
+        const data = await resp.json();
+        if (data.ok) {
+          const report = data.reporte || (data.found ? JSON.stringify(data.matches, null, 2) : `Guía ${guia} sin rastro en los registros consultados.`);
+          box.className = data.found ? 'terminal-box' : 'terminal-box fail';
+          box.textContent = report;
+          if (data.found) {
+            document.getElementById('front-prompt').value = `Resume el historial completo de la guía ${guia} (ingesta, asignación, ECIS, Bóveda y facturación) con base en este rastreo verificado:\n\n${report}`;
+            saveCurrentFrontState();
+          }
+          setStationVisual('sandbox', data.found ? 'GUÍA: RASTREADA' : 'SIN RASTRO', data.found ? 'done' : 'error', 'breathing');
+        } else {
+          box.className = 'terminal-box fail';
+          box.textContent = '❌ Error consultando rastreo: ' + (data.error || 'Desconocido');
+          setStationVisual('sandbox', 'ERROR RASTREO', 'error', 'breathing');
+        }
+      } catch (e) {
+        box.className = 'terminal-box fail';
+        box.textContent = '❌ Error de red consultando rastreo: ' + e;
         setStationVisual('sandbox', 'ERROR RED', 'error', 'breathing');
       }
     }

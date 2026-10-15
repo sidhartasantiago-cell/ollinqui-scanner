@@ -14,18 +14,32 @@ module.exports = {
       }
     },
     {
-      name: "frente6-escudo-reclamos",
-      script: "c:\\Users\\sidha\\OneDrive\\Careta para Antigravity\\Fuentes_OLLIN\\servidor_secundario\\daemon_frente6_reclamos.py",
+      name: "calpixqui-worker-fastapi",
+      script: "c:\\Users\\sidha\\OneDrive\\Careta para Antigravity\\Fuentes_OLLIN\\servidor_secundario\\hermes_ollin_worker.py",
       interpreter: "c:\\Users\\sidha\\OneDrive\\Careta para Antigravity\\Fuentes_OLLIN\\servidor_secundario\\.venv\\Scripts\\python.exe",
       cwd: "c:\\Users\\sidha\\OneDrive\\Careta para Antigravity\\Fuentes_OLLIN\\servidor_secundario",
       instances: 1,
       autorestart: true,
       watch: false,
-      max_memory_restart: "500M",
+      max_memory_restart: "800M",
       env: {
         PYTHONUNBUFFERED: "1",
-        FRENTE6_PORT: "8088",
-        FRENTE6_HOST: "0.0.0.0"
+        HERMES_PORT: "8088",
+        HERMES_HOST: "0.0.0.0"
+      }
+    },
+    {
+      name: "calpixqui-len-outbox",
+      script: "c:\\Users\\sidha\\OneDrive\\Careta para Antigravity\\Fuentes_OLLIN\\servidor_secundario\\calpixqui_outbox_len.py",
+      interpreter: "c:\\Users\\sidha\\OneDrive\\Careta para Antigravity\\Fuentes_OLLIN\\servidor_secundario\\.venv\\Scripts\\python.exe",
+      args: ["--intervalo", "120"],
+      cwd: "c:\\Users\\sidha\\OneDrive\\Careta para Antigravity\\Fuentes_OLLIN\\servidor_secundario",
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: "300M",
+      env: {
+        PYTHONUNBUFFERED: "1"
       }
     }
   ]

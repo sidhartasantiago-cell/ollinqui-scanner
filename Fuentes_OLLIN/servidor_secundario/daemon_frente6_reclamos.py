@@ -91,6 +91,16 @@ def verificar_estado_gateway() -> dict:
         return {"ready": False, "status": f"OFFLINE ({e})"}
 
 def iniciar_demonio():
+    lock_path = LOGS_DIR / "frente6_daemon.lock"
+    lock_file = open(lock_path, "w")
+    try:
+        if os.name == "nt":
+            import msvcrt
+            msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
+    except OSError:
+        logger.warning("⚠️ Ya existe una instancia activa de daemon_frente6_reclamos.py ejecutándose. Saliendo.")
+        sys.exit(0)
+
     logger.info("=" * 70)
     logger.info("🏛️ INICIANDO DEMONIO CONTINUO DEL FRENTE 6 (RECLAMOS DHL)")
     logger.info(f"Frecuencia de escaneo: Cada {INTERVALO_SEGUNDOS // 60} minutos ({INTERVALO_SEGUNDOS}s)")

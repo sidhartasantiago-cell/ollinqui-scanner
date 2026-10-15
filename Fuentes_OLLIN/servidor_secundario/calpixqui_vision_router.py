@@ -57,11 +57,17 @@ def sanitizar_pid_para_boveda(pid_raw: str) -> str:
     pid_clean = str(pid_raw).strip().upper()
     if pid_clean.startswith("JJD"):
         cand = "JD" + pid_clean[3:]
-        return cand if len(cand) >= 8 else ""
-    if pid_clean.startswith("JD"):
-        return pid_clean if len(pid_clean) >= 8 else ""
-    if pid_clean.isdigit() and len(pid_clean) >= 8:
-        return "JD" + pid_clean
+    elif pid_clean.startswith("JD"):
+        cand = pid_clean
+    elif pid_clean.isdigit() and len(pid_clean) >= 10:
+        cand = "JD" + pid_clean
+    else:
+        return ""
+
+    # Blindaje defensivo: El contenido tras 'JD' debe ser numérico y tener longitud total >= 10
+    resto = cand[2:]
+    if resto.isdigit() and len(cand) >= 10:
+        return cand
     return ""
 
 
@@ -74,26 +80,46 @@ def formatear_pid_para_appsheet(pid_boveda: str) -> str:
         return ""
     pid_clean = str(pid_boveda).strip().upper()
     if pid_clean.startswith("JJD"):
-        return pid_clean
-    if pid_clean.startswith("JD"):
-        return "JJD" + pid_clean[2:]
-    if pid_clean.isdigit() and len(pid_clean) >= 8:
-        return "JJD" + pid_clean
-    return pid_clean
+        cand = pid_clean
+    elif pid_clean.startswith("JD"):
+        cand = "JJD" + pid_clean[2:]
+    elif pid_clean.isdigit() and len(pid_clean) >= 10:
+        cand = "JJD" + pid_clean
+    else:
+        return ""
+
+    resto = cand[3:]
+    if resto.isdigit() and len(cand) >= 11:
+        return cand
+    return ""
+
+
+MAPA_WHATSAPP_LIDS = {
+    "131284936487041": "5661562361",  # Diego (Sierra Gorda)
+}
 
 
 def normalizar_telefono_10d(telefono: str) -> str:
-    """Normaliza cualquier formato celular mexicano a exactamente 10 dígitos."""
+    """
+    Normaliza estrictamente formatos celulares mexicanos a exactamente 10 dígitos:
+    - 10 dígitos directos: '4423816310'
+    - Formato con prefijo móvil internacional: '5214423816310' (13 dígitos) -> '4423816310'
+    - Formato con código de país estándar: '524423816310' (12 dígitos) -> '4423816310'
+    - Resuelve Linked Identities (@lid) conocidos de WhatsApp Grupos.
+    - Rechaza cualquier otra longitud o formato inválido (Cero truncamiento ciego de sufijos).
+    """
     if not telefono:
         return ""
     digits = re.sub(r"\D", "", str(telefono))
-    if digits.startswith("521") and len(digits) == 13:
-        digits = digits[3:]
-    elif digits.startswith("52") and len(digits) == 12:
-        digits = digits[2:]
-    elif len(digits) > 10:
-        digits = digits[-10:]
-    return digits
+    if digits in MAPA_WHATSAPP_LIDS:
+        return MAPA_WHATSAPP_LIDS[digits]
+    if len(digits) == 10:
+        return digits
+    if len(digits) == 13 and digits.startswith("521"):
+        return digits[3:]
+    if len(digits) == 12 and digits.startswith("52"):
+        return digits[2:]
+    return ""
 
 
 # ==============================================================================
@@ -151,10 +177,12 @@ cache_idempotencia = CacheIdempotencia()
 class SanadorHeuristicoManifiesto:
     """
     Carga en RAM el manifiesto activo y cura caracteres dudosos del OCR
-    cruzando contra las guías y PIDs reales que llegaron en el andén.
+    cruzando contra las guías y PIDs reales que llegaron en el andén
+    (tanto de manifiesto_activo.json como en vivo desde BD_CENTRAL_2023!RUTA y BOVEDA!RAW_PIECE).
     """
     def __init__(self):
         self.manifiesto_mtime = 0
+        self.sheets_sync_ts = 0.0
         self.guias_lookup: Dict[str, Dict[str, Any]] = {}
         self.pids_lookup: Dict[str, Dict[str, Any]] = {}
         self._recargar_si_cambio()
@@ -197,9 +225,143 @@ class SanadorHeuristicoManifiesto:
                             self.pids_lookup[pid_boveda] = record
 
                 self.manifiesto_mtime = mtime
+                self.sheets_sync_ts = 0.0
                 logger.info(f"Sanador Heurístico: Manifiesto cargado ({len(self.guias_lookup)} HWBs, {len(self.pids_lookup)} PIDs en RAM).")
         except Exception as ex:
             logger.error(f"Error cargando manifiesto en Sanador Heurístico: {ex}")
+
+    def _sincronizar_desde_sheets_si_falta(self):
+        """Sincroniza en RAM las guías y PIDs activos desde BOVEDA (RAW_PIECE + MESA_ASIGNACION) y BD_CENTRAL_2023 (Ruta + RUTA Back end reciente)."""
+        if os.getenv("CALPIXQUI_DISABLE_SHEETS_FALLBACK") == "1":
+            return
+        ahora = time.time()
+        if ahora - self.sheets_sync_ts < 120:
+            return
+        self.sheets_sync_ts = ahora
+        try:
+            import urllib.request
+            import urllib.parse
+            agents_dir = str(Path(__file__).resolve().parent.parent.parent / ".agents")
+            if agents_dir not in sys.path:
+                sys.path.insert(0, agents_dir)
+            from test_sheets_api import get_access_token
+            tok = get_access_token()
+            if not tok:
+                return
+
+            nuevas = 0
+            sid_boveda = os.getenv("SPREADSHEET_ID_BOVEDA_BATCH_MAESTRO", "1wIz5YlSbpOLtDY9UNShZ9LHdcez_Vyxlu1wYxBZKTkw")
+            sid_ruta = os.getenv("SPREADSHEET_ID_BD_CENTRAL_2023", "1osolxYzL12I05J2CUy5PBAGpPD2Z3XeU37RzUlFPPO8")
+
+            # 1. Cargar BOVEDA -> RAW_PIECE y MESA_ASIGNACION en una sola llamada batchGet
+            try:
+                url_bov = (
+                    f"https://sheets.googleapis.com/v4/spreadsheets/{sid_boveda}/values:batchGet"
+                    f"?ranges={urllib.parse.quote('RAW_PIECE!A2:U')}&ranges={urllib.parse.quote('MESA_ASIGNACION!A2:I')}"
+                )
+                req_bov = urllib.request.Request(url_bov, headers={"Authorization": f"Bearer {tok}"})
+                with urllib.request.urlopen(req_bov, timeout=6) as resp_bov:
+                    val_ranges = json.loads(resp_bov.read().decode("utf-8")).get("valueRanges", [])
+                rows_raw = val_ranges[0].get("values", []) if len(val_ranges) > 0 else []
+                rows_mesa = val_ranges[1].get("values", []) if len(val_ranges) > 1 else []
+
+                mesa_map: Dict[str, Dict[str, str]] = {}
+                for rm in rows_mesa:
+                    if not rm:
+                        continue
+                    hwb_m = re.sub(r"\D", "", str(rm[0] or ""))
+                    if len(hwb_m) == 10:
+                        cp_m = str(rm[2] if len(rm) > 2 else "").strip()
+                        dir_m = str(rm[3] if len(rm) > 3 else "").strip()
+                        tel_m = str(rm[4] if len(rm) > 4 else "").strip()
+                        chof_m = str(rm[5] if len(rm) > 5 else "").strip()
+                        edd_m = str(rm[6] if len(rm) > 6 else "").strip()
+                        dest_m = str(rm[7] if len(rm) > 7 else "").strip()
+                        mesa_map[hwb_m] = {
+                            "cp": cp_m if (cp_m.isdigit() and len(cp_m) == 5) else self._extraer_cp_direccion(dir_m),
+                            "direccion": dir_m or "Registrada en sistema",
+                            "tel": tel_m,
+                            "chofer_actual": chof_m,
+                            "edd": edd_m,
+                            "destinatario": "" if dest_m.upper() in ("N A", "N/A", "NA") else dest_m
+                        }
+
+                for rr in rows_raw:
+                    if len(rr) <= 20:
+                        continue
+                    hwb_r = re.sub(r"\D", "", str(rr[3] if len(rr) > 3 and rr[3] else rr[0]))
+                    pid_boveda = sanitizar_pid_para_boveda(rr[20])
+                    pid_appsheet = formatear_pid_para_appsheet(pid_boveda)
+                    if len(hwb_r) == 10 and pid_boveda:
+                        m_info = mesa_map.get(hwb_r, {})
+                        dest_r = str(rr[17] if len(rr) > 17 else "").strip()
+                        if dest_r.upper() in ("N A", "N/A", "NA", ""):
+                            dest_r = m_info.get("destinatario") or "Registrada en sistema"
+                        rec = {
+                            "hwb": hwb_r,
+                            "pid_boveda": pid_boveda,
+                            "pid_appsheet": pid_appsheet,
+                            "chofer_actual": m_info.get("chofer_actual", ""),
+                            "destinatario": dest_r,
+                            "direccion": m_info.get("direccion", "Registrada en sistema"),
+                            "tel": m_info.get("tel", ""),
+                            "edd": m_info.get("edd", ""),
+                            "cp": m_info.get("cp", "")
+                        }
+                        self.guias_lookup[hwb_r] = rec
+                        self.pids_lookup[pid_boveda] = rec
+                        nuevas += 1
+            except Exception as eBov:
+                logger.debug(f"Nota sincronizando BOVEDA en vivo: {eBov}")
+
+            # 2. Cargar BD_CENTRAL_2023 -> Ruta!A2:U y cola reciente de RUTA Back end!A134000:U136500
+            try:
+                url_ruta = (
+                    f"https://sheets.googleapis.com/v4/spreadsheets/{sid_ruta}/values:batchGet"
+                    f"?ranges={urllib.parse.quote('Ruta!A2:U')}&ranges={urllib.parse.quote('RUTA Back end!A134000:U136500')}"
+                )
+                req_ruta = urllib.request.Request(url_ruta, headers={"Authorization": f"Bearer {tok}"})
+                with urllib.request.urlopen(req_ruta, timeout=6) as resp:
+                    vr_ruta = json.loads(resp.read().decode("utf-8")).get("valueRanges", [])
+                listas_filas = [v.get("values", []) for v in vr_ruta]
+
+                for rows_block in listas_filas:
+                    for r in rows_block:
+                        if len(r) < 2:
+                            continue
+                        hwb = re.sub(r"\D", "", str(r[0] or ""))
+                        pid_raw = str(r[1] or "").strip()
+                        pid_boveda = sanitizar_pid_para_boveda(pid_raw)
+                        pid_appsheet = formatear_pid_para_appsheet(pid_boveda)
+                        if len(hwb) == 10 and pid_boveda:
+                            cp_col = str(r[2] if len(r) > 2 else "").strip()
+                            addr_parts = [str(r[i]).strip() for i in (4, 5, 6) if len(r) > i and str(r[i]).strip()]
+                            direccion_str = ", ".join(addr_parts)
+                            cp_val = cp_col if (cp_col.isdigit() and len(cp_col) == 5) else self._extraer_cp_direccion(direccion_str)
+                            dest_str = str(r[7] if len(r) > 7 else "").strip()
+                            if dest_str.upper() in ("N A", "N/A", "NA", ""):
+                                dest_str = "Registrada en sistema"
+                            chofer_act = str(r[14] if len(r) > 14 else "").strip()
+                            rec = {
+                                "hwb": hwb,
+                                "pid_boveda": pid_boveda,
+                                "pid_appsheet": pid_appsheet,
+                                "chofer_actual": chofer_act,
+                                "destinatario": dest_str,
+                                "direccion": direccion_str or "Registrada en sistema",
+                                "tel": str(r[20] if len(r) > 20 else "").strip(),
+                                "edd": str(r[15] if len(r) > 15 else "").strip(),
+                                "cp": cp_val
+                            }
+                            self.guias_lookup[hwb] = rec
+                            self.pids_lookup[pid_boveda] = rec
+                            nuevas += 1
+            except Exception as eRuta:
+                logger.debug(f"Nota sincronizando RUTA en vivo: {eRuta}")
+
+            logger.info(f"🔄 Sanador Heurístico: Sincronizadas {nuevas} guías/piezas en vivo desde BOVEDA + RUTA.")
+        except Exception as eSync:
+            logger.debug(f"Nota sincronizando hojas en vivo: {eSync}")
 
     def _extraer_cp_direccion(self, direccion: str) -> str:
         m = re.search(r"C\.?P\.?\s*(\d{5})", direccion, re.IGNORECASE)
@@ -211,6 +373,7 @@ class SanadorHeuristicoManifiesto:
     def buscar_y_sanar(self, hwb_candidato: str, pid_candidato: str) -> Optional[Dict[str, Any]]:
         """
         Busca primero por coincidencia exacta de HWB o PID.
+        Si no está en el manifiesto local, sincroniza en vivo con BD_CENTRAL_2023 (RUTA).
         Si hay un dígito dudoso, evalúa coincidencias exactas en subcadenas o similitud.
         """
         self._recargar_si_cambio()
@@ -227,6 +390,16 @@ class SanadorHeuristicoManifiesto:
         if pid_clean and pid_clean in self.pids_lookup:
             logger.info(f"✅ Sanador Heurístico: Coincidencia EXACTA por PID {pid_clean}")
             return self.pids_lookup[pid_clean]
+
+        # 2.5 Si no se encontró en el manifiesto estático, sincronizar con BD_CENTRAL_2023 (RUTA) en vivo
+        if (hwb_clean and len(hwb_clean) == 10) or (pid_clean and len(pid_clean) >= 10):
+            self._sincronizar_desde_sheets_si_falta()
+            if hwb_clean and hwb_clean in self.guias_lookup:
+                logger.info(f"✅ Sanador Heurístico (RUTA Live): Coincidencia EXACTA por Guía HWB {hwb_clean}")
+                return self.guias_lookup[hwb_clean]
+            if pid_clean and pid_clean in self.pids_lookup:
+                logger.info(f"✅ Sanador Heurístico (RUTA Live): Coincidencia EXACTA por PID {pid_clean}")
+                return self.pids_lookup[pid_clean]
 
         # 3. Match de rescate: HWB contenido en algún PID o viceversa
         if hwb_clean and len(hwb_clean) >= 9:
@@ -262,6 +435,12 @@ REGLAS ESTRICTAS DE EXTRACCIÓN:
 5. 'cp': Código postal de 5 dígitos visible en la etiqueta.
 6. 'tipo_documento': 'ETIQUETA_FISICA_DHL', 'CAPTURA_APPSHEET', 'CAPTURA_ECIS', o 'DESCONOCIDO'.
 7. 'confianza': Valor flotante entre 0.0 y 1.0 indicando la claridad y legibilidad de la imagen.
+8. 'intencion': Clasificación estricta de la intención del mensaje:
+   - 'AUTO_ASIGNACION': El chofer pide cargar, llevar o asignarse la guía (ej. "mía", "cargo", "asígnamela", "la llevo").
+   - 'TRASPASO': El chofer pide transferirla a otro chofer (ej. "traspaso a @Edgar").
+   - 'CONSULTA': Pregunta sobre la guía (ej. "¿de quién es?", "¿quién va para allá?").
+   - 'INCIDENCIA': Reporta daño, cliente ausente, dirección incorrecta o paquete mojado.
+   - 'INFORMATIVO_SIN_ACCION': Foto compartida en grupo sin instrucción expresa de asignación.
 
 RESPONDE ÚNICAMENTE CON UN OBJETO JSON VÁLIDO CON ESTA ESTRUCTURA:
 {
@@ -271,6 +450,7 @@ RESPONDE ÚNICAMENTE CON UN OBJETO JSON VÁLIDO CON ESTA ESTRUCTURA:
   "direccion": "Dirección completa o null",
   "cp": "5 dígitos o null",
   "tipo_documento": "ETIQUETA_FISICA_DHL",
+  "intencion": "INFORMATIVO_SIN_ACCION",
   "confianza": 0.98,
   "observaciones": "Etiqueta térmica nítida"
 }
@@ -307,15 +487,25 @@ class CalpixquiVisionRouter:
         """
         tel_norm = normalizar_telefono_10d(sender_phone)
 
-        # 1. Chequeo de Idempotencia
+        # 1. Identificar y Autorizar Pochteca en Directorio Central ANTES de cualquier operación o consulta de caché
+        info_pochteca = self._obtener_info_pochteca(tel_norm)
+        if not info_pochteca.get("autorizado", False) or not info_pochteca.get("correo"):
+            return {
+                "exito": False,
+                "silencioso": bool(is_group),
+                "motivo": "REMITENTE_NO_AUTORIZADO",
+                "mensaje_usuario": "" if is_group else f"⛔ Tu número ({tel_norm or sender_phone}) no está registrado en el Directorio Oficial de Pochtecas de Arauto Express. Contacta a la Mesa de Control para autorizar tu acceso.",
+                "remitente_telefono": tel_norm,
+                "chat_id": chat_id,
+                "is_group": is_group
+            }
+
+        # 2. Chequeo de Idempotencia en Caché (Solo para remitentes previamente autorizados)
         duplicado = cache_idempotencia.obtener_si_existe(image_base64, tel_norm, caption)
         if duplicado:
             duplicado_res = dict(duplicado)
             duplicado_res["es_duplicado_reciente"] = True
             return duplicado_res
-
-        # 2. Identificar Pochteca en Directorio Central
-        info_pochteca = self._obtener_info_pochteca(tel_norm)
 
         # 3. Llamada Multimodal a Gemini (o extracción directa de caption si viene texto)
         datos_ocr = {}
@@ -341,8 +531,8 @@ class CalpixquiVisionRouter:
             hwb_final = coincidencia_manifiesto["hwb"]
             pid_boveda = coincidencia_manifiesto["pid_boveda"]
             pid_appsheet = coincidencia_manifiesto["pid_appsheet"]
-            destinatario_final = coincidencia_manifiesto["destinatario"] or datos_ocr.get("destinatario", "")
-            direccion_final = coincidencia_manifiesto["direccion"] or datos_ocr.get("direccion", "")
+            destinatario_final = coincidencia_manifiesto["destinatario"] or datos_ocr.get("destinatario", "") or "Registrada en sistema"
+            direccion_final = coincidencia_manifiesto["direccion"] or datos_ocr.get("direccion", "") or "Registrada en sistema"
             cp_final = coincidencia_manifiesto["cp"] or datos_ocr.get("cp", "")
             chofer_anterior = coincidencia_manifiesto.get("chofer_actual", "")
             origen_datos = "MANIFIESTO_CONCILIADO"
@@ -350,18 +540,63 @@ class CalpixquiVisionRouter:
             hwb_final = re.sub(r"\D", "", str(hwb_extraido))
             pid_boveda = sanitizar_pid_para_boveda(pid_extraido)
             pid_appsheet = formatear_pid_para_appsheet(pid_boveda)
-            destinatario_final = datos_ocr.get("destinatario", "")
-            direccion_final = datos_ocr.get("direccion", "")
+            destinatario_final = datos_ocr.get("destinatario", "") or "Registrada en sistema"
+            direccion_final = datos_ocr.get("direccion", "") or "Registrada en sistema"
             cp_final = datos_ocr.get("cp", "")
             chofer_anterior = ""
             origen_datos = "OCR_GEMINI_DIRECTO"
 
-        # Validar si se obtuvo una guía o PID utilizable
-        if not hwb_final and not pid_boveda:
+        # 5. Detección de Intención y Filtro Centinela de Ruido en Grupos
+        # Regex defensivos con límites de palabra (\b) para evitar falsos positivos por subcadenas
+        RE_NEGACION = re.compile(
+            r"\b(no\s+(me\s+)?(la\s+)?(lo\s+)?(asignes?|carg(ar|o)|llevo|reparto)|no\s+asigna|no\s+cargo|no\s+es\s+m[ií]a|no\s+la\s+quiero|no\s+tengo)\b",
+            re.IGNORECASE
+        )
+        RE_INCIDENCIA = re.compile(
+            r"\b(da[ñn]ad[ao]|rot[ao]|abiert[ao]|mojad[ao]|no\s+est[aá]|cerrad[ao]|ausente|sin\s+n[uú]mero|direcci[oó]n\s+incorrecta|mal\s+estado|paquete\s+violado|incompleto|marca\s+\d+\s+piezas?|solo\s+viene\s+un[ao]|falta\s+pieza)\b",
+            re.IGNORECASE
+        )
+        RE_TRASPASO = re.compile(
+            r"\b(traspaso|p[aá]sasela|p[aá]samela|se\s+la\s+queda|para\s+@|te\s+la\s+paso|te\s+lo\s+paso|cambio\s+de\s+ruta)\b",
+            re.IGNORECASE
+        )
+        RE_CONSULTA = re.compile(
+            r"\b(de\s+qui[eé]n|qui[eé]n\s+la\s+lleva|qui[eé]n\s+lo\s+lleva|a\s+qui[eé]n|d[oó]nde\s+queda|donde\s+queda|ubica|info|alguien\s+va|a\s+qui[eé]n\s+le\s+toca)\b",
+            re.IGNORECASE
+        )
+        RE_ASIGNACION = re.compile(
+            r"\b(asigna|asignar|as[ií]gnamela|as[ií]gnamelo|as[ií]gnalas|as[ií]gnalos|asignamela|asignamelo|as[ií]gname|asigname|m[ií]a|m[ií]o|cargo|cargan|cargar|c[aá]rgame|cargame|cargas|la\s+llevo|me\s+la\s+llevo|lo\s+llevo|yo\s+la\s+entrego|yo\s+lo\s+entrego|reparto|!asigna|/asigna|#asigna)\b",
+            re.IGNORECASE
+        )
+
+        caption_clean = (caption or "").strip()
+        intencion = "INFORMATIVO_SIN_ACCION"
+
+        if RE_NEGACION.search(caption_clean):
+            intencion = "INFORMATIVO_SIN_ACCION"
+        elif RE_INCIDENCIA.search(caption_clean):
+            intencion = "INCIDENCIA"
+        elif RE_TRASPASO.search(caption_clean):
+            intencion = "TRASPASO"
+        elif RE_CONSULTA.search(caption_clean):
+            intencion = "CONSULTA"
+        elif RE_ASIGNACION.search(caption_clean):
+            intencion = "AUTO_ASIGNACION"
+        elif not is_group:
+            # En chat privado (1 a 1), el envío de una guía física presupone carga de ruta personal
+            intencion = "AUTO_ASIGNACION"
+        else:
+            # EN GRUPO: Modo Centinela Silencioso estricto.
+            # Cero autoasignación sin comando explícito del usuario en caption.
+            intencion = "INFORMATIVO_SIN_ACCION"
+
+        # Validar si se obtuvo una guía válida (10 dígitos numéricos) - Ancla Inviolable
+        if not hwb_final or len(hwb_final) != 10:
             resultado_error = {
                 "exito": False,
-                "motivo": "NO_SE_DETECTO_GUIA_O_PID",
-                "mensaje_usuario": "⚠️ No pudimos detectar un número de Guía (10 dígitos) o PID legible en la imagen. Por favor toma una foto más clara o escribe el número de guía.",
+                "silencioso": bool(is_group),
+                "motivo": "NO_SE_DETECTO_GUIA_VALIDA",
+                "mensaje_usuario": "" if is_group else "⚠️ No pudimos detectar un número de Guía válido (10 dígitos). Por favor toma una foto más clara o escribe el número de guía.",
                 "remitente_telefono": tel_norm,
                 "info_pochteca": info_pochteca,
                 "is_group": is_group,
@@ -369,19 +604,157 @@ class CalpixquiVisionRouter:
             }
             return resultado_error
 
-        # 5. Detección de Traspaso / Reasignación Ágil
-        nuevo_chofer_email = info_pochteca.get("correo", "")
-        es_traspaso = False
-        if chofer_anterior and nuevo_chofer_email and chofer_anterior.lower() != nuevo_chofer_email.lower():
-            es_traspaso = True
+        # Tratar casos donde NO se debe encolar asignación (Ruido / Consulta / Incidencia)
+        if intencion == "CONSULTA":
+            datos_zona_c = self.matriz_cp_mgr.resolver_asignacion(cp=cp_final) if (self.matriz_cp_mgr and cp_final) else {}
+            titular = datos_zona_c.get("titular") or chofer_anterior or "No asignado aún"
+            muni = datos_zona_c.get("municipio") or "Zona QRO"
+            return {
+                "exito": True,
+                "debe_encolar_asignacion": False,
+                "hwb": hwb_final,
+                "accion": "CONSULTA_INFORMATIVA",
+                "mensaje_usuario": f"ℹ️ Consulta Guía *{hwb_final}*: Destino {destinatario_final} (CP {cp_final or 'S/CP'} - {muni}). Chofer asignado: *{titular}*.",
+                "remitente_telefono": tel_norm,
+                "chat_id": chat_id,
+                "is_group": is_group
+            }
+
+        if intencion == "INCIDENCIA":
+            return {
+                "exito": True,
+                "debe_encolar_asignacion": False,
+                "hwb": hwb_final,
+                "accion": "REPORTE_INCIDENCIA",
+                "mensaje_usuario": "" if is_group else f"⚠️ Reporte de incidencia registrado para guía *{hwb_final}*. Notificado a Mesa de Control.",
+                "remitente_telefono": tel_norm,
+                "chat_id": chat_id,
+                "is_group": is_group
+            }
+
+        if is_group and intencion == "INFORMATIVO_SIN_ACCION":
+            # REGLA DE ORO: Modo Centinela Silencioso en Grupos (cero spam, cero escritura en BD)
+            return {
+                "exito": True,
+                "debe_encolar_asignacion": False,
+                "hwb": hwb_final,
+                "accion": "SILENCIO_MODO_CENTINELA",
+                "mensaje_usuario": "",
+                "remitente_telefono": tel_norm,
+                "chat_id": chat_id,
+                "is_group": is_group
+            }
+
+        # Llegados aquí, la intención es AUTO_ASIGNACION o TRASPASO
+        # Validar si contamos con PID canónico utilizable ('JD...').
+        # Si la guía está fuera de manifiesto y la foto no trae código de barras legible,
+        # se instruye al chofer amablemente a enviar la foto clara del código de barras.
+        if not pid_boveda or len(pid_boveda) < 10:
+            es_comando_directo = bool(RE_ASIGNACION.search(caption_clean)) or not is_group
+            msg_poka_yoke = f"📸 Para asignarte la guía *{hwb_final}*, por favor manda foto donde se vea claro el *código de barras* de la etiqueta física."
+            resultado_error = {
+                "exito": False,
+                "silencioso": not es_comando_directo,
+                "motivo": "PID_INVALIDO_O_FALTANTE",
+                "mensaje_usuario": msg_poka_yoke if es_comando_directo else "",
+                "remitente_telefono": tel_norm,
+                "info_pochteca": info_pochteca,
+                "is_group": is_group,
+                "chat_id": chat_id
+            }
+            return resultado_error
 
         # 6. Resolución de Zona / Matriz CP si tenemos CP
         datos_zona = {}
         if self.matriz_cp_mgr and cp_final:
             datos_zona = self.matriz_cp_mgr.resolver_asignacion(cp=cp_final)
 
+        # Tratar casos donde NO se debe encolar asignación (Ruido / Consulta / Incidencia)
+        if intencion == "CONSULTA":
+            titular = datos_zona.get("titular") or chofer_anterior or "No asignado aún"
+            muni = datos_zona.get("municipio") or "Zona QRO"
+            return {
+                "exito": True,
+                "debe_encolar_asignacion": False,
+                "hwb": hwb_final,
+                "accion": "CONSULTA_INFORMATIVA",
+                "mensaje_usuario": f"ℹ️ Consulta Guía *{hwb_final}*: Destino {destinatario_final} (CP {cp_final} - {muni}). Chofer asignado: *{titular}*.",
+                "remitente_telefono": tel_norm,
+                "chat_id": chat_id,
+                "is_group": is_group
+            }
+
+        # 7. Candado Territorial Inviolable (Fase 3: Sierra Gorda vs Metrópoli)
+        zona_pochteca = (info_pochteca.get("zona_asignada") or "").upper()
+        zona_destino = (datos_zona.get("zona_operativa") or datos_zona.get("zona") or "").upper()
+        correo_pochteca = info_pochteca.get("correo", "")
+        cp_str = str(cp_final).strip()
+
+        # Prefijos y códigos postales canónicos de Sierra Gorda (GTO fronterizo 37xxx, Sierra QRO 763xx, Peñamiller 76280, Tolimán 76290)
+        es_cp_sierra = (
+            cp_str.startswith("37") or
+            cp_str.startswith("763") or
+            cp_str in ("76280", "76290") or
+            "SIERRA GORDA" in zona_destino
+        )
+
+        # Allowlist Canónica de Sierra Gorda + Pochtecas con zona_asignada Sierra Gorda:
+        POCHTECAS_SIERRA_CANONICOS = {
+            "xichudaniel@gmail.com",
+            "fmsanluispaq@gmail.com",
+            "diegovv21mar@gmail.com",
+            "victor18amadorm@gmail.com",
+            "fmpaqueteriatvsm@gmail.com",
+            "yesigonzg1827@gmail.com",
+            "oscher1016@gmail.com"
+        }
+        es_pochteca_sierra = (
+            correo_pochteca in POCHTECAS_SIERRA_CANONICOS or
+            "SIERRA GORDA" in zona_pochteca or
+            (info_pochteca.get("grupo") or "").upper() == "DANIEL"
+        )
+
+        if es_cp_sierra and not es_pochteca_sierra:
+            titular_sg = datos_zona.get("chofer_titular") or datos_zona.get("chofer_asignado") or "fmsanluispaq@gmail.com"
+            muni_sg = datos_zona.get("municipio") or "Sierra Gorda"
+            return {
+                "exito": False,
+                "debe_encolar_asignacion": False,
+                "hwb": hwb_final,
+                "cp": cp_final,
+                "motivo": "BLOQUEO_TERRITORIAL_SIERRA_GORDA",
+                "mensaje_usuario": f"⛔ Bloqueo Territorial Poka-Yoke: La guía *{hwb_final}* (CP {cp_final} - {muni_sg}) pertenece a la demarcación de Sierra Gorda (Titular: {titular_sg}). Tu perfil ({zona_pochteca}) no tiene cobertura en esta demarcación sin visto bueno de Daniel Juárez.",
+                "remitente_telefono": tel_norm,
+                "chat_id": chat_id,
+                "is_group": is_group
+            }
+
+        # Validación de CP contra MATRIZ_CP (Solo si el CP está visible en la etiqueta):
+        # Si el CP está presente, se valida contra la matriz; si no se detectó (etiqueta doblada/incompleta),
+        # NO es candado bloqueante para no frenar la ruta del chofer.
+        if cp_final and self.matriz_cp_mgr and not datos_zona.get("encontrado", False):
+            return {
+                "exito": False,
+                "debe_encolar_asignacion": False,
+                "silencioso": bool(is_group),
+                "hwb": hwb_final,
+                "cp": cp_final,
+                "motivo": "CP_NO_CATALOGADO_EN_MATRIZ",
+                "mensaje_usuario": "" if is_group else f"⚠️ El Código Postal *{cp_final}* no está catalogado en la Matriz Operativa. Requiere confirmación de Mesa de Control.",
+                "remitente_telefono": tel_norm,
+                "chat_id": chat_id,
+                "is_group": is_group
+            }
+
+        # 8. Asignación Aprobada
+        nuevo_chofer_email = correo_pochteca
+        es_traspaso = False
+        if chofer_anterior and nuevo_chofer_email and chofer_anterior.lower() != nuevo_chofer_email.lower():
+            es_traspaso = True
+
         resultado = {
             "exito": True,
+            "debe_encolar_asignacion": True,
             "hwb": hwb_final,
             "pid_boveda": pid_boveda,
             "pid_appsheet": pid_appsheet,
@@ -406,21 +779,35 @@ class CalpixquiVisionRouter:
         return resultado
 
     def _obtener_info_pochteca(self, telefono_10d: str) -> Dict[str, Any]:
-        """Consulta el directorio local de Pochtecas por teléfono."""
+        """Consulta el directorio local de Pochtecas por teléfono con coincidencia estricta de 10 dígitos."""
+        tel_norm = normalizar_telefono_10d(telefono_10d)
+        if not tel_norm or len(tel_norm) != 10:
+            return {
+                "correo": "",
+                "nombre": f"Desconocido ({telefono_10d})",
+                "zona_asignada": "DESCONOCIDA",
+                "supervisor": "",
+                "autorizado": False
+            }
+
         if not self.pochtecas_mgr:
-            return {"correo": "", "nombre": "Pochteca", "zona_asignada": "QRO", "supervisor": ""}
+            return {"correo": "", "nombre": "Pochteca", "zona_asignada": "DESCONOCIDA", "supervisor": "", "autorizado": False}
 
         directorio = getattr(self.pochtecas_mgr, "directorio", {})
         for correo, d in directorio.items():
             tel = normalizar_telefono_10d(d.get("telefono", ""))
-            if tel and (tel == telefono_10d or tel.endswith(telefono_10d) or telefono_10d.endswith(tel)):
-                return d
+            # Coincidencia ESTRICTA de exactamente 10 dígitos (elimina vulnerabilidad endswith)
+            if tel and len(tel) == 10 and tel == tel_norm:
+                res = dict(d)
+                res["autorizado"] = True
+                return res
 
         return {
-            "correo": f"pochteca.{telefono_10d}@arauto.express",
-            "nombre": f"Operador ({telefono_10d[-4:]})",
-            "zona_asignada": "QRO Metropolitano",
-            "supervisor": "irvinreyes.dhl@gmail.com"
+            "correo": "",
+            "nombre": f"Desconocido ({tel_norm})",
+            "zona_asignada": "DESCONOCIDA",
+            "supervisor": "",
+            "autorizado": False
         }
 
     def _extraer_con_gemini(self, image_base64: str, mimetype: str, caption: str) -> Dict[str, Any]:

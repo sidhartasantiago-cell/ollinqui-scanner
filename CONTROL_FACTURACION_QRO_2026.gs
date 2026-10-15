@@ -23,6 +23,7 @@
 var ID_BD_CENTRAL_CANONICA = typeof ID_BD_CENTRAL_CANONICA !== 'undefined' ? ID_BD_CENTRAL_CANONICA : "1osolxYzL12I05J2CUy5PBAGpPD2Z3XeU37RzUlFPPO8";
 var ID_TABLA_FACTURACION_HISTORICA = typeof ID_TABLA_FACTURACION_HISTORICA !== 'undefined' ? ID_TABLA_FACTURACION_HISTORICA : "1d6D8jy5PGScalE8POFou1UYTpbW6p1Vi5xovrqZay6U";
 var ID_BOVEDA_BATCH_MAESTRO = typeof ID_BOVEDA_BATCH_MAESTRO !== 'undefined' ? ID_BOVEDA_BATCH_MAESTRO : "1wIz5YlSbpOLtDY9UNShZ9LHdcez_Vyxlu1wYxBZKTkw";
+var ID_CONTROL_FOLIOS = typeof ID_CONTROL_FOLIOS !== 'undefined' ? ID_CONTROL_FOLIOS : "1vhG5Sv6yCkrok35FnKXwZq0hppUdmXydhHUA5pi1rX8";
 
 // Datos Fiscales y de Transporte Fijos (Carta Porte 3.1)
 const TRANSPORTE_CONFIG = {
@@ -47,6 +48,8 @@ const TRANSPORTE_CONFIG = {
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu('🧾 Facturación DHL (Control 2026)')
+    .addItem('📡 0. Radar Control de Folios (Ver Estatus QRO/LEN)', 'mostrarRadarControlFolios')
+    .addSeparator()
     .addItem('🔍 1. Calcular Corte y Auditar Guías (Tiempo 1)', 'ejecutarCalculoYAuditoria')
     .addSeparator()
     .addItem('📄 2. Generar Documentos Finales (Tiempo 2)', 'ejecutarGeneracionDocumentos')
@@ -144,6 +147,103 @@ function formatearFechaDDMMAAAA(fechaVal) {
 
 /**
  * =========================================================================
+ * RADAR Y CONEXIÓN EN VIVO A "CONTROL DE FOLIOS" (SOLO-LECTURA)
+ * =========================================================================
+ */
+function obtenerEstadoControlFolios() {
+  const resultado = {
+    ultimoFolioGlobal: "P1078",
+    numFolioGlobal: 1078,
+    siguienteFolio: "P1079",
+    qro: { folio: "P1073", semana: 39, anio: 2026, importe: "$58,527.80", fechaCreada: "30/09/2026" },
+    len: { folio: "P1078", semana: 39, anio: 2026, importe: "$25,021.20", fechaCreada: "01/10/2026" },
+    ultimosRegistros: []
+  };
+
+  try {
+    const ssFolios = SpreadsheetApp.openById(ID_CONTROL_FOLIOS);
+    const hoja = ssFolios.getSheets()[0];
+    const data = hoja.getDataRange().getDisplayValues();
+    if (data.length < 2) return resultado;
+
+    let maxNumFolio = 0;
+    const inicioScan = Math.max(1, data.length - 50);
+
+    for (let r = inicioScan; r < data.length; r++) {
+      const row = data[r];
+      const svc = String(row[0] || "").trim().toUpperCase();
+      const fac = String(row[1] || "").trim().toUpperCase();
+      const folioAp = String(row[2] || "").trim();
+      const sem = parseInt(String(row[3] || "").trim(), 10);
+      const anio = parseInt(String(row[4] || "").trim(), 10) || 2026;
+      const imp = String(row[5] || "").trim();
+      const fCreada = String(row[6] || "").trim();
+
+      if (!fac || fac.indexOf("P") !== 0) continue;
+
+      const numF = parseInt(fac.replace(/[^0-9]/g, ""), 10);
+      if (!isNaN(numF) && numF > maxNumFolio) {
+        maxNumFolio = numF;
+        resultado.ultimoFolioGlobal = fac;
+        resultado.numFolioGlobal = numF;
+        resultado.siguienteFolio = "P" + (numF + 1);
+      }
+
+      if (svc === "QRO" && !isNaN(sem)) {
+        resultado.qro = { folio: fac, folioAp: folioAp, semana: sem, anio: anio, importe: imp, fechaCreada: fCreada };
+      } else if (svc === "LEN" && !isNaN(sem)) {
+        resultado.len = { folio: fac, folioAp: folioAp, semana: sem, anio: anio, importe: imp, fechaCreada: fCreada };
+      }
+
+      resultado.ultimosRegistros.push({ svc: svc, folio: fac, folioAp: folioAp, semana: sem, anio: anio, importe: imp, fechaCreada: fCreada });
+    }
+  } catch (e) {
+    console.warn("Aviso al leer Control de Folios:", e);
+  }
+
+  return resultado;
+}
+
+/**
+ * Calcula las fechas exactas (Sábado a Viernes) para una semana de facturación QRO 2026.
+ * Referencia canónica: Semana 38 = 13/09/2026 al 19/09/2026 | Semana 39 = 20/09/2026 al 26/09/2026
+ */
+function calcularFechasSemanaQRO(numSemana) {
+  const baseSem38Inicio = new Date(2026, 8, 13); // 13/09/2026 (Mes 8 = Septiembre)
+  const diffSemanas = (numSemana - 38) * 7;
+  const dInicio = new Date(baseSem38Inicio.getTime());
+  dInicio.setDate(dInicio.getDate() + diffSemanas);
+  const dFin = new Date(dInicio.getTime());
+  dFin.setDate(dFin.getDate() + 6);
+  return { inicio: dInicio, fin: dFin };
+}
+
+/**
+ * Muestra en pantalla y actualiza en 1_PANEL_CONTROL el radar de Control de Folios
+ */
+function mostrarRadarControlFolios() {
+  const ui = SpreadsheetApp.getUi();
+  const est = obtenerEstadoControlFolios();
+  const sigSemQro = (est.qro.semana || 39) + 1;
+  const fechasSig = calcularFechasSemanaQRO(sigSemQro);
+  const folioSugerido = "Semana " + sigSemQro + " (" + est.qro.anio + ") factura " + est.siguienteFolio + " QRO";
+
+  let msg = "📡 CONEXIÓN EN VIVO CON 'CONTROL DE FOLIOS':\n\n";
+  msg += "🏢 PLAZA QUERÉTARO (QRO):\n";
+  msg += "   • Última Semana Facturada: Semana " + est.qro.semana + " (" + est.qro.folio + ")\n";
+  msg += "   • Importe: " + est.qro.importe + " | Fecha: " + est.qro.fechaCreada + "\n\n";
+  msg += "🦁 PLAZA LEÓN (LEN):\n";
+  msg += "   • Última Semana Facturada: Semana " + est.len.semana + " (" + est.len.folio + ")\n";
+  msg += "   • Importe: " + est.len.importe + " | Fecha: " + est.len.fechaCreada + "\n\n";
+  msg += "🚀 SIGUIENTE CORTE PENDIENTE QRO:\n";
+  msg += "   • Folio Sugerido: " + folioSugerido + "\n";
+  msg += "   • Periodo: del " + formatearFechaDDMMAAAA(fechasSig.inicio) + " al " + formatearFechaDDMMAAAA(fechasSig.fin);
+
+  ui.alert("📡 Radar Control de Folios Activo", msg, ui.ButtonSet.OK);
+}
+
+/**
+ * =========================================================================
  * TIEMPO 1: CALCULAR CORTE Y AUDITAR GUÍAS
  * =========================================================================
  */
@@ -151,51 +251,67 @@ function ejecutarCalculoYAuditoria() {
   const ui = SpreadsheetApp.getUi();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // 1. Solicitar Folio de Factura
+  // 0. Consultar en vivo "Control de Folios" para detectar última semana y sugerir la siguiente
+  const estFolios = obtenerEstadoControlFolios();
+  const sigSemQro = (estFolios.qro.semana || 39) + 1;
+  const fechasSugeridas = calcularFechasSemanaQRO(sigSemQro);
+  const folioSugerido = "Semana " + sigSemQro + " (" + (estFolios.qro.anio || 2026) + ") factura " + estFolios.siguienteFolio + " QRO";
+  const finSugeridoStr = formatearFechaDDMMAAAA(fechasSugeridas.fin);
+  const iniSugeridoStr = formatearFechaDDMMAAAA(fechasSugeridas.inicio);
+
+  // 1. Solicitar Folio de Factura (con sugerencia automática si se deja en blanco)
   const respFolio = ui.prompt(
-    '🧾 Tiempo 1: Cálculo y Auditoría de Facturación',
-    'Ingresa el folio de Factura Semanal a procesar\n(Ejemplo: Semana 38 (2026) factura P1072 QRO):',
+    '🧾 Tiempo 1: Cálculo y Auditoría (Radar Control de Folios)',
+    '📌 Última QRO facturada: Semana ' + estFolios.qro.semana + ' (' + estFolios.qro.folio + ' — ' + estFolios.qro.importe + ')\n' +
+    '📌 Último folio global emitido: ' + estFolios.ultimoFolioGlobal + '\n\n' +
+    '👉 Presiona ACEPTAR directamente para usar el sugerido:\n' +
+    '   "' + folioSugerido + '"\n\n' +
+    'O escribe otro folio si deseas procesar una semana distinta:',
     ui.ButtonSet.OK_CANCEL
   );
   if (respFolio.getSelectedButton() !== ui.Button.OK) return;
-  const folioFactura = respFolio.getResponseText().trim();
-  if (!folioFactura) {
-    ui.alert('❌ Error: El folio de factura es obligatorio.');
-    return;
-  }
+  const inputFolio = respFolio.getResponseText().trim();
+  const folioFactura = inputFolio ? inputFolio : folioSugerido;
+
+  // Si el usuario escribió un número de semana distinto en el folio (ej. "Semana 41"), ajustar fechas sugeridas
+  let matchSem = folioFactura.match(/semana\s*(\d+)/i);
+  let semDetectada = matchSem ? parseInt(matchSem[1], 10) : sigSemQro;
+  let rangoCalc = calcularFechasSemanaQRO(semDetectada);
+  let fechaFinDefault = rangoCalc.fin;
+  let fechaFinDefaultStr = formatearFechaDDMMAAAA(fechaFinDefault);
 
   // 2. Solicitar Rango de Fechas del Corte Semanal en formato dd/mm/aaaa
-  const hoyObj = new Date();
-  const hoyDDMMAAAA = formatearFechaDDMMAAAA(hoyObj);
-
   const respFechaFin = ui.prompt(
-    '📅 1/2: Fecha Fin de Corte (Límite)',
-    'Ingresa la FECHA FIN de la semana (formato: dd/mm/aaaa):\n(Ejemplo: 19/09/2026 o presiona OK para hoy ' + hoyDDMMAAAA + '):',
+    '📅 1/2: Fecha Fin de Corte (Viernes de Cierre)',
+    'Para ' + folioFactura + ':\n' +
+    '👉 Presiona ACEPTAR para usar el viernes de cierre sugerido: ' + fechaFinDefaultStr + '\n\n' +
+    'O escribe otra fecha fin (dd/mm/aaaa):',
     ui.ButtonSet.OK_CANCEL
   );
   if (respFechaFin.getSelectedButton() !== ui.Button.OK) return;
   var inputFin = respFechaFin.getResponseText().trim();
-  var dateFin = inputFin ? parsearFechaFlexible(inputFin) : hoyObj;
+  var dateFin = inputFin ? parsearFechaFlexible(inputFin) : fechaFinDefault;
   if (!dateFin) {
-    ui.alert('❌ Error: Formato de fecha fin no válido. Usa dd/mm/aaaa (ejemplo: 19/09/2026).');
+    ui.alert('❌ Error: Formato de fecha fin no válido. Usa dd/mm/aaaa (ejemplo: ' + fechaFinDefaultStr + ').');
     return;
   }
 
-  // Fecha de inicio sugerida: 6 días antes de la fecha fin (lunes a domingo)
+  // Fecha de inicio sugerida: 6 días antes de la fecha fin (sábado a viernes)
   var dateInicioSugerida = new Date(dateFin.getTime());
   dateInicioSugerida.setDate(dateInicioSugerida.getDate() - 6);
   var sugeridaDDMMAAAA = formatearFechaDDMMAAAA(dateInicioSugerida);
 
   const respFechaInicio = ui.prompt(
-    '📅 2/2: Fecha Inicio del Corte Semanal',
-    'Ingresa la FECHA INICIO de la semana (formato: dd/mm/aaaa):\n(Presiona OK para usar la sugerida: ' + sugeridaDDMMAAAA + '):',
+    '📅 2/2: Fecha Inicio del Corte Semanal (Sábado de Inicio)',
+    '👉 Presiona ACEPTAR para usar el sábado sugerido: ' + sugeridaDDMMAAAA + '\n\n' +
+    'O escribe otra fecha inicio (dd/mm/aaaa):',
     ui.ButtonSet.OK_CANCEL
   );
   if (respFechaInicio.getSelectedButton() !== ui.Button.OK) return;
   var inputInicio = respFechaInicio.getResponseText().trim();
   var dateInicio = inputInicio ? parsearFechaFlexible(inputInicio) : dateInicioSugerida;
   if (!dateInicio) {
-    ui.alert('❌ Error: Formato de fecha inicio no válido. Usa dd/mm/aaaa (ejemplo: 13/09/2026).');
+    ui.alert('❌ Error: Formato de fecha inicio no válido. Usa dd/mm/aaaa (ejemplo: ' + sugeridaDDMMAAAA + ').');
     return;
   }
   // Enteros matemáticos infalibles YYYYMMDD para comparación exacta
@@ -231,8 +347,21 @@ function ejecutarCalculoYAuditoria() {
     // Mapeo dinámico y tolerante de columnas exactas de Ruta Backend y TD Facturación
     const idxGuia = cabF.findIndex(h => h.indexOf("guia") !== -1 || h.indexOf("guía") !== -1);
     const idxCheckpoint = cabF.findIndex(h => h === "checkpoint" || h.indexOf("check") !== -1);
-    const idxTipoServicio = cabF.findIndex(h => h.indexOf("tipo de servicio") !== -1 || h === "servicio" || h.indexOf("tipo servicio") !== -1);
-    const idxTarifaBase = cabF.findIndex(h => h === "tarifa" || h === "tarifa base" || h === "costo");
+    
+    // Buscar TODAS las columnas de Tipo de Servicio y Tarifa Base (de derecha a izquierda para priorizar Col Z y Col AA de TD Facturación)
+    const idxsTipoServicio = [];
+    const idxsTarifaBase = [];
+    for (let c = cabF.length - 1; c >= 0; c--) {
+      const h = cabF[c];
+      if (h.indexOf("tipo de servicio") !== -1 || h === "servicio" || h.indexOf("tipo servicio") !== -1) {
+        idxsTipoServicio.push(c);
+      }
+      if (h === "tarifa" || h === "tarifa base") {
+        idxsTarifaBase.push(c);
+      }
+    }
+    const idxTipoServicio = idxsTipoServicio.length > 0 ? idxsTipoServicio[0] : -1;
+    const idxTarifaBase = idxsTarifaBase.length > 0 ? idxsTarifaBase[0] : -1;
     
     // Piezas y Maniobra (Multipiezas: $5.00 por cada pieza adicional a partir de la 2da)
     const idxPcs = cabF.findIndex(h => h === "piezas" || h === "#pcs" || h === "pzas" || h === "piezas total");
@@ -243,6 +372,44 @@ function ejecutarCalculoYAuditoria() {
     const idxPesoMayor = cabF.findIndex(h => h.indexOf("peso mayor") !== -1 || h.indexOf("peso excedente") !== -1 || h.indexOf("excedente") !== -1);
     const idxCp = cabF.findIndex(h => h === "c.p." || h === "cp" || h.indexOf("codigo postal") !== -1);
     const idxPid = cabF.findIndex(h => h === "pid" || h.indexOf("pid") !== -1);
+    const idxCorreo = cabF.findIndex(h => h.indexOf("correo") !== -1 || h.indexOf("courier") !== -1);
+
+    // Construir mapa histórico por mayoría de votos (C.P. -> Tipo de Servicio y Correo -> Tipo de Servicio)
+    // por si se corre el Tiempo 1 antes de arrastrar las fórmulas en Ruta Backend
+    const conteoCp = new Map();
+    const conteoCorreo = new Map();
+    for (let r = 1; r < dataFuente.length; r++) {
+      const rowH = dataFuente[r];
+      let servH = "";
+      for (let k = 0; k < idxsTipoServicio.length; k++) {
+        const valS = String(rowH[idxsTipoServicio[k]] || "").trim().toLowerCase();
+        if (valS === "remoto" || valS.indexOf("remoto") !== -1) { servH = "Remoto"; break; }
+        if (valS === "foraneo" || valS === "foráneo" || valS.indexOf("foraneo") !== -1) { servH = "Foraneo"; break; }
+      }
+      if (!servH && idxTarifaBase !== -1) {
+        const tbH = Number(rowH[idxTarifaBase]);
+        if (tbH === 100) servH = "Remoto";
+        else if (tbH === 65) servH = "Foraneo";
+      }
+      if (!servH) continue;
+
+      if (idxCp !== -1 && rowH[idxCp]) {
+        const cpH = String(rowH[idxCp]).trim();
+        if (cpH) {
+          const st = conteoCp.get(cpH) || { f: 0, r: 0 };
+          if (servH === "Remoto") st.r++; else st.f++;
+          conteoCp.set(cpH, st);
+        }
+      }
+      if (idxCorreo !== -1 && rowH[idxCorreo]) {
+        const emH = String(rowH[idxCorreo]).trim().toLowerCase();
+        if (emH) {
+          const stE = conteoCorreo.get(emH) || { f: 0, r: 0 };
+          if (servH === "Remoto") stE.r++; else stE.f++;
+          conteoCorreo.set(emH, stE);
+        }
+      }
+    }
 
     // Detección de columnas candidatas de Fecha (ordenadas por prioridad)
     const idxFechasCandidatas = [];
@@ -299,26 +466,57 @@ function ejecutarCalculoYAuditoria() {
       }
       const fechaRowDDMMAAAA = formatearFechaDDMMAAAA(fechaValida);
 
-      // Tipo de Servicio de la hoja (Foraneo vs Remoto)
-      let tipoServicio = "Foraneo";
-      if (idxTipoServicio !== -1 && row[idxTipoServicio]) {
-        const ts = String(row[idxTipoServicio]).trim().toLowerCase();
-        if (ts.indexOf("remoto") !== -1) {
+      // Tipo de Servicio de la hoja (Foraneo vs Remoto) y Tarifa Base ($65 vs $100)
+      let tipoServicio = "";
+      for (let k = 0; k < idxsTipoServicio.length; k++) {
+        const ts = String(row[idxsTipoServicio[k]] || "").trim().toLowerCase();
+        if (ts === "remoto" || ts.indexOf("remoto") !== -1) {
           tipoServicio = "Remoto";
-        }
-      } else if (idxCp !== -1 && row[idxCp]) {
-        const cpStr = String(row[idxCp]).trim();
-        if (["762", "763", "764", "765", "766", "767", "768", "769"].some(function(p) { return cpStr.indexOf(p) === 0; })) {
-          tipoServicio = "Remoto";
+          break;
+        } else if (ts === "foraneo" || ts === "foráneo" || ts.indexOf("foraneo") !== -1 || ts.indexOf("foráneo") !== -1) {
+          tipoServicio = "Foraneo";
+          break;
         }
       }
 
-      // 1. Tarifa Base de Reparto ($65 Foráneo, $100 Remoto)
-      let tarifaBase = (tipoServicio === "Remoto") ? 100 : 65;
-      if (idxTarifaBase !== -1 && row[idxTarifaBase] !== "" && row[idxTarifaBase] !== null) {
-        const tb = Number(row[idxTarifaBase]);
-        if (!isNaN(tb) && (tb === 65 || tb === 100 || tb > 0)) tarifaBase = tb;
+      let tarifaBase = 0;
+      for (let k = 0; k < idxsTarifaBase.length; k++) {
+        const valTb = row[idxsTarifaBase[k]];
+        if (valTb !== "" && valTb !== null) {
+          const tb = Number(valTb);
+          if (!isNaN(tb) && (tb === 65 || tb === 100)) {
+            tarifaBase = tb;
+            break;
+          }
+        }
       }
+
+      // Si la columna Tarifa dice 100, es Remoto garantizado
+      if (tarifaBase === 100) {
+        tipoServicio = "Remoto";
+      } else if (tarifaBase === 65 && !tipoServicio) {
+        tipoServicio = "Foraneo";
+      }
+
+      // Fallback inteligente por mayoría histórica (C.P. / Correo) solo si la celda en Ruta Backend está vacía
+      if (!tipoServicio && idxCp !== -1 && row[idxCp]) {
+        const cpStr = String(row[idxCp]).trim();
+        if (conteoCp.has(cpStr)) {
+          const st = conteoCp.get(cpStr);
+          tipoServicio = st.r > st.f ? "Remoto" : "Foraneo";
+        } else if (["379", "763", "764", "765"].some(function(p) { return cpStr.indexOf(p) === 0; })) {
+          tipoServicio = "Remoto";
+        }
+      }
+      if (!tipoServicio && idxCorreo !== -1 && row[idxCorreo]) {
+        const emStr = String(row[idxCorreo]).trim().toLowerCase();
+        if (conteoCorreo.has(emStr)) {
+          const stE = conteoCorreo.get(emStr);
+          tipoServicio = stE.r > stE.f ? "Remoto" : "Foraneo";
+        }
+      }
+      if (!tipoServicio) tipoServicio = "Foraneo";
+      if (!tarifaBase) tarifaBase = (tipoServicio === "Remoto") ? 100 : 65;
 
       // 2. Tarifa por Pieza (Respetar columna calculada en Ruta Backend de 2025 Tabla de facturacion QRO 2.0)
       const piezas = idxPcs !== -1 ? (Number(row[idxPcs]) || 1) : 1;
@@ -506,6 +704,12 @@ function escribirResultadosAlineadosTD(ss, folioFactura, fechaCorte, guias, caso
     hCasos.getRange(2, 1, casosEspeciales.length, 1).insertCheckboxes();
   }
 
+  // Limpiar pestaña de Auditoría Hermes de semanas anteriores para evitar arrastrar guías viejas en Tiempo 2
+  let hHermesVieja = ss.getSheetByName("🕵️_AUDITORIA_HERMES");
+  if (hHermesVieja) {
+    hHermesVieja.clear();
+  }
+
   // Pestaña 4: PARA FACTURAR (Códigos Facturo Por Ti / Catálogo DHL)
   let hPara = ss.getSheetByName("4_PARA_FACTURAR") || ss.insertSheet("4_PARA_FACTURAR");
   hPara.clear();
@@ -654,9 +858,17 @@ function ejecutarGeneracionDocumentos() {
   }
 
   const nombreCsvCP = "Paqueteria_Guias_" + folio.replace(/[^a-zA-Z0-9_-]/g, "_") + ".csv";
+  try {
+    const prevCP = parentFolder.getFilesByName(nombreCsvCP);
+    while (prevCP.hasNext()) prevCP.next().setTrashed(true);
+  } catch (e) {}
   const fileCP = parentFolder.createFile(nombreCsvCP, resultadoCP.csvContent, MimeType.CSV);
 
   const nombreCobroDHL = "Formato_de_cobro_por_terceros_" + folio.replace(/[^a-zA-Z0-9_-]/g, "_") + ".csv";
+  try {
+    const prevDHL = parentFolder.getFilesByName(nombreCobroDHL);
+    while (prevDHL.hasNext()) prevDHL.next().setTrashed(true);
+  } catch (e) {}
   const fileDHL = parentFolder.createFile(nombreCobroDHL, csvCobroTercerosContent, MimeType.CSV);
 
   // Actualizar Estatus en Panel
@@ -813,18 +1025,19 @@ function generarFormatoCobroTerceros(ss, folio, guias) {
   const filas = [r1, r2, r3];
 
   for (let g of guias) {
+    let fechaLimpia = formatearFechaDDMMAAAA(g.fecha) || String(g.fecha || "");
     filas.push([
       TRANSPORTE_CONFIG.proveedorNombre,
       folio,
       g.piezas,
-      g.fecha,
+      fechaLimpia,
       g.guia,
       g.tipoReparto,
       g.costoBase,
       g.maniobra,
       g.tarifaPieza > 0 ? g.tarifaPieza : "",
       "",
-      g.checkpoint === "PU" ? 65 : "",
+      g.checkpoint === "PU" ? "Recoleccion" : "",
       "",
       g.tarifaPeso > 0 ? g.tarifaPeso : ""
     ]);

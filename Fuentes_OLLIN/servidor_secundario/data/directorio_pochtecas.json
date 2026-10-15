@@ -152,5 +152,19 @@
     "estatus": "Activo",
     "fecha_creacion": "2026-09-22T00:00:00",
     "fecha_actualizacion": "2026-09-22T00:00:00"
+  },
+  "paqueteria.sanluis.3232487050@arauto.express": {
+    "correo": "fmsanluispaq@gmail.com",
+    "nombre": "Paquetería San Luis (Operador 7050)",
+    "telefono": "3232487050",
+    "rol": "Pochteca",
+    "zona_asignada": "Sierra Gorda",
+    "supervisor": "xichudaniel@gmail.com",
+    "grupo": "Daniel",
+    "webhook_chat": "https://chat.googleapis.com/v1/spaces/AAQAEoaLlMQ/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=C3nlfauF5BX4ywmc4xnQWDbr8B5qdJINL-SUbhHw3PI",
+    "tiene_7ca": false,
+    "estatus": "Activo",
+    "fecha_creacion": "2026-10-11T15:09:00.000000",
+    "fecha_actualizacion": "2026-10-11T15:09:00.000000"
   }
 }

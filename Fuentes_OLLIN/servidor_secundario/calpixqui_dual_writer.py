@@ -23,8 +23,10 @@ import os
 import sys
 import time
 import json
+import re
 import sqlite3
 import random
+import uuid
 import logging
 import threading
 import urllib.request
@@ -111,6 +113,7 @@ def inicializar_outbox_db():
             );
         """)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_outbox_estatus ON outbox_asignaciones(estatus);")
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_outbox_asignaciones_msg_id ON outbox_asignaciones(message_id) WHERE message_id IS NOT NULL AND message_id != '';")
 
         # Tabla de persistencia previa a respuesta HTTP 202 (Cero pérdida de tareas ante caídas)
         conn.execute("""
@@ -132,22 +135,45 @@ def inicializar_outbox_db():
         """)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_inbox_estatus ON outbox_multimodal_inbox(estatus);")
 
-        # Asegurar columna paso_ok para idempotencia fina si se requiere
+        # Asegurar columnas para idempotencia fina y asignación de worker/lease
         try:
             conn.execute("ALTER TABLE outbox_asignaciones ADD COLUMN pasos_completados TEXT DEFAULT '';")
         except sqlite3.OperationalError:
-            pass # Ya existe
+            pass
+        try:
+            conn.execute("ALTER TABLE outbox_asignaciones ADD COLUMN worker_id TEXT DEFAULT '';")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            conn.execute("ALTER TABLE outbox_multimodal_inbox ADD COLUMN worker_id TEXT DEFAULT '';")
+        except sqlite3.OperationalError:
+            pass
+
+        # 🧟 Reaper Defensivo: Solo rescata tareas en 'EN_PROCESO' si su LEASE expiró (>300 segundos)
+        # Esto previene reiniciar trabajos activos de otra instancia o worker en ejecución
+        conn.execute("""
+            UPDATE outbox_asignaciones
+            SET estatus = 'PENDIENTE', intentos = intentos + 1
+            WHERE estatus = 'EN_PROCESO'
+              AND (strftime('%s', 'now') - strftime('%s', actualizado_en)) > 300;
+        """)
+        conn.execute("""
+            UPDATE outbox_multimodal_inbox
+            SET estatus = 'PENDIENTE', intentos = intentos + 1
+            WHERE estatus = 'EN_PROCESO'
+              AND (strftime('%s', 'now') - strftime('%s', actualizado_en)) > 300;
+        """)
         conn.commit()
 
 
 inicializar_outbox_db()
 
 
-def guardar_multimodal_inbox(payload: Dict[str, Any]) -> Tuple[bool, str]:
+def guardar_multimodal_inbox(payload: Dict[str, Any]) -> Tuple[bool, str, bool]:
     """
     Persiste la petición cruda de WhatsApp en SQLite WAL ANTES de emitir HTTP 202 Accepted.
-    Garantiza durabilidad absoluta y cero pérdida de trabajos ante reinicio del servidor.
-    Deduplica por message_id único.
+    Retorna: (exito, message_id, es_duplicado).
+    Si el message_id ya existe, retorna (True, message_id, True) para evitar despachos duplicados.
     """
     now_iso = datetime.now().isoformat()
     msg_id = payload.get("message_id") or f"gen_{int(time.time()*1000)}"
@@ -172,13 +198,35 @@ def guardar_multimodal_inbox(payload: Dict[str, Any]) -> Tuple[bool, str]:
                 now_iso
             ))
             conn.commit()
-            return True, msg_id
+            return True, msg_id, False
         except sqlite3.IntegrityError:
             logger.info(f"⚡ Solicitud multimodal ya existía en SQLite Inbox (ID: {msg_id}). Omitiendo duplicado.")
-            return True, msg_id
+            return True, msg_id, True
         except Exception as e:
             logger.error(f"Error persistiendo tarea multimodal en inbox: {e}")
-            return False, str(e)
+            return False, str(e), False
+
+
+def actualizar_estado_inbox(message_id: str, nuevo_estatus: str, error_detalle: str = ""):
+    """
+    Actualiza el estatus de una tarea en outbox_multimodal_inbox (COMPLETADO, FALLIDO, DUPLICADO, etc.)
+    para evitar reprocesamientos infinitos tras caídas o reinicios.
+    """
+    if not message_id:
+        return
+    now_iso = datetime.now().isoformat()
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE outbox_multimodal_inbox
+                SET estatus = ?, error_detalle = ?, actualizado_en = ?
+                WHERE message_id = ?;
+            """, (nuevo_estatus, error_detalle, now_iso, message_id))
+            conn.commit()
+            cursor.close()
+    except Exception as e:
+        logger.warning(f"No se pudo actualizar estado inbox para {message_id}: {e}")
 
 
 # ==============================================================================
@@ -189,16 +237,32 @@ def encolar_asignacion_outbox(datos: Dict[str, Any]) -> int:
     """
     Inserta una asignación en el Outbox local de forma atómica (<15ms).
     Aplica sanitización defensiva de la Doble J antes de persistir.
+    Falla cerrado si el PID está vacío o es inválido.
+    Deduplica si el message_id ya existe en outbox_asignaciones.
     """
     now_iso = datetime.now().isoformat()
-    
+    msg_id = str(datos.get("message_id", "")).strip()
+
     # Sanitización defensiva
     pid_bov = sanitizar_pid_para_boveda(datos.get("pid_boveda", ""))
     pid_app = formatear_pid_para_appsheet(datos.get("pid_appsheet", "") or pid_bov)
 
+    # Falla cerrada: Prohibido encolar asignaciones con PID vacío o inválido
+    if not pid_bov or len(pid_bov) < 10:
+        logger.error(f"Falla cerrada: Intento de encolar asignación con PID inválido o vacío para guía {datos.get('hwb')}.")
+        return -1
+
     with get_db_connection() as conn:
         cursor = conn.cursor()
         try:
+            # Deduplicación por message_id único si está presente
+            if msg_id:
+                cursor.execute("SELECT id FROM outbox_asignaciones WHERE message_id = ? LIMIT 1;", (msg_id,))
+                existente = cursor.fetchone()
+                if existente:
+                    logger.info(f"⚡ Asignación para message_id {msg_id} ya existe en Outbox (ID: {existente[0]}). Omitiendo duplicado.")
+                    return existente[0]
+
             cursor.execute("""
                 INSERT INTO outbox_asignaciones (
                     hwb, pid_boveda, pid_appsheet, chofer_email, chofer_nombre,
@@ -215,7 +279,7 @@ def encolar_asignacion_outbox(datos: Dict[str, Any]) -> int:
                 1 if datos.get("es_traspaso") else 0,
                 "WHATSAPP_GRUPO" if datos.get("is_group") else "WHATSAPP_INDIVIDUAL",
                 str(datos.get("chat_id", "")),
-                str(datos.get("message_id", "")),
+                msg_id,
                 str(datos.get("destinatario", "")),
                 str(datos.get("direccion", "")),
                 str(datos.get("cp", "")),
@@ -226,6 +290,12 @@ def encolar_asignacion_outbox(datos: Dict[str, Any]) -> int:
             conn.commit()
             reg_id = cursor.lastrowid
             logger.info(f"💾 Asignación guardada en Outbox WAL (ID: {reg_id}, Guía: {datos.get('hwb')}, Chofer: {datos.get('nuevo_chofer_email')})")
+            return reg_id
+        except sqlite3.IntegrityError:
+            cursor.execute("SELECT id FROM outbox_asignaciones WHERE message_id = ? LIMIT 1;", (msg_id,))
+            existente = cursor.fetchone()
+            reg_id = existente[0] if existente else -1
+            logger.info(f"⚡ Colisión concurrente resuelta en Outbox por UNIQUE index (ID: {reg_id}, message_id: {msg_id}).")
             return reg_id
         finally:
             cursor.close()
@@ -272,12 +342,20 @@ class DualWriterSyncEngine:
         now_iso = datetime.now().isoformat()
 
         try:
-            # ── 1. Obtener listado de guías en RUTA de BD Central 2023 ──
-            url_read_ruta = f"https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID_BD_CENTRAL_2023}/values/RUTA!A:A"
+            # ── 1. Obtener listado de guías en RUTA de BD Central 2023 (Cols A:R para auditar Guia, PID y KEY) ──
+            url_read_ruta = f"https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID_BD_CENTRAL_2023}/values/RUTA!A:R"
             req_rr = urllib.request.Request(url_read_ruta, headers=self._get_headers())
             with urllib.request.urlopen(req_rr, timeout=12) as resp_rr:
                 rutas_guias = json.loads(resp_rr.read().decode("utf-8")).get("values", [])
-            ruta_map = {str(r[0]).strip(): idx + 1 for idx, r in enumerate(rutas_guias) if r}
+            ruta_map = {}
+            for idx, r in enumerate(rutas_guias):
+                if r and r[0]:
+                    g = str(r[0]).strip()
+                    ruta_map[g] = {
+                        "row": idx + 1,
+                        "pid": str(r[1]).strip() if len(r) > 1 and r[1] else "",
+                        "key": str(r[17]).strip() if len(r) > 17 and r[17] else ""
+                    }
 
             # ── 2. Obtener listado de guías en GUIAS_ASIGNADAS de App Ruta ──
             url_read_ga = f"https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID_BD_APP_RUTA_2025}/values/GUIAS_ASIGNADAS!A:A"
@@ -297,8 +375,8 @@ class DualWriterSyncEngine:
             except Exception as ePp:
                 logger.debug(f"Nota leyendo PIEZAS_PID: {ePp}")
 
-            updates_ruta = []
-            updates_ga = []
+            dict_updates_ruta: Dict[str, list] = {}
+            dict_updates_ga: Dict[str, list] = {}
             filas_ruta_nuevas = []
             filas_ga_nuevas = []
             filas_piezas_nuevas = []
@@ -313,19 +391,35 @@ class DualWriterSyncEngine:
 
                 # A) Actualizar BD Central RUTA
                 if hwb in ruta_map:
-                    row_idx = ruta_map[hwb]
-                    updates_ruta.append({
-                        "range": f"RUTA!O{row_idx}",
-                        "values": [[chofer]]
-                    })
+                    row_info = ruta_map[hwb]
+                    row_idx = row_info["row"]
+                    dict_updates_ruta[f"RUTA!O{row_idx}"] = [[chofer]]
+
+                    # Verificar y sanar KEY en columna R si está corrupta o vacía
+                    key_existente = str(row_info.get("key", "")).strip().lower()
+                    if not key_existente or len(key_existente) != 8 or not re.match(r"^[0-9a-f]{8}$", key_existente):
+                        key_nueva = uuid.uuid4().hex[:8]
+                        dict_updates_ruta[f"RUTA!R{row_idx}"] = [[key_nueva]]
+                        row_info["key"] = key_nueva
+                        logger.info(f"🔑 Guía {hwb} en RUTA (fila {row_idx}): KEY '{key_existente}' sanada con UUID '{key_nueva}'.")
+
+                    # Si PID en columna B está vacío y tenemos pid_app, inyectar pid_app
+                    pid_existente = str(row_info.get("pid", "")).strip()
+                    if not pid_existente and pid_app:
+                        dict_updates_ruta[f"RUTA!B{row_idx}"] = [[pid_app]]
+                        row_info["pid"] = pid_app
+                        logger.info(f"🏷️ Guía {hwb} en RUTA (fila {row_idx}): PID completado con '{pid_app}'.")
+
                     logger.info(f"🔄 Guía {hwb} encontrada en RUTA (fila {row_idx}): actualizando chofer a {chofer}")
                 else:
                     # Guía no existía previamente en RUTA: insertar con el esquema canónico completo de 21 cols
-                    key_inmutable = f"{hwb}_{pid_app}"
+                    key_inmutable = uuid.uuid4().hex[:8]
+                    cp_item = str(item.get("cp", "")).strip()
+                    tipo_servicio = "Foraneo" if cp_item.startswith("37") else "Local"
                     filas_ruta_nuevas.append([
                         hwb,                                  # A: Guia
                         pid_app,                              # B: PID
-                        item.get("cp", ""),                   # C: CP
+                        cp_item,                              # C: CP
                         "1",                                  # D: Piezas
                         item.get("direccion", ""),            # E: Rcvr Addr 1
                         "",                                   # F: Rcvr Addr 2
@@ -341,18 +435,22 @@ class DualWriterSyncEngine:
                         now_date_str,                         # P: EDD
                         "",                                   # Q: Actualizacion
                         key_inmutable,                        # R: KEY
-                        "Local",                              # S: Tipo de servicio
+                        tipo_servicio,                        # S: Tipo de servicio
                         "",                                   # T: Inter
                         ""                                    # U: Telefono
                     ])
+                    # Actualizar ruta_map en memoria para evitar duplicados en el mismo microbatch
+                    row_simulada = len(rutas_guias) + len(filas_ruta_nuevas)
+                    ruta_map[hwb] = {
+                        "row": row_simulada,
+                        "pid": pid_app,
+                        "key": key_inmutable
+                    }
 
                 # B) Actualizar o Insertar en GUIAS_ASIGNADAS en BD App Ruta 2025
                 if hwb in ga_map:
                     row_ga = ga_map[hwb]
-                    updates_ga.append({
-                        "range": f"GUIAS_ASIGNADAS!E{row_ga}",
-                        "values": [[chofer]]
-                    })
+                    dict_updates_ga[f"GUIAS_ASIGNADAS!E{row_ga}"] = [[chofer]]
                     logger.info(f"🔄 Guía {hwb} encontrada en GUIAS_ASIGNADAS (fila {row_ga}): actualizando chofer a {chofer}")
                 else:
                     # Guía nueva faltante en GUIAS_ASIGNADAS: insertar con esquema canónico de 25 cols
@@ -376,13 +474,15 @@ class DualWriterSyncEngine:
                         "",                                   # Q: Autorizacion_Incompleto
                         "",                                   # R: Primer_Intento_GPS
                         "",                                   # S: Primer_Intento_Hora
-                        "0",                                  # T: Contador_Visitas
-                        "",                                   # U: Audio_Evidencia
-                        "OK",                                 # V: Checkpoint_Propuesto_IA
-                        "",                                   # W: Checkpoint_Aprobado_Tlachixqui
-                        "",                                   # X: Transcripcion_Voz
-                        "ASIGNADO_POR_CALPIXQUI"              # Y: Dictamen_IA
+                        "",                                   # T: Segundo_Intento_GPS
+                        "",                                   # U: Segundo_Intento_Hora
+                        "",                                   # V: Tercer_Intento_GPS
+                        "",                                   # W: Tercer_Intento_Hora
+                        "",                                   # X: Motivo_Cancelacion
+                        ""                                    # Y: Auditor_Cancela
                     ])
+                    # Actualizar ga_map en memoria para evitar duplicados en el mismo microbatch
+                    ga_map[hwb] = len(ga_guias) + len(filas_ga_nuevas)
                     logger.info(f"➕ Guía nueva {hwb} agregada al buffer de inserción para GUIAS_ASIGNADAS.")
 
                 # C) Insertar en PIEZAS_PID si no existe
@@ -436,6 +536,10 @@ class DualWriterSyncEngine:
                     item.get("message_id", "N/A"),
                     detalle
                 ])
+
+            # Consolidar arrays de actualizaciones para la API de Google Sheets
+            updates_ruta = [{"range": k, "values": v} for k, v in dict_updates_ruta.items()]
+            updates_ga = [{"range": k, "values": v} for k, v in dict_updates_ga.items()]
 
             # Ejecutar batch updates para filas existentes
             if updates_ruta:
@@ -501,6 +605,55 @@ class DualWriterSyncEngine:
 
 
 # ==============================================================================
+# 3.5. RENOVADOR DE LEASE (HEARTBEAT) PARA OPERACIONES LARGAS
+# ==============================================================================
+
+class LeaseHeartbeat:
+    """
+    Hilo daemon que renueva periódicamente el timestamp 'actualizado_en'
+    de las filas en 'EN_PROCESO' para evitar que el reaper expire el lease (>300s)
+    mientras una operación legítima de red (ej. llamadas a Google Sheets API)
+    continúa en ejecución.
+    """
+    def __init__(self, table_name: str, ids: List[int], interval_sec: float = 20.0):
+        self.table_name = table_name
+        self.ids = ids
+        self.interval_sec = interval_sec
+        self.stop_event = threading.Event()
+        self.thread = None
+
+    def start(self):
+        if not self.ids:
+            return
+        self.thread = threading.Thread(
+            target=self._run,
+            daemon=True,
+            name=f"Heartbeat-{self.table_name}"
+        )
+        self.thread.start()
+
+    def _run(self):
+        placeholders = ",".join("?" * len(self.ids))
+        while not self.stop_event.wait(self.interval_sec):
+            try:
+                now_str = datetime.now().isoformat()
+                with get_db_connection() as conn:
+                    conn.execute(f"""
+                        UPDATE {self.table_name}
+                        SET actualizado_en = ?
+                        WHERE id IN ({placeholders}) AND estatus = 'EN_PROCESO';
+                    """, [now_str] + self.ids)
+                    conn.commit()
+            except Exception as e:
+                logger.warning(f"Advertencia en LeaseHeartbeat para {self.table_name}: {e}")
+
+    def stop(self):
+        self.stop_event.set()
+        if self.thread and self.thread.is_alive():
+            self.thread.join(timeout=2.0)
+
+
+# ==============================================================================
 # 4. DEMONIO FLUSHER EN SEGUNDO PLANO CON MICRO-BATCHING Y CONTROL DE CUOTAS
 # ==============================================================================
 
@@ -558,6 +711,13 @@ class OutboxFlusherDaemon:
             cursor = conn.cursor()
             try:
                 cursor.execute("BEGIN IMMEDIATE;")
+                # Reaper de rescate: Reactivar tareas atascadas en 'EN_PROCESO' por más de 300 segundos
+                cursor.execute("""
+                    UPDATE outbox_asignaciones
+                    SET estatus = 'PENDIENTE', intentos = intentos + 1
+                    WHERE estatus = 'EN_PROCESO'
+                      AND (strftime('%s', 'now') - strftime('%s', actualizado_en)) > 300;
+                """)
                 cursor.execute("""
                     SELECT * FROM outbox_asignaciones
                     WHERE estatus = 'PENDIENTE' AND intentos < 5
@@ -572,16 +732,22 @@ class OutboxFlusherDaemon:
                         SET estatus = 'EN_PROCESO', actualizado_en = ?
                         WHERE id IN ({placeholders})
                     """, [now_str] + ids)
-                    conn.commit()
+                conn.commit()
             finally:
                 cursor.close()
 
         if not filas:
             return
 
-        # 2. Despachar el lote completo en Micro-Batch
-        exito, err_msg = self.engine.sincronizar_lote_microbatch(filas)
+        # 2. Despachar el lote completo en Micro-Batch con renovación continua de lease (Heartbeat)
         ids_lote = [r["id"] for r in filas]
+        heartbeat = LeaseHeartbeat("outbox_asignaciones", ids_lote, interval_sec=20.0)
+        heartbeat.start()
+        try:
+            exito, err_msg = self.engine.sincronizar_lote_microbatch(filas)
+        finally:
+            heartbeat.stop()
+
         placeholders = ",".join("?" * len(ids_lote))
 
         with get_db_connection() as conn:
@@ -597,22 +763,46 @@ class OutboxFlusherDaemon:
                     # Detectar si fue error de cuota 429
                     es_cuota = "429" in err_msg or "Resource Exhausted" in err_msg
                     if es_cuota:
-                        # Pausa de enfriamiento de 60 segundos
+                        # Pausa de enfriamiento de 60 segundos SIN quemar intentos (es un fallo de infraestructura transitorio)
                         self._pausa_hasta = time.time() + 60.0
-                        logger.warning("🚨 Cuota de Google Sheets agotada (HTTP 429). Activando pausa de 60s...")
-
-                    cursor.execute(f"""
-                        UPDATE outbox_asignaciones
-                        SET estatus = CASE WHEN intentos + 1 >= 5 THEN 'FALLIDO' ELSE 'PENDIENTE' END,
-                            intentos = intentos + 1,
-                            ultimo_error = ?,
-                            actualizado_en = ?
-                        WHERE id IN ({placeholders})
-                    """, [err_msg, datetime.now().isoformat()] + ids_lote)
+                        logger.warning("🚨 Cuota de Google Sheets agotada (HTTP 429). Activando pausa de 60s sin quemar intentos...")
+                        cursor.execute(f"""
+                            UPDATE outbox_asignaciones
+                            SET estatus = 'PENDIENTE',
+                                ultimo_error = ?,
+                                actualizado_en = ?
+                            WHERE id IN ({placeholders})
+                        """, [err_msg, datetime.now().isoformat()] + ids_lote)
+                    else:
+                        cursor.execute(f"""
+                            UPDATE outbox_asignaciones
+                            SET estatus = CASE WHEN intentos + 1 >= 5 THEN 'FALLIDO' ELSE 'PENDIENTE' END,
+                                intentos = intentos + 1,
+                                ultimo_error = ?,
+                                actualizado_en = ?
+                            WHERE id IN ({placeholders})
+                        """, [err_msg, datetime.now().isoformat()] + ids_lote)
                 conn.commit()
             finally:
                 cursor.close()
 
 
-flusher_daemon = OutboxFlusherDaemon()
-flusher_daemon.start()
+_flusher_daemon_instance: Optional[OutboxFlusherDaemon] = None
+_flusher_daemon_lock = threading.Lock()
+
+def obtener_o_iniciar_flusher_daemon() -> OutboxFlusherDaemon:
+    """Obtiene o inicia el demonio flusher en segundo plano (Singleton)."""
+    global _flusher_daemon_instance
+    with _flusher_daemon_lock:
+        if _flusher_daemon_instance is None:
+            _flusher_daemon_instance = OutboxFlusherDaemon()
+        if not _flusher_daemon_instance.running:
+            _flusher_daemon_instance.start()
+        return _flusher_daemon_instance
+
+# Solo auto-arrancar si se especifica explícitamente por variable de entorno o si se ejecuta como script principal
+if os.getenv("CALPIXQUI_AUTO_START_FLUSHER", "0") == "1" or __name__ == "__main__":
+    flusher_daemon = obtener_o_iniciar_flusher_daemon()
+else:
+    flusher_daemon = None
+

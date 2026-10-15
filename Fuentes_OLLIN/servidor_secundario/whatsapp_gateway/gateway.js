@@ -21,8 +21,12 @@
  *
  * ENDPOINTS:
  *   GET  /health         -> Estatus del cliente y conexión
+ *   GET  /resolve-group  -> Resolver un nombre exacto de grupo sin enviar
  *   POST /send-message   -> Enviar mensaje
  *   GET  /qr             -> Obtener el QR como texto en la consola (si no autenticado)
+ *
+ * POST /send-message acepta Idempotency-Key; las claves con resultado ambiguo
+ * quedan persistidas y bloqueadas para impedir que un reintento duplique el envío.
  * ================================================================================
  */
 
@@ -39,6 +43,8 @@ try {
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('node:crypto');
+const { createIdempotencyStore } = require('./idempotency_store');
 
 // ── Configuración ──────────────────────────────────────────────────────────────
 const GATEWAY_HOST = process.env.WHATSAPP_GATEWAY_HOST || '127.0.0.1';
@@ -46,10 +52,13 @@ const GATEWAY_PORT = parseInt(process.env.WHATSAPP_GATEWAY_PORT || '3001', 10);
 const OLLIN_INTERNAL_SECRET = process.env.OLLIN_INTERNAL_SECRET || 'ollin_enterprise_calpixqui_secret_2026';
 // ⚠️ Session FUERA de OneDrive para evitar conflictos EBUSY de SQLite durante sync
 const SESSION_DIR  = process.env.WHATSAPP_SESSION_DIR || path.join(process.env.USERPROFILE || 'C:\\Users\\sidha', '.calpixqui_session');
-const LOG_DIR      = path.join(__dirname, '..', 'logs');
+const LOG_DIR      = process.env.WHATSAPP_GATEWAY_LOG_DIR || path.join(__dirname, '..', 'logs');
+const IDEMPOTENCY_DIR = process.env.WHATSAPP_IDEMPOTENCY_DIR || path.join(LOG_DIR, 'send_idempotency');
+const idempotencyStore = createIdempotencyStore(IDEMPOTENCY_DIR);
 
 if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: true });
 if (!fs.existsSync(LOG_DIR))     fs.mkdirSync(LOG_DIR,     { recursive: true });
+if (!fs.existsSync(IDEMPOTENCY_DIR)) fs.mkdirSync(IDEMPOTENCY_DIR, { recursive: true });
 
 // ── Logger simple con marca de tiempo ─────────────────────────────────────────
 function ts() {
@@ -169,23 +178,100 @@ client.on('message_create', (msg) => {
   }
 });
 
+const LID_TO_PHONE_CACHE = {
+  '131284936487041@lid': '5661562361' // Diego (Sierra Gorda)
+};
+
+function resolvePhoneByPochtecaName(rawName) {
+  if (!rawName) return '';
+  const clean = String(rawName)
+    .replace(/[~@#*()]/g, ' ')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .trim().toLowerCase();
+  if (!clean) return '';
+  try {
+    const dirPath = path.resolve(__dirname, '../data/directorio_pochtecas.json');
+    if (fs.existsSync(dirPath)) {
+      const dir = JSON.parse(fs.readFileSync(dirPath, 'utf8'));
+      for (const email in dir) {
+        const p = dir[email];
+        const pName = String(p.nombre || '')
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          .trim().toLowerCase();
+        if (pName && (clean === pName || clean.startsWith(pName + ' ') || clean.includes(' ' + pName))) {
+          return String(p.telefono || '').replace(/\D/g, '');
+        }
+      }
+    }
+  } catch (errDir) {
+    log('WARN', `Error consultando directorio_pochtecas.json para nombre "${rawName}": ${errDir.message}`);
+  }
+  return '';
+}
+
+function isValidMexicanPhone(numStr) {
+  const d = String(numStr || '').replace(/\D/g, '');
+  return d.length === 10 || (d.length === 12 && d.startsWith('52')) || (d.length === 13 && d.startsWith('521'));
+}
+
 async function resolveSenderPhone(cli, m) {
   const isGrp = (m.from || '').endsWith('@g.us');
   let sId = isGrp ? (m.author || m.from) : m.from;
   if (!sId) return '';
+
+  if (LID_TO_PHONE_CACHE[sId]) {
+    return LID_TO_PHONE_CACHE[sId];
+  }
+
   if (sId.includes('@lid')) {
+    const lidDigits = sId.replace(/\D/g, '');
+    try {
+      if (typeof cli.getContactLidAndPhone === 'function') {
+        const lidInfo = await cli.getContactLidAndPhone([sId]);
+        if (Array.isArray(lidInfo) && lidInfo[0] && lidInfo[0].pn) {
+          const pnDigits = String(lidInfo[0].pn).replace(/\D/g, '');
+          if (isValidMexicanPhone(pnDigits)) {
+            LID_TO_PHONE_CACHE[sId] = pnDigits;
+            log('INFO', `Mapped LID ${sId} via getContactLidAndPhone to: ${pnDigits}`);
+            return pnDigits;
+          }
+        }
+      }
+    } catch (_) {}
+
     try {
       const contact = await cli.getContactById(sId);
-      if (contact && contact.number) {
-        log('INFO', `Mapped LID ${sId} to phone: ${contact.number}`);
-        return contact.number;
+      if (contact) {
+        const cand = String(contact.number || '').replace(/\D/g, '');
+        if (cand && cand !== lidDigits && isValidMexicanPhone(cand)) {
+          LID_TO_PHONE_CACHE[sId] = cand;
+          log('INFO', `Mapped LID ${sId} via contact.number to: ${cand}`);
+          return cand;
+        }
+        const nameCand = (m._data && m._data.notifyName) || contact.pushname || contact.name || contact.shortName || '';
+        const byName = resolvePhoneByPochtecaName(nameCand);
+        if (byName) {
+          LID_TO_PHONE_CACHE[sId] = byName;
+          log('INFO', `Mapped LID ${sId} via notifyName "${nameCand}" to phone: ${byName}`);
+          return byName;
+        }
       }
     } catch (eLid) {
       log('WARN', `No se pudo resolver LID ${sId} a PN: ${eLid.message}`);
     }
+
+    const fallbackName = (m._data && m._data.notifyName) || '';
+    const byFallbackName = resolvePhoneByPochtecaName(fallbackName);
+    if (byFallbackName) {
+      LID_TO_PHONE_CACHE[sId] = byFallbackName;
+      log('INFO', `Mapped LID ${sId} via fallback notifyName "${fallbackName}" to phone: ${byFallbackName}`);
+      return byFallbackName;
+    }
   }
   return sId;
 }
+
+const RE_COMANDO_ASIGNAR_JS = /\b(asigna|asignar|as[ií]gnamela|as[ií]gnamelo|as[ií]gnalas|as[ií]gnalos|asigname|as[ií]gname|m[ií]a|m[ií]o|cargo|cargan|cargar|c[aá]rgame|cargame|cargas|la\s+llevo|me\s+la\s+llevo|lo\s+llevo|yo\s+la\s+entrego|yo\s+lo\s+entrego|reparto|ruta|!asigna|\/asigna|#asigna)\b/i;
 
 // ── Manejo de Mensajes Entrantes (Geolocalización Predictiva CALPIXQUI) ─────────
 client.on('message', async (msg) => {
@@ -314,41 +400,101 @@ client.on('message', async (msg) => {
       });
     }
 
-    // CASO 3: Mensaje de TEXTO con número de guía / comando de asignación (ej. '1861995144 asignar' o 'asígnate 1861995144')
+    // CASO 3: Mensaje de TEXTO (directo o citando/respondiendo a otro mensaje con guías o foto)
     if (!msg.hasMedia && msg.body && typeof msg.body === 'string') {
       const texto = msg.body.trim();
-      const matchGuia = texto.match(/\b(\d{10})\b/);
-      const esComandoAsignar = /asign|me\s*llevo|cargo|ruta/i.test(texto) || matchGuia;
+      const isGroup = from.endsWith('@g.us');
+      let senderNumber = await resolveSenderPhone(client, msg);
+      let textoEfectivo = texto;
+      let quotedMedia = null;
 
-      if (matchGuia && esComandoAsignar) {
-        const isGroup = from.endsWith('@g.us');
-        const senderNumber = await resolveSenderPhone(client, msg);
-        log('INFO', `📝 TEXTO CON GUÍA RECIBIDO (${matchGuia[1]}): de ${senderNumber} en ${from}`);
+      // Si el mensaje responde (cita) a un mensaje anterior (ej. "Me cargan esas porfavor" o "@Calpixqui asigna porfavor")
+      if (msg.hasQuotedMsg && RE_COMANDO_ASIGNAR_JS.test(texto)) {
+        try {
+          const quotedMsg = await msg.getQuotedMessage();
+          if (quotedMsg) {
+            const quotedSender = await resolveSenderPhone(client, quotedMsg);
+            // Si quien responde es un supervisor/compañero pidiendo asignar las guías del mensaje citado, asignar al autor de las guías
+            if (quotedSender && isValidMexicanPhone(quotedSender)) {
+              senderNumber = quotedSender;
+            }
+            if (quotedMsg.body) {
+              textoEfectivo = `${texto}\n${quotedMsg.body}`;
+            }
+            if (quotedMsg.hasMedia && (quotedMsg.type === 'image' || quotedMsg.type === 'document')) {
+              try {
+                quotedMedia = await quotedMsg.downloadMedia();
+              } catch (eQm) {
+                log('WARN', `No se pudo descargar media del mensaje citado: ${eQm.message}`);
+              }
+            }
+          }
+        } catch (eQuote) {
+          log('WARN', `No se pudo obtener mensaje citado: ${eQuote.message}`);
+        }
+      }
+
+      const guiasEncontradas = [...new Set(textoEfectivo.match(/\b\d{10}\b/g) || [])];
+      const tieneComandoAsignar = RE_COMANDO_ASIGNAR_JS.test(textoEfectivo);
+      const baseMsgId = (msg.id && (msg.id._serialized || msg.id.id)) || `msg_${Date.now()}`;
+      const calpixquiWebhookUrl = process.env.CALPIXQUI_VISION_WEBHOOK || 'http://localhost:8088/webhook/whatsapp_imagen_asignacion';
+
+      // Subcaso 3A: Citó una imagen diciendo "asigna porfavor" / "me cargan esa"
+      if (quotedMedia && tieneComandoAsignar) {
+        log('INFO', `📸 IMAGEN CITADA RECIBIDA para asignación: para ${senderNumber} en ${from}`);
+        try { await msg.react('⏳'); } catch (_) {}
+        fetch(calpixquiWebhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-OLLIN-TOKEN': OLLIN_INTERNAL_SECRET
+          },
+          body: JSON.stringify({
+            message_id: baseMsgId,
+            chat_id: msg.from,
+            sender: senderNumber,
+            is_group: isGroup,
+            caption: textoEfectivo,
+            mimetype: quotedMedia.mimetype || 'image/jpeg',
+            image_base64: quotedMedia.data || '',
+            timestamp: msg.timestamp || Math.floor(Date.now() / 1000)
+          })
+        }).then(async (resp) => {
+          if (resp.ok) log('INFO', `✅ Imagen citada despachada a Calpixqui`);
+        }).catch(e => log('ERROR', `❌ Error despachando imagen citada: ${e.message}`));
+      }
+      // Subcaso 3B: Texto (directo o citado) con 1 o más guías de 10 dígitos
+      else if (guiasEncontradas.length > 0 && (tieneComandoAsignar || !isGroup)) {
+        log('INFO', `📝 TEXTO CON ${guiasEncontradas.length} GUÍA(S) RECIBIDO (${guiasEncontradas.join(', ')}): para ${senderNumber} en ${from}`);
 
         try {
           await msg.react('⏳');
         } catch (_) {}
 
-        const calpixquiWebhookUrl = process.env.CALPIXQUI_VISION_WEBHOOK || 'http://localhost:8088/webhook/whatsapp_imagen_asignacion';
-        fetch(calpixquiWebhookUrl, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'X-OLLIN-TOKEN': OLLIN_INTERNAL_SECRET
-          },
-          body: JSON.stringify({
-            message_id: (msg.id && (msg.id._serialized || msg.id.id)) || '',
-            chat_id: msg.from,
-            sender: senderNumber,
-            is_group: isGroup,
-            caption: texto,
-            mimetype: 'text/plain',
-            image_base64: '', // Sin imagen, se resolverá por número de guía puro
-            timestamp: msg.timestamp || Math.floor(Date.now() / 1000)
-          })
-        }).then(async (resp) => {
-          if (resp.ok) log('INFO', `✅ Comando de texto despachado a Calpixqui`);
-        }).catch(e => log('ERROR', `❌ Error despachando texto: ${e.message}`));
+        for (let idx = 0; idx < guiasEncontradas.length; idx++) {
+          const guia = guiasEncontradas[idx];
+          const subMsgId = guiasEncontradas.length > 1 ? `${baseMsgId}_${guia}` : baseMsgId;
+          const captionPorGuia = `${guia} ${texto}`;
+          fetch(calpixquiWebhookUrl, {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'X-OLLIN-TOKEN': OLLIN_INTERNAL_SECRET
+            },
+            body: JSON.stringify({
+              message_id: subMsgId,
+              chat_id: msg.from,
+              sender: senderNumber,
+              is_group: isGroup,
+              caption: captionPorGuia,
+              mimetype: 'text/plain',
+              image_base64: '', // Sin imagen, se resolverá por número de guía puro
+              timestamp: msg.timestamp || Math.floor(Date.now() / 1000)
+            })
+          }).then(async (resp) => {
+            if (resp.ok) log('INFO', `✅ Comando de texto para guía ${guia} despachado a Calpixqui`);
+          }).catch(e => log('ERROR', `❌ Error despachando texto (${guia}): ${e.message}`));
+        }
       }
     }
   } catch (err) {
@@ -392,6 +538,84 @@ const healthHandler = (_req, res) => {
 app.get('/health', healthHandler);
 app.get('/status', healthHandler);
 
+async function getGroupSummaries() {
+  try {
+    const chats = await client.getChats();
+    return {
+      groups: chats
+        .filter(chat => chat.isGroup)
+        .map(chat => ({ name: chat.name || '', id: chat.id?._serialized || '' })),
+      method: 'client.getChats',
+    };
+  } catch (getChatsError) {
+    log('WARN', `getChats falló; consultando metadatos directos de grupos (${getChatsError?.message || getChatsError})`);
+    try {
+      const result = await client.pupPage.evaluate(() => {
+        const models = window.require('WAWebCollections').Chat.getModelsArray();
+        const groups = [];
+        const errors = [];
+        for (const chat of models) {
+          try {
+            if (!chat.groupMetadata) continue;
+            const id = chat.id?._serialized || '';
+            const name = chat.formattedTitle || chat.name || '';
+            if (id && name) groups.push({ name, id });
+          } catch (error) {
+            errors.push(String(error?.message || error));
+          }
+        }
+        return { groups, skipped: errors.length, errors: errors.slice(0, 5) };
+      });
+      return { ...result, method: 'raw_group_metadata' };
+    } catch (fallbackError) {
+      fallbackError.getChatsError = String(getChatsError?.stack || getChatsError);
+      throw fallbackError;
+    }
+  }
+}
+
+app.get('/resolve-group', async (req, res) => {
+  const wantedName = String(req.query.name || '').trim().toLocaleLowerCase();
+  if (!wantedName) {
+    return res.status(400).json({
+      ok: false,
+      error: 'Falta el parámetro name.',
+      phase: 'validate',
+      delivery_started: false,
+    });
+  }
+  if (!state.ready) {
+    return res.status(503).json({
+      ok: false,
+      error: 'Cliente WhatsApp aún no está listo.',
+      phase: 'ready',
+      delivery_started: false,
+    });
+  }
+  try {
+    const result = await getGroupSummaries();
+    const matches = result.groups
+      .filter(chat => String(chat.name || '').trim().toLocaleLowerCase() === wantedName);
+    return res.status(200).json({
+      ok: true,
+      matches,
+      lookup_method: result.method,
+      skipped_chats: result.skipped || 0,
+      lookup_warnings: result.errors || [],
+    });
+  } catch (err) {
+    log('ERROR', `Fallo al consultar grupos (${err?.stack || err}; getChats=${err?.getChatsError || 'n/a'})`);
+    return res.status(502).json({
+      ok: false,
+      code: 'GROUP_LIST_FAILED',
+      error: String(err?.message || err),
+      fallback_error: err?.getChatsError || null,
+      phase: 'group_lookup',
+      delivery_started: false,
+    });
+  }
+});
+
 /**
  * POST /send-message
  * Envía un mensaje de WhatsApp de forma headless.
@@ -401,6 +625,10 @@ app.get('/status', healthHandler);
  */
 app.post('/send-message', async (req, res) => {
   const body = req.body || {};
+  const idempotencyKey = String(req.get('Idempotency-Key') || body.idempotency_key || '').trim();
+  let phase = 'validate';
+  let deliveryStarted = false;
+  let idempotencyReserved = false;
 
   // Normalizar número de destino
   let to = body.to || body.number || body.telefono || body.recipient || '';
@@ -411,6 +639,16 @@ app.post('/send-message', async (req, res) => {
       ok: false,
       error: 'Faltan campos: to (número) y message (texto) son requeridos.',
       campos_recibidos: Object.keys(body),
+      phase,
+      delivery_started: false,
+    });
+  }
+  if (idempotencyKey.length > 200) {
+    return res.status(400).json({
+      ok: false,
+      error: 'Idempotency-Key excede 200 caracteres.',
+      phase,
+      delivery_started: false,
     });
   }
 
@@ -427,10 +665,10 @@ app.post('/send-message', async (req, res) => {
     } else if (digits.startsWith('521') && digits.length === 13) {
       digits = '52' + digits.slice(3);
     }
-    targetChatId = `${digits}@c.us`;
+    targetChatId = digits ? `${digits}@c.us` : '';
   }
 
-  log('INFO', `📱 Solicitud de envío → ${targetChatId}: "${message.slice(0, 80)}..."`);
+  log('INFO', `📱 Solicitud de envío → ${targetChatId || to}: "${message.slice(0, 80)}..."`);
 
   if (!state.ready) {
     log('WARN', '⏳ Cliente no listo. Retornando 503.');
@@ -439,10 +677,32 @@ app.post('/send-message', async (req, res) => {
       error: 'Cliente WhatsApp aún no está listo. Intenta en 10-30 segundos.',
       ready: false,
       has_qr: !!state.qrCode,
+      phase: 'ready',
+      delivery_started: false,
     });
   }
 
   try {
+    if (!targetChatId) {
+      phase = 'group_lookup';
+      const wantedName = to.trim().toLocaleLowerCase();
+      const result = await getGroupSummaries();
+      const matches = result.groups.filter(chat =>
+        String(chat.name || '').trim().toLocaleLowerCase() === wantedName
+      );
+      if (matches.length !== 1) {
+        return res.status(matches.length ? 409 : 404).json({
+          ok: false,
+          code: matches.length ? 'GROUP_NAME_AMBIGUOUS' : 'GROUP_NOT_FOUND',
+          error: matches.length ? 'Nombre de grupo ambiguo.' : 'No se encontró el grupo con nombre exacto.',
+          phase,
+          delivery_started: false,
+        });
+      }
+      targetChatId = matches[0].id;
+      log('INFO', `Grupo resuelto por nombre exacto: ${targetChatId}`);
+    }
+
     // Intentar resolver el ID verificado de WhatsApp solo para números individuales
     if (!targetChatId.endsWith('@g.us') && digits) {
       try {
@@ -467,26 +727,79 @@ app.post('/send-message', async (req, res) => {
       }
     }
 
+    const fingerprint = crypto.createHash('sha256')
+      .update(`${targetChatId}\0${message}`, 'utf8')
+      .digest('hex');
+    if (idempotencyKey) {
+      const previous = idempotencyStore.reserve(idempotencyKey, {
+        state: 'sending',
+        fingerprint,
+        target: targetChatId,
+        created_at: new Date().toISOString(),
+      });
+      if (previous) {
+        if (previous.fingerprint !== fingerprint) {
+          return res.status(409).json({
+            ok: false,
+            code: 'IDEMPOTENCY_KEY_CONFLICT',
+            error: 'La clave ya se usó con un destino o mensaje distinto.',
+            phase: 'idempotency',
+            delivery_started: previous.state !== 'sent',
+          });
+        }
+        if (previous.state === 'sent') {
+          return res.status(200).json({
+            ok: true,
+            duplicate: true,
+            estatus: 'ENVIADO_HEADLESS_WHATSAPP',
+            to: targetChatId,
+            message_id: previous.message_id,
+            timestamp: previous.timestamp,
+          });
+        }
+        return res.status(409).json({
+          ok: false,
+          code: 'DELIVERY_OUTCOME_UNCERTAIN',
+          error: 'Esta clave ya inició un envío; verifica WhatsApp antes de reintentar.',
+          phase: 'idempotency',
+          delivery_started: true,
+        });
+      }
+      idempotencyReserved = true;
+    }
+
     const sendWithTimeout = (target, content, options) => {
       const pSend = options ? client.sendMessage(target, content, options) : client.sendMessage(target, content);
       const pTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout de 20s al despachar mensaje en Puppeteer')), 20000));
       return Promise.race([pSend, pTimeout]);
     };
 
+    phase = 'send';
+    deliveryStarted = true;
+
     let sentMsg;
     if (media) {
-      try {
-        sentMsg = await sendWithTimeout(targetChatId, media, { caption: message, sendMediaAsDocument: true });
-      } catch (errMedia) {
-        log('WARN', `⚠️ Envío con archivo multimedia falló (${errMedia.message}). Reintentando solo texto...`);
-        sentMsg = await sendWithTimeout(targetChatId, message);
-      }
+      sentMsg = await sendWithTimeout(targetChatId, media, { caption: message, sendMediaAsDocument: true });
     } else {
       sentMsg = await sendWithTimeout(targetChatId, message);
     }
     state.sentCount++;
     state.lastSent = new Date().toISOString();
     const msgId = (sentMsg && sentMsg.id && (sentMsg.id._serialized || sentMsg.id.id)) || 'ok_headless';
+    if (idempotencyKey) {
+      try {
+        idempotencyStore.update(idempotencyKey, {
+          state: 'sent',
+          fingerprint,
+          target: targetChatId,
+          message_id: msgId,
+          timestamp: state.lastSent,
+          created_at: new Date().toISOString(),
+        });
+      } catch (persistErr) {
+        log('ERROR', `Mensaje confirmado pero no se pudo persistir idempotencia (${persistErr?.stack || persistErr})`);
+      }
+    }
 
     log('INFO', `🚀 Mensaje entregado exitosamente. MsgID: ${msgId}`);
     return res.status(200).json({
@@ -498,11 +811,26 @@ app.post('/send-message', async (req, res) => {
     });
   } catch (err) {
     state.errorCount++;
-    log('ERROR', `❌ Error enviando mensaje: ${err.message}`);
+    if (idempotencyReserved) {
+      try {
+        const previous = idempotencyStore.read(idempotencyKey);
+        idempotencyStore.update(idempotencyKey, {
+          ...previous,
+          state: 'uncertain',
+          updated_at: new Date().toISOString(),
+        });
+      } catch (persistErr) {
+        log('ERROR', `No se pudo persistir el resultado incierto (${persistErr?.stack || persistErr})`);
+      }
+    }
+    log('ERROR', `❌ Error enviando mensaje durante ${phase} (${err?.stack || err})`);
     return res.status(500).json({
       ok: false,
-      error: err.message,
+      error: String(err?.message || err),
       estatus: 'ERROR_ENVIO',
+      phase,
+      fallback_error: err?.getChatsError || null,
+      delivery_started: deliveryStarted,
     });
   }
 });
