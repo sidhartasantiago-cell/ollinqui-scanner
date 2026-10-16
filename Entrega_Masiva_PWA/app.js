@@ -15,9 +15,7 @@ const DIRECTORIO_POCHTECAS = {
   "fmtierrabla1@gmail.com": { nombre: "Diego", tiene_7ca: false, rol: "POCHTECA", telefono: "" },
   "victor18amadorm@gmail.com": { nombre: "Víctor", tiene_7ca: false, rol: "POCHTECA", telefono: "" },
   "xichudaniel@gmail.com": { nombre: "Daniel", tiene_7ca: false, rol: "TLACHIXQUI", telefono: "" },
-  "fmsanluispaq@gmail.com": { nombre: "Gregorio", tiene_7ca: false, rol: "POCHTECA", telefono: "" },
-  "fmpaqueteriatvsm@gmail.com": { nombre: "Lyonnet", tiene_7ca: false, rol: "POCHTECA", telefono: "" },
-  "yesigonzg1827@gmail.com": { nombre: "Rosi", tiene_7ca: false, rol: "POCHTECA", telefono: "" },
+  "fmsanluispaq@gmail.com": { nombre: "Gerardo", tiene_7ca: false, rol: "POCHTECA", telefono: "" },
   "edgar.rodriguez.arauto@gmail.com": { nombre: "Edgar", tiene_7ca: true, rol: "POCHTECA", telefono: "" },
   "fernando.maestro.1991@gmail.com": { nombre: "Fernando", tiene_7ca: false, rol: "POCHTECA", telefono: "" },
   "mickeyroglez@gmail.com": { nombre: "Miguel", tiene_7ca: false, rol: "POCHTECA", telefono: "" },
@@ -3762,7 +3760,7 @@ window.addEventListener('load', () => {
 
 window.forzarActualizacionApp = async function() {
   initAudio();
-  showToast('Actualizando a v3.8 PROD...', '🔄');
+  showToast('Actualizando a v3.9.1 PROD...', '🔄');
   try {
     if ('serviceWorker' in navigator) {
       const regs = await navigator.serviceWorker.getRegistrations();
@@ -3773,7 +3771,7 @@ window.forzarActualizacionApp = async function() {
       for (let k of keys) await caches.delete(k);
     }
   } catch(e) {}
-  window.location.href = window.location.origin + window.location.pathname + '?v=3.8&t=' + Date.now();
+  window.location.href = window.location.origin + window.location.pathname + '?v=3.9.1&t=' + Date.now();
 };
 
 // ====================================================================

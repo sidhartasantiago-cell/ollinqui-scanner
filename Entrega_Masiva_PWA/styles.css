@@ -1801,14 +1801,14 @@ body::before {
 
 /* Contenedor Central con Scroll Ergonómico Poka-Yoke */
 .stage-scrollable-body {
-  flex: 1;
+  flex: 1 1 auto;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding-bottom: 6px;
+  padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
   min-height: 0;
 }
 
@@ -2157,19 +2157,19 @@ body::before {
   background: linear-gradient(145deg, rgba(30, 41, 59, 0.75), rgba(15, 23, 42, 0.85));
   border: 1.5px solid rgba(255, 255, 255, 0.14);
   border-radius: 12px;
-  padding: 8px 6px;
+  padding: 6px 4px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 2px;
   cursor: pointer;
   transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: center;
   user-select: none;
   touch-action: manipulation;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
-  min-height: 60px;
+  min-height: 52px;
 }
 
 .btn-cp-obsidian:active {
@@ -2177,7 +2177,7 @@ body::before {
 }
 
 .btn-cp-obsidian .cp-icon {
-  font-size: 1.75rem;
+  font-size: 1.45rem;
   line-height: 1;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
   transition: transform 0.15s ease;
@@ -2195,7 +2195,7 @@ body::before {
 }
 
 .btn-cp-obsidian .cp-title {
-  font-size: 1.22rem;
+  font-size: 1.15rem;
   font-weight: 900;
   color: #FFFFFF;
   letter-spacing: 0.5px;
@@ -2204,7 +2204,7 @@ body::before {
 }
 
 .btn-cp-obsidian .cp-sub {
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: #CBD5E1;
   line-height: 1.1;
@@ -2212,10 +2212,10 @@ body::before {
 }
 
 .btn-cp-obsidian .cp-desc {
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   font-weight: 600;
   color: #94A3B8;
-  line-height: 1.1;
+  line-height: 1.05;
   margin-top: 1px;
 }
 
@@ -2336,15 +2336,30 @@ body::before {
   100% { transform: scale(1); box-shadow: 0 0 0 rgba(16, 185, 129, 0); }
 }
 
-/* Dock Inferior Fijo */
+/* Dock Inferior Fijo Poka-Yoke: Anclado Siempre en Pantalla */
 .static-dock-bottom {
-  flex: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: 480px;
+  margin: 0 auto;
+  z-index: 100;
+  background: rgba(11, 15, 25, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.65);
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 0 2px 0;
-  height: 58px;
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px)) 12px;
+  height: calc(62px + env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
+}
+
+.app-view:not(.active) .static-dock-bottom {
+  display: none !important;
 }
 
 .capsule-teoyolotl-compact {
