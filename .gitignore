@@ -11,3 +11,5 @@ Fuentes_OLLIN/Historico/
 
 # Local Netlify folder
 .netlify
+.env
+

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>PAINANI v85.0 PROD - Blindaje de Rampa QRO | Arauto Express</title>
+  <title>PAINANI v86.0 PROD - Blindaje de Rampa & Retorno SVC QRO | Arauto Express</title>
 
   <!-- PWA & Mobile Web App Manifest -->
   <link rel="manifest" href="/manifest.json">
@@ -900,12 +900,12 @@
     .btn-close-modal:hover { background: #1a1a1a; }
   
     /* =========================================================================
-       🌐 ESTILOS FASE SECUNDARIA: INTERNACIONALES EDD (PAINANI v85.0 PROD)
+       🌐 ESTILOS FASE SECUNDARIA Y RETORNO SVC (PAINANI v86.0 PROD)
        ========================================================================= */
     .phase-selector-bar {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 5px;
       background: #0a0a0a;
       border: 1px solid #222;
       border-radius: 10px;
@@ -917,17 +917,18 @@
       color: #777;
       border: 1px solid transparent;
       border-radius: 8px;
-      padding: 10px 6px;
-      font-size: 11px;
+      padding: 9px 4px;
+      font-size: 10.5px;
       font-weight: 800;
       text-transform: uppercase;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 4px;
       transition: all 0.2s ease;
       text-align: center;
+      line-height: 1.15;
     }
 
     .phase-tab.active {
@@ -942,6 +943,76 @@
       color: var(--inter);
       border-color: var(--inter);
       box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+    }
+
+    .phase-tab.active-retorno {
+      background: #2b060a;
+      color: #ff6677;
+      border-color: var(--danger);
+      box-shadow: 0 0 10px rgba(255, 51, 68, 0.35);
+    }
+
+    .btn-retorno-primary {
+      background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+      color: #ffffff;
+      border: 1px solid #fb7185;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 13px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 15px rgba(225, 29, 72, 0.35);
+      transition: background 0.15s, transform 0.05s;
+    }
+    .btn-retorno-primary:hover { background: #be123c; }
+    .btn-retorno-primary:active { transform: scale(0.98); }
+
+    .chk-pill-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 5px;
+      margin-top: 6px;
+    }
+    .chk-pill-box {
+      background: #14080a;
+      border: 1px solid #3d1218;
+      border-radius: 8px;
+      padding: 6px 4px;
+      text-align: center;
+    }
+    .chk-pill-code {
+      font-size: 11px;
+      font-weight: 900;
+      color: #fda4af;
+      font-family: monospace;
+    }
+    .chk-pill-val {
+      font-size: 14px;
+      font-weight: 900;
+      color: #ffffff;
+      font-family: monospace;
+    }
+
+    .signature-pad-wrapper {
+      background: #ffffff;
+      border: 2px solid var(--primary);
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+      touch-action: none;
+    }
+    .signature-canvas {
+      width: 100%;
+      height: 150px;
+      display: block;
+      cursor: crosshair;
+      touch-action: none;
     }
 
     .btn-cierre-y-pasar-inter {
@@ -995,9 +1066,9 @@
     <header>
       <div class="brand-title">
         <span>⚡ PAINANI</span>
-        <span class="brand-badge">v85.0 PROD</span>
+        <span class="brand-badge">v86.0 PROD</span>
       </div>
-      <p class="brand-subtitle">Blindaje de Rampa QRO — Anti-AWB & Ingesta Internacional por EDD</p>
+      <p class="brand-subtitle">Blindaje de Rampa, Internacionales EDD & Retorno de Incidencias a SVC</p>
       <button class="pwa-install-badge" id="btnInstalarApp" onclick="instalarPainaniApp()">
         📲 Guardar App en Pantalla
       </button>
@@ -1008,13 +1079,16 @@
       ⚠️ Sin red en andén: Los escaneos se guardan en el dispositivo y se sincronizarán al reconectar.
     </div>
 
-    <!-- SELECTOR DE FASES OPERATIVAS (PAINANI v85.0 PROD) -->
+    <!-- SELECTOR DE FASES OPERATIVAS (PAINANI v86.0 PROD) -->
     <div class="phase-selector-bar" id="phaseSelectorBar">
       <button type="button" id="tabFaseCamion" class="phase-tab active" onclick="cambiarFaseOperativa('CAMION')">
-        🚚 1. Recepción Camión (Acta)
+        🚚 1. Camión DHL
       </button>
       <button type="button" id="tabFaseInter" class="phase-tab" onclick="cambiarFaseOperativa('INTERNACIONAL')">
-        🌐 2. Internacionales (EDD Físico)
+        🌐 2. Inter. EDD
+      </button>
+      <button type="button" id="tabFaseRetorno" class="phase-tab" onclick="cambiarFaseOperativa('RETORNO_SVC')">
+        ↩️ 3. Retorno SVC
       </button>
     </div>
 
@@ -1328,6 +1402,334 @@
 
     </div>
 
+    <!-- ============================================================= -->
+    <!-- FASE OPERATIVA 3: RETORNO DE INCIDENCIAS A SVC (RASTREO DHL)  -->
+    <!-- ============================================================= -->
+
+    <!-- APERTURA DE LOTE DE RETORNO A SVC -->
+    <div id="cardAperturaRetorno" class="card" style="display:none; border-color: #e11d48;">
+      <div class="card-title" style="color:#ff6677;">
+        <span>↩️ Retorno de Incidencias a SVC (Rastreo)</span>
+        <span style="font-size:10px; color:#fda4af;">Nivel PID • Dato Duro</span>
+      </div>
+
+      <!-- ESTADO DE CONEXIÓN AL CATÁLOGO DE BD (NH, BA, RD, CA, SA + CP + POCHTECA) -->
+      <div style="background:#140709; border:1px solid #4c111b; border-radius:8px; padding:8px 10px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+        <div id="retCatalogoStatusText" style="font-size:10.5px; color:#fda4af; font-weight:700;">
+          🔄 Cargando catálogo BD (Checkpoints NH/BA/RD/CA/SA, C.P. y Pochtecas)...
+        </div>
+        <button type="button" class="btn-quick-edit" style="border-color:#e11d48; color:#fda4af; background:#2b060a; white-space:nowrap;" onclick="sincronizarCatalogoRetornosBD(true)">
+          🔄 Actualizar BD
+        </button>
+      </div>
+
+      <div class="form-group">
+        <label for="retAuditorNombreInput">Auditor Arauto que Entrega en SVC:</label>
+        <input type="text" id="retAuditorNombreInput" value="Irvin Reyes" autocomplete="off">
+      </div>
+
+      <div class="form-group">
+        <label for="retAuditorCorreoInput">Correo de Irvin (Para recibir el Acta PDF):</label>
+        <input type="email" id="retAuditorCorreoInput" value="irvin.reyes@arauto.express" autocomplete="off">
+      </div>
+
+      <div class="form-group">
+        <label for="retReceptorNombreInput">Nombre de quien Recibe en Área de Rastreo SVC (DHL):</label>
+        <input type="text" id="retReceptorNombreInput" placeholder="Ej. Roberto Gómez — Rastreo SVC QRO" autocomplete="off">
+      </div>
+
+      <div class="form-group">
+        <label for="retReceptorCorreoInput">Correo de quien Recibe en Rastreo SVC (Recibirá el Acta PDF):</label>
+        <input type="email" id="retReceptorCorreoInput" placeholder="Ej. rastreo.qro@dhl.com" autocomplete="off">
+      </div>
+
+      <!-- CHIPS DE RECEPTORES FRECUENTES GUARDADOS EN EL DISPOSITIVO -->
+      <div id="retReceptoresRecientesBox" style="display:none; flex-direction:column; gap:4px;">
+        <span style="font-size:9.5px; color:#888; font-weight:700; text-transform:uppercase;">⚡ Receptores recientes en Rastreo SVC (Toca para autocompletar):</span>
+        <div id="retReceptoresChipsRow" class="edd-chips-row"></div>
+      </div>
+
+      <button class="btn-retorno-primary" onclick="iniciarLoteRetornoSVC()">
+        🔫 Iniciar Metralleta de Retorno a SVC
+      </button>
+    </div>
+
+    <!-- PANEL DE ESCÁNER METRALLETA ACTIVO DE RETORNO A SVC -->
+    <div id="retornoPanel" class="metralleta-wrapper" style="display:none;">
+
+      <!-- ODÓMETRO GIGANTE DE RETORNO A SVC -->
+      <div class="odometer-card" style="border-color:#e11d48; background:linear-gradient(180deg, #1f050a 0%, #090204 100%);">
+        <div class="odometer-meta">
+          <span id="labelRetornoFolio" style="color:#fda4af; font-weight:bold;">ACTA: --</span>
+          <span class="mode-badge-active" style="background:#3b0710; color:#fda4af; border:1px solid #e11d48;">↩️ RETORNO RASTREO SVC</span>
+        </div>
+
+        <div class="odometer-main">
+          <span class="odometer-count" id="odometerRetornoCount" style="color:#ff4d6d;">0</span>
+          <span class="odometer-target" style="color:#fda4af; font-size:16px;">PIDs A DEVOLVER</span>
+        </div>
+
+        <div style="font-size:10.5px; color:#cbd5e1; margin-top:2px;" id="labelRetornoReceptor">
+          Recibe en SVC: --
+        </div>
+
+        <!-- CONTEO EN VIVO POR CHECKPOINT OFICIAL DHL (NH, BA, RD, CA, SA) -->
+        <div class="chk-pill-grid">
+          <div class="chk-pill-box">
+            <div class="chk-pill-code">NH</div>
+            <div class="chk-pill-val" id="countChkNH">0</div>
+          </div>
+          <div class="chk-pill-box">
+            <div class="chk-pill-code">BA</div>
+            <div class="chk-pill-val" id="countChkBA">0</div>
+          </div>
+          <div class="chk-pill-box">
+            <div class="chk-pill-code">RD</div>
+            <div class="chk-pill-val" id="countChkRD">0</div>
+          </div>
+          <div class="chk-pill-box">
+            <div class="chk-pill-code">CA</div>
+            <div class="chk-pill-val" id="countChkCA">0</div>
+          </div>
+          <div class="chk-pill-box">
+            <div class="chk-pill-code">SA</div>
+            <div class="chk-pill-val" id="countChkSA">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BANNER EN VIVO DE EXTRACCIÓN AUTOMÁTICA DESDE LA BASE DE DATOS (CHK + CP + POCHTECA) -->
+      <div class="zona-pill-banner" id="retInfoBdBanner" style="display:flex; background:linear-gradient(90deg, #1a060a 0%, #2b0910 100%); border-color:#e11d48;">
+        <div class="zona-pill-title" style="color:#fda4af; justify-content:space-between;">
+          <span>🛡️ VALIDACIÓN CONTRA BASE DE DATOS (CHECKPOINT OFICIAL DHL)</span>
+          <span id="retBdStatusBadge" style="background:#064e3b; color:#6ee7b7; padding:1px 6px; border-radius:4px;">LISTO</span>
+        </div>
+        <div class="zona-pill-main" style="margin-top:2px;">
+          <span id="retBannerPidGuia">ESCANEA UN PID (JJD...)</span>
+          <span class="zona-pill-route" id="retBannerChkBadge" style="background:#4c0519; color:#fecdd3; border:1px solid #fb7185; font-size:12px;">CHK: --</span>
+        </div>
+        <div class="zona-pill-sub" id="retBannerCpZona" style="color:#e2e8f0; font-weight:700; margin-top:2px;">
+          📍 C.P. y Zona se extraerán automáticamente de la Base de Datos
+        </div>
+        <div class="zona-pill-sub" id="retBannerPochteca" style="color:#fbbf24; font-weight:700;">
+          👤 Último Pochteca: --
+        </div>
+      </div>
+
+      <!-- CAJA DE ESCÁNER METRALLETA RETORNO SVC -->
+      <div class="scanner-box" id="scannerWrapperRetorno" style="border-color:#e11d48;">
+        <input type="text" id="scannerInputRetorno" class="scanner-input" placeholder="Bip PID a retornar..." autocomplete="off">
+        <div class="scanner-status" id="scannerStatusRetorno" style="color:#fda4af;">
+          🟢 Metralleta Lista: Escanea PID (JJD/JD). Verifica Checkpoint Oficial (NH, BA, RD, CA, SA).
+        </div>
+      </div>
+
+      <!-- 🔓 BOTÓN DE RESCATE CUANDO EL PID ES ILEGIBLE (POR GUÍA HWB DE 10 DÍGITOS O FOTO IA) -->
+      <button type="button" class="btn-foto-ilegible" style="background:linear-gradient(135deg, #2b1200 0%, #4a1d00 100%); border-color:#f59e0b; color:#fde68a;" onclick="abrirModalRescatePidIlegible()">
+        🔓 ¿PID Ilegible o Dañado? Rescatar por Guía HWB (10 dígitos) o Foto IA
+      </button>
+
+      <!-- HISTORIAL DE PIDS EN RETORNO A SVC -->
+      <div class="history-container" style="border-color:#2d1216;">
+        <div class="history-header">
+          <span style="color:#fda4af;">PIDs Verificados para Entregar en Rastreo SVC</span>
+          <span id="syncIndicatorRetorno" style="color:var(--success);">✓ Sincronizado</span>
+        </div>
+        <div class="history-list" id="historyListRetorno" style="max-height:220px;">
+          <div style="text-align:center; color:#555; font-size:11px; padding:10px;">
+            Aún no has bipiado PIDs para retornar a SVC.
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTONES DE ACCIÓN RETORNO SVC -->
+      <div class="action-row">
+        <button class="btn-cancel" onclick="deshacerUltimoEscaneoRetorno()">
+          ↩️ Deshacer
+        </button>
+        <button class="btn-csv" onclick="descargarRespaldoCSVRetorno()">
+          💾 CSV Retorno
+        </button>
+        <button class="btn-retorno-primary" style="padding:10px; font-size:11px;" onclick="abrirModalActaRetornoSVC()">
+          📜 Firmar y Enviar Acta
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- MODAL RESUMEN DE LOTE INTERNACIONAL (FASE 2) -->
+  <div class="modal-overlay" id="modalResumenInter">
+    <div class="modal-content" style="border-color:var(--inter);">
+      <div class="modal-title" style="color:var(--inter);">🌐 Resumen de Lote Internacional (EDD)</div>
+      <div class="acta-preview" id="resumenInterTextPreview">Generando resumen internacional...</div>
+      <button class="btn-whatsapp" onclick="copiarResumenInterParaWhatsApp()">
+        📱 Copiar Resumen para WhatsApp / Chat
+      </button>
+      <button class="btn-inter-primary" onclick="finalizarYCerrarLoteInter()">
+        🏁 Confirmar Cierre de Lote Internacional
+      </button>
+      <button class="btn-close-modal" onclick="cerrarModalResumenInter()">
+        ⬅️ Regresar a Seguir Bipiando Internacionales
+      </button>
+    </div>
+  </div>
+
+  <!-- 🚨 MODAL POKA-YOKE: PAQUETE SIN CHECKPOINT DE INCIDENCIA EN SISTEMA (REGLA DHL RASTREO) -->
+  <div class="modal-overlay" id="modalPokaYokeSinChk">
+    <div class="modal-content" style="border-color:#ff3344; background:#140406;">
+      <div class="modal-title" style="color:#ff4d6d;">🚨 ¡ALTO! PAQUETE SIN INCIDENCIA EN BD</div>
+      <div style="background:#260509; border:1px solid #ff3344; border-radius:10px; padding:12px; font-size:12px; line-height:1.45; color:#fecdd3;">
+        <div style="font-weight:900; color:#ffffff; font-family:monospace; font-size:14px; margin-bottom:4px;" id="pokaYokePidLabel">PID: --</div>
+        <div id="pokaYokeDetalleLabel">
+          En nuestra Base de Datos este paquete figura como <strong>SIN INCIDENCIA</strong>.
+        </div>
+        <div style="margin-top:8px; color:#fde047; font-weight:700; font-size:11px;">
+          ⚠️ Regla DHL: El Área de Rastreo en SVC NO recibe paquetes que no tengan ya cargado un motivo de retorno oficial (NH, BA, RD, CA, SA).
+        </div>
+      </div>
+
+      <button class="btn-cierre-rampa" style="background:#dc2626;" onclick="rechazarYSepararBultoSinChk()">
+        🛑 Separar Paquete Físicamente (NO Incluir en Acta)
+      </button>
+
+      <div style="border-top:1px solid #331014; padding-top:10px; margin-top:4px;">
+        <div style="font-size:10.5px; color:#aaa; font-weight:700; text-transform:uppercase; margin-bottom:6px; text-align:center;">
+          ¿Ya le subiste el Checkpoint en DHL / ECIS? Selecciónalo para autorizarlo:
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:6px;">
+          <button type="button" class="btn-quick-edit" style="padding:10px 4px; font-size:12px; background:#1f1700; border-color:#f59e0b; color:#fde68a;" onclick="forzarCheckpointOficialPokaYoke('NH')">NH</button>
+          <button type="button" class="btn-quick-edit" style="padding:10px 4px; font-size:12px; background:#1f1700; border-color:#f59e0b; color:#fde68a;" onclick="forzarCheckpointOficialPokaYoke('BA')">BA</button>
+          <button type="button" class="btn-quick-edit" style="padding:10px 4px; font-size:12px; background:#1f1700; border-color:#f59e0b; color:#fde68a;" onclick="forzarCheckpointOficialPokaYoke('RD')">RD</button>
+          <button type="button" class="btn-quick-edit" style="padding:10px 4px; font-size:12px; background:#1f1700; border-color:#f59e0b; color:#fde68a;" onclick="forzarCheckpointOficialPokaYoke('CA')">CA</button>
+          <button type="button" class="btn-quick-edit" style="padding:10px 4px; font-size:12px; background:#1f1700; border-color:#f59e0b; color:#fde68a;" onclick="forzarCheckpointOficialPokaYoke('SA')">SA</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔓 MODAL RESCATE DE PID ILEGIBLE (POR GUÍA HWB DE 10 DÍGITOS O FOTO IA) -->
+  <div class="modal-overlay" id="modalRescatePidIlegible">
+    <div class="modal-content" style="border-color:#f59e0b;">
+      <div class="modal-title" style="color:#fbbf24;">🔓 Rescate de PID Ilegible o Dañado</div>
+      <p style="font-size:11px; color:#ccc; text-align:center;">
+        Si el código de barras del PID (<code>JJD...</code>) está roto o no lee, rescata su PID exacto buscando por su <strong>Guía HWB (10 dígitos)</strong> o tomando foto de la etiqueta.
+      </p>
+
+      <div class="form-group">
+        <label for="inputRescateGuiaHwb">Opción 1: Escanea o escribe la Guía HWB (10 dígitos):</label>
+        <div style="display:flex; gap:6px;">
+          <input type="text" id="inputRescateGuiaHwb" placeholder="Ej. 4804831533" maxlength="12" style="flex:1; font-family:monospace;" onkeypress="if(event.key==='Enter') buscarPidPorGuiaEnRescate()">
+          <button type="button" class="btn-primary" style="padding:10px 14px;" onclick="buscarPidPorGuiaEnRescate()">
+            🔍 Buscar PID
+          </button>
+        </div>
+      </div>
+
+      <!-- RESULTADOS DEL RESCATE POR GUÍA -->
+      <div id="rescateResultadosBox" style="display:none; flex-direction:column; gap:6px; background:#090909; border:1px solid #333; border-radius:8px; padding:10px; max-height:190px; overflow-y:auto;"></div>
+
+      <div style="border-top:1px solid #222; padding-top:10px; margin-top:4px;">
+        <label style="font-size:10px; color:#aaa; font-weight:700; text-transform:uppercase; display:block; margin-bottom:6px;">
+          Opción 2: Si ni la Guía ni el PID se pueden leer con escáner:
+        </label>
+        <button type="button" class="btn-foto-ilegible" onclick="dispararFotoRescatePidSVC()">
+          📸 Tomar Foto de Etiqueta Ilegible (+ Lectura IA y Evidencia)
+        </button>
+        <input type="file" id="inputFotoRescatePidSVC" accept="image/*" capture="environment" style="display:none;" onchange="manejarFotoRescatePidSVC(event)">
+      </div>
+
+      <button class="btn-close-modal" onclick="cerrarModalRescatePidIlegible()">
+        ⬅️ Cerrar y Volver al Escáner
+      </button>
+    </div>
+  </div>
+
+  <!-- 📜 MODAL DE ACTA DURA DE RETORNO A SVC, CUADERNO DIGITAL (FIRMA EN PANTALLA) Y ENVÍO POR CORREO -->
+  <div class="modal-overlay" id="modalActaRetornoSvc">
+    <div class="modal-content" style="border-color:#e11d48; max-width:530px;">
+      <div class="modal-title" style="color:#ff6677;">📜 Acta Dura de Retorno a Rastreo SVC</div>
+
+      <!-- 1. DATOS DEL RECEPTOR EN RASTREO SVC Y CORREOS DE ENVÍO -->
+      <div style="background:#0c0c0c; border:1px solid #2a2a2a; border-radius:10px; padding:10px; display:flex; flex-direction:column; gap:8px;">
+        <div style="font-size:10.5px; color:#fda4af; font-weight:800; text-transform:uppercase;">
+          📨 Destinatarios del Acta Oficial en PDF (Sin copia innecesaria):
+        </div>
+        <div class="form-group">
+          <label for="modalRetReceptorNombre">Nombre de quien recibe los PIDs en Rastreo SVC:</label>
+          <input type="text" id="modalRetReceptorNombre" placeholder="Nombre y Apellido (Rastreo SVC)">
+        </div>
+        <div class="form-group">
+          <label for="modalRetReceptorCorreo">Correo de quien recibe en Rastreo SVC (DHL):</label>
+          <input type="email" id="modalRetReceptorCorreo" placeholder="correo.receptor@dhl.com">
+        </div>
+        <div class="form-group">
+          <label for="modalRetAuditorCorreo">Correo de Irvin (Arauto Express):</label>
+          <input type="email" id="modalRetAuditorCorreo" value="irvin.reyes@arauto.express">
+        </div>
+        <div class="form-group">
+          <label for="modalRetObservaciones">Observaciones adicionales (Opcional):</label>
+          <input type="text" id="modalRetObservaciones" placeholder="Ej. Entregados en jaula de incidencias turno vespertino">
+        </div>
+      </div>
+
+      <!-- 2. FOTO DE EVIDENCIA EN MOSTRADOR SVC CON SELLO DE AGUA AUTOMÁTICO (GPS + HORA + FOLIO) -->
+      <div style="background:#0c0c0c; border:1px solid #2a2a2a; border-radius:10px; padding:10px; display:flex; flex-direction:column; gap:6px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:10.5px; color:#fbbf24; font-weight:800; text-transform:uppercase;">
+            📸 1. Evidencia Visual en Mostrador SVC (Con Sello GPS/Hora):
+          </span>
+          <span id="badgeEstadoFotoMostrador" style="font-size:9.5px; color:#888; font-weight:bold;">Opcional / Recomendado</span>
+        </div>
+        <button type="button" class="btn-foto-ilegible" style="margin-top:0; padding:10px;" onclick="dispararFotoMostradorSVC()">
+          📸 Tomar Foto a Paquetes en Mostrador Rastreo SVC
+        </button>
+        <input type="file" id="inputFotoMostradorSVC" accept="image/*" capture="environment" style="display:none;" onchange="manejarFotoMostradorSVC(event)">
+        <div id="previewFotoMostradorBox" style="display:none; text-align:center; margin-top:4px;">
+          <img id="imgPreviewFotoMostrador" src="" alt="Evidencia Mostrador SVC" style="max-width:100%; max-height:150px; border-radius:8px; border:1px solid #f59e0b;"/>
+        </div>
+      </div>
+
+      <!-- 3. CUADERNO DIGITAL EN PANTALLA: PAD DE FIRMA TÁCTIL DEL RECEPTOR SVC -->
+      <div style="background:#0c0c0c; border:1px solid #2a2a2a; border-radius:10px; padding:10px; display:flex; flex-direction:column; gap:6px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:10.5px; color:#00e676; font-weight:800; text-transform:uppercase;">
+            ✍️ 2. Firma de Recibido en Pantalla (Rastreo SVC):
+          </span>
+          <button type="button" class="btn-quick-edit" onclick="limpiarCanvasFirmaSVC()">🧹 Limpiar Firma</button>
+        </div>
+        <div class="signature-pad-wrapper">
+          <canvas id="canvasFirmaSvc" class="signature-canvas" width="440" height="150"></canvas>
+        </div>
+        <div style="font-size:9.5px; color:#888; text-align:center;">
+          El receptor de Rastreo SVC firma con su dedo aquí arriba. Se incrusta directo en el PDF.
+        </div>
+      </div>
+
+      <!-- 4. VISTA PREVIA DEL ACTA NOTARIAL CON SELLO SHA-256 -->
+      <div class="acta-preview" id="actaRetornoTextPreview" style="max-height:190px;">Generando vista previa del acta de retorno...</div>
+
+      <!-- ESTADO DE ENVÍO -->
+      <div id="estadoEnvioActaRetorno" style="display:none; padding:10px; border-radius:8px; font-size:11.5px; font-weight:bold; text-align:center;"></div>
+
+      <button class="btn-retorno-primary" id="btnEnviarActaRetornoCorreo" onclick="confirmarYEnviarActaRetornoSVC()">
+        📨 Cerrar Retorno, Generar PDF y Enviar a Correos (Irvin + SVC)
+      </button>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+        <button class="btn-whatsapp" onclick="copiarActaRetornoParaWhatsApp()">
+          📱 Copiar WhatsApp
+        </button>
+        <button class="btn-csv" onclick="descargarRespaldoCSVRetorno()">
+          💾 Descargar CSV
+        </button>
+      </div>
+
+      <button class="btn-close-modal" onclick="cerrarModalActaRetornoSVC()">
+        ⬅️ Regresar a Seguir Bipiando PIDs
+      </button>
+    </div>
   </div>
 
   <!-- MODAL DEL ACTA NOTARIAL FÍSICA DE RECEPCIÓN -->
@@ -1578,6 +1980,18 @@
         }
       }
 
+      const guardadaRetorno = localStorage.getItem("painani_retorno_svc_activa");
+      if (guardadaRetorno) {
+        try {
+          loteRetornoActual = JSON.parse(guardadaRetorno);
+        } catch (e) {
+          console.error("Error al restaurar lote retorno SVC:", e);
+        }
+      }
+
+      // Restaurar caché local del catálogo de BD para Retorno SVC
+      cargarCatalogoRetornosDesdeCacheLocal();
+
       const guardada = localStorage.getItem("painani_recepcion_activa");
       if (guardada) {
         try {
@@ -1588,14 +2002,18 @@
         } catch (e) {
           console.error("Error al restaurar sesión previa:", e);
         }
+      } else if (loteRetornoActual) {
+        cambiarFaseOperativa("RETORNO_SVC");
       } else if (loteInterActual) {
         cambiarFaseOperativa("INTERNACIONAL");
       }
 
-      // Intervalo de sincronización recurrente para ambas colas
+      // Intervalo de sincronización recurrente para las 3 colas
       setInterval(() => {
         if (faseOperativaActual === "INTERNACIONAL") {
           sincronizarColaInterConSheets();
+        } else if (faseOperativaActual === "RETORNO_SVC") {
+          sincronizarColaRetornoConSheets();
         } else {
           sincronizarColaConSheets();
         }
@@ -2765,58 +3183,70 @@ Firma Auditor:    ______________________________
     // =========================================================================
     // 🌐 MÓDULO DE FASE SECUNDARIA: INTERNACIONALES EDD (PAINANI v85.0 PROD)
     // =========================================================================
-    let faseOperativaActual = "CAMION"; // "CAMION" | "INTERNACIONAL"
+    let faseOperativaActual = "CAMION"; // "CAMION" | "INTERNACIONAL" | "RETORNO_SVC"
     let loteInterActual = null;
     let focusLockIntervalInter = null;
+    let loteRetornoActual = null;
+    let focusLockIntervalRetorno = null;
 
     function cambiarFaseOperativa(fase) {
       faseOperativaActual = fase;
       const tabCamion = document.getElementById("tabFaseCamion");
       const tabInter = document.getElementById("tabFaseInter");
+      const tabRetorno = document.getElementById("tabFaseRetorno");
 
       const cardApertura = document.getElementById("cardApertura");
       const metralletaPanel = document.getElementById("metralletaPanel");
       const cardAperturaInter = document.getElementById("cardAperturaInter");
       const interPanel = document.getElementById("interPanel");
+      const cardAperturaRetorno = document.getElementById("cardAperturaRetorno");
+      const retornoPanel = document.getElementById("retornoPanel");
+
+      // Ocultar todos primero
+      cardApertura.style.display = "none";
+      metralletaPanel.style.display = "none";
+      cardAperturaInter.style.display = "none";
+      interPanel.style.display = "none";
+      if (cardAperturaRetorno) cardAperturaRetorno.style.display = "none";
+      if (retornoPanel) retornoPanel.style.display = "none";
+
+      tabCamion.className = "phase-tab";
+      tabInter.className = "phase-tab";
+      if (tabRetorno) tabRetorno.className = "phase-tab";
 
       if (fase === "CAMION") {
         tabCamion.className = "phase-tab active";
-        tabInter.className = "phase-tab";
-
-        cardAperturaInter.style.display = "none";
-        interPanel.style.display = "none";
-
         if (recepcionActual) {
           metralletaPanel.style.display = "flex";
-          cardApertura.style.display = "none";
           const input = document.getElementById("scannerInput");
           if (input) input.focus();
         } else {
           cardApertura.style.display = "flex";
-          metralletaPanel.style.display = "none";
         }
-      } else {
-        tabCamion.className = "phase-tab";
+      } else if (fase === "INTERNACIONAL") {
         tabInter.className = "phase-tab active-inter";
-
-        cardApertura.style.display = "none";
-        metralletaPanel.style.display = "none";
-
-        // Pre-llenar ID de recepción previa si existe
         const ultimaRec = localStorage.getItem("painani_ultimo_id_recepcion");
         if (ultimaRec && document.getElementById("interIdOrigenInput")) {
           if (!document.getElementById("interIdOrigenInput").value) {
             document.getElementById("interIdOrigenInput").value = ultimaRec;
           }
         }
-
         if (loteInterActual) {
-          cardAperturaInter.style.display = "none";
           interPanel.style.display = "flex";
           activarModoMetralletaInter();
         } else {
           cardAperturaInter.style.display = "flex";
-          interPanel.style.display = "none";
+        }
+      } else if (fase === "RETORNO_SVC") {
+        if (tabRetorno) tabRetorno.className = "phase-tab active-retorno";
+        renderChipsReceptoresSVC();
+        sincronizarCatalogoRetornosBD(false);
+        solicitarPermisoGpsRetornoSVC();
+        if (loteRetornoActual) {
+          retornoPanel.style.display = "flex";
+          activarModoMetralletaRetorno();
+        } else {
+          cardAperturaRetorno.style.display = "flex";
         }
       }
     }
@@ -3499,6 +3929,1105 @@ Registrado exclusivamente en la pestaña 'INTERNACIONALES_EDD' de BOVEDA_BATCH_M
         .catch(err => {
           console.log("Error de red en foto internacional: " + err.message);
         });
+      });
+    }
+
+    // =========================================================================
+    // ↩️ MÓDULO FASE 3: RETORNO DE INCIDENCIAS A SVC (PAINANI v86.0 PROD)
+    // - Extracción automática desde BD: Checkpoints Oficiales (NH, BA, RD, CA, SA),
+    //   Código Postal / Zona Logística y Último Pochteca que tuvo la guía.
+    // - Candado Poka-Yoke: Alerta si el paquete NO tiene incidencia en sistema.
+    // - Rescate de PID Ilegible: Por Guía HWB (10 dígitos) o Foto + IA.
+    // - Reemplazo de Cuaderno Físico: Firma Táctil en Pantalla + Foto con Sello GPS
+    //   + PDF Oficial en Drive enviado por correo a Irvin y a Rastreo SVC.
+    // =========================================================================
+
+    const CHECKPOINTS_OFICIALES_DHL = ["NH", "BA", "RD", "CA", "SA"];
+    let catalogoRetornosBD = {
+      por_pid: {},
+      por_guia: {},
+      ultima_sync: null
+    };
+    let pidPendientePokaYoke = null;
+    let candidatosRescateActuales = [];
+    let gpsRetornoActual = "SVC QRO (20.5888, -100.3899)";
+    let canvasFirmaInicializado = false;
+    let firmaTrazadaEnCanvas = false;
+
+    function solicitarPermisoGpsRetornoSVC() {
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            gpsRetornoActual = `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
+          },
+          () => {},
+          { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 }
+        );
+      }
+    }
+
+    function cargarCatalogoRetornosDesdeCacheLocal() {
+      try {
+        const raw = localStorage.getItem("painani_catalogo_retornos_cache");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.por_pid) {
+            catalogoRetornosBD = parsed;
+            actualizarEtiquetaEstadoCatalogoBD();
+          }
+        }
+      } catch (e) {
+        console.log("Aviso leyendo caché local de catálogo SVC:", e);
+      }
+    }
+
+    function actualizarEtiquetaEstadoCatalogoBD() {
+      const el = document.getElementById("retCatalogoStatusText");
+      if (!el) return;
+      const numPids = Object.keys(catalogoRetornosBD.por_pid || {}).length;
+      const numGuias = Object.keys(catalogoRetornosBD.por_guia || {}).length;
+      if (numPids > 0 || numGuias > 0) {
+        el.innerText = `🟢 BD Sincronizada: ${numGuias} guías / ${Math.round(numPids / 2)} PIDs (Checkpoints, CP y Pochtecas listos)`;
+        el.style.color = "var(--success)";
+      } else {
+        el.innerText = `⚠️ Catálogo BD sin cargar aún. Toca 'Actualizar BD' con red activa.`;
+        el.style.color = "var(--warning)";
+      }
+    }
+
+    function sincronizarCatalogoRetornosBD(mostrarAlerta) {
+      if (!navigator.onLine) {
+        if (mostrarAlerta) alert("⚠️ Sin conexión a internet. Se usará el catálogo guardado en el dispositivo.");
+        return;
+      }
+      const el = document.getElementById("retCatalogoStatusText");
+      if (el) {
+        el.innerText = "⏳ Descargando Checkpoints (NH, BA, RD, CA, SA), C.P. y Pochtecas desde BD...";
+        el.style.color = "var(--warning)";
+      }
+
+      fetch(URL_WEBHOOK_RAMPA + "?accion=obtener_catalogo_retornos_svc", {
+        method: "GET",
+        mode: "cors",
+        redirect: "follow"
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.exito) {
+          catalogoRetornosBD = {
+            por_pid: data.por_pid || {},
+            por_guia: data.por_guia || {},
+            ultima_sync: data.timestamp || new Date().toISOString()
+          };
+          try {
+            localStorage.setItem("painani_catalogo_retornos_cache", JSON.stringify(catalogoRetornosBD));
+          } catch (eQuota) {
+            console.log("Aviso caché localStorage:", eQuota);
+          }
+          actualizarEtiquetaEstadoCatalogoBD();
+          if (mostrarAlerta) {
+            emitirAudio("exito");
+            alert(`✅ Base de Datos actualizada con éxito.\n• Guías con historial: ${data.total_guias || 0}\n• Índices PID listos: ${data.total_pids || 0}`);
+          }
+        } else if (el) {
+          el.innerText = "⚠️ No se pudo refrescar BD. Usando caché local.";
+        }
+      })
+      .catch(err => {
+        console.log("Error sincronizando catálogo BD SVC:", err);
+        actualizarEtiquetaEstadoCatalogoBD();
+      });
+    }
+
+    function obtenerReceptoresRecientesSVC() {
+      try {
+        const raw = localStorage.getItem("painani_receptores_svc_recientes");
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function guardarReceptorRecienteSVC(nombre, correo) {
+      const nom = String(nombre || "").trim();
+      const cor = String(correo || "").trim().toLowerCase();
+      if (!nom && !cor) return;
+      let lista = obtenerReceptoresRecientesSVC();
+      lista = lista.filter(r => r.correo !== cor);
+      lista.unshift({ nombre: nom, correo: cor });
+      if (lista.length > 5) lista = lista.slice(0, 5);
+      localStorage.setItem("painani_receptores_svc_recientes", JSON.stringify(lista));
+    }
+
+    function renderChipsReceptoresSVC() {
+      const box = document.getElementById("retReceptoresRecientesBox");
+      const row = document.getElementById("retReceptoresChipsRow");
+      if (!box || !row) return;
+      const lista = obtenerReceptoresRecientesSVC();
+      if (lista.length === 0) {
+        box.style.display = "none";
+        return;
+      }
+      box.style.display = "flex";
+      row.innerHTML = "";
+      lista.forEach((rec, idx) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "edd-chip";
+        btn.style.borderColor = "#e11d48";
+        btn.style.color = "#fda4af";
+        btn.innerText = `👤 ${rec.nombre} (${rec.correo})`;
+        btn.onclick = () => {
+          document.getElementById("retReceptorNombreInput").value = rec.nombre;
+          document.getElementById("retReceptorCorreoInput").value = rec.correo;
+        };
+        row.appendChild(btn);
+      });
+    }
+
+    function iniciarLoteRetornoSVC() {
+      const auditorNombre = document.getElementById("retAuditorNombreInput").value.trim() || "Irvin Reyes";
+      const auditorCorreo = document.getElementById("retAuditorCorreoInput").value.trim().toLowerCase() || "irvin.reyes@arauto.express";
+      const receptorNombre = document.getElementById("retReceptorNombreInput").value.trim();
+      const receptorCorreo = document.getElementById("retReceptorCorreoInput").value.trim().toLowerCase();
+
+      if (!receptorNombre) {
+        alert("⚠️ Por favor escribe el nombre de la persona que te recibe los PIDs en el Área de Rastreo en SVC.");
+        document.getElementById("retReceptorNombreInput").focus();
+        return;
+      }
+      if (!receptorCorreo || !receptorCorreo.includes("@")) {
+        alert("⚠️ Es obligatorio ingresar el correo electrónico de quien recibe en Rastreo SVC para enviarle el Acta Notarial en PDF.");
+        document.getElementById("retReceptorCorreoInput").focus();
+        return;
+      }
+
+      guardarReceptorRecienteSVC(receptorNombre, receptorCorreo);
+
+      const idActa = "RET-SVC-QRO-" + new Date().toISOString().slice(0,10).replace(/-/g,"") + "-" + Utilities_randomSuffix();
+
+      loteRetornoActual = {
+        id: idActa,
+        auditor: auditorNombre,
+        correo_auditor: auditorCorreo,
+        receptor_svc: receptorNombre,
+        correo_receptor_svc: receptorCorreo,
+        observaciones: "",
+        foto_mostrador_base64: "",
+        hora_inicio: new Date().toISOString(),
+        escaneos: []
+      };
+
+      guardarEstadoRetorno();
+      activarModoMetralletaRetorno();
+    }
+
+    function guardarEstadoRetorno() {
+      if (loteRetornoActual) {
+        localStorage.setItem("painani_retorno_svc_activa", JSON.stringify(loteRetornoActual));
+      }
+    }
+
+    function activarModoMetralletaRetorno() {
+      document.getElementById("cardAperturaRetorno").style.display = "none";
+      document.getElementById("retornoPanel").style.display = "flex";
+
+      document.getElementById("labelRetornoFolio").innerText = "ACTA: " + loteRetornoActual.id;
+      document.getElementById("labelRetornoReceptor").innerText = `Recibe en SVC: ${loteRetornoActual.receptor_svc} (${loteRetornoActual.correo_receptor_svc})`;
+
+      actualizarOdometroRetorno();
+      renderHistorialRetorno();
+
+      const input = document.getElementById("scannerInputRetorno");
+      const wrapper = document.getElementById("scannerWrapperRetorno");
+      if (input) input.focus();
+
+      if (focusLockIntervalRetorno) clearInterval(focusLockIntervalRetorno);
+      focusLockIntervalRetorno = setInterval(() => {
+        if (faseOperativaActual !== "RETORNO_SVC") return;
+        if (document.getElementById("modalActaRetornoSvc").style.display === "flex" ||
+            document.getElementById("modalPokaYokeSinChk").style.display === "flex" ||
+            document.getElementById("modalRescatePidIlegible").style.display === "flex") {
+          return;
+        }
+        if (input && document.activeElement !== input) {
+          input.focus();
+        }
+      }, 600);
+
+      if (input && !input.dataset.listenerAttached) {
+        input.dataset.listenerAttached = "true";
+        input.addEventListener("focus", () => wrapper.classList.add("focused"));
+        input.addEventListener("blur", () => wrapper.classList.remove("focused"));
+        input.addEventListener("keypress", function(e) {
+          if (e.key === "Enter") {
+            procesarDisparoPistolaRetorno();
+          }
+        });
+      }
+    }
+
+    function formatearPidRampaDobleJ_(pidRaw) {
+      const limpio = String(pidRaw || "").trim().toUpperCase();
+      if (limpio.startsWith("JJD")) return limpio;
+      if (limpio.startsWith("JD")) return "JJD" + limpio.substring(2);
+      return limpio;
+    }
+
+    function sanitizarPidBovedaLocal_(pidRaw) {
+      const limpio = String(pidRaw || "").trim().toUpperCase();
+      if (limpio.startsWith("JJD")) return "JD" + limpio.substring(3);
+      return limpio;
+    }
+
+    function consultarPidEnCatalogoLocal(pidCodigo) {
+      const pJjd = formatearPidRampaDobleJ_(pidCodigo);
+      const pJd = sanitizarPidBovedaLocal_(pidCodigo);
+      const map = (catalogoRetornosBD && catalogoRetornosBD.por_pid) ? catalogoRetornosBD.por_pid : {};
+      return map[pJjd] || map[pJd] || null;
+    }
+
+    function procesarDisparoPistolaRetorno() {
+      const input = document.getElementById("scannerInputRetorno");
+      if (!input || !loteRetornoActual) return;
+      const valor = input.value.trim();
+      input.value = "";
+      if (!valor) return;
+
+      const res = parsearDisparo(valor);
+
+      if (!res.valido) {
+        emitirAudio("error");
+        flash("flash-error");
+        setScannerStatusRetorno(`❌ RECHAZADO: '${res.codigo}' no es un PID válido (JJD/JD)`, "var(--danger)");
+        return;
+      }
+
+      // Si dispara una Guía AWB de 10 dígitos en el campo de PID, guiarlo al botón de Rescate de PID Ilegible
+      if (res.tipo === "AWB") {
+        emitirAudio("guia");
+        flash("flash-warning");
+        setScannerStatusRetorno(`⚠️ Escaneaste la Guía HWB ${res.codigo}. El retorno es a nivel PID (JJD...). Si el PID es ilegible, usa el botón naranja de Rescate.`, "var(--warning)");
+        return;
+      }
+
+      if (res.tipo === "CP") {
+        const infoCp = resolverCP(res.codigo);
+        setScannerStatusRetorno(`📍 C.P. ${infoCp.cp} ➔ ${infoCp.zona}`, "var(--inter)");
+        return;
+      }
+
+      const pidJjd = formatearPidRampaDobleJ_(res.codigo);
+      const pidJd = sanitizarPidBovedaLocal_(pidJjd);
+
+      // Verificar duplicado en el acta actual
+      const yaExiste = loteRetornoActual.escaneos.some(item => item.codigo === pidJjd || item.pid_jd === pidJd);
+      if (yaExiste) {
+        emitirAudio("duplicado");
+        flash("flash-warning");
+        setScannerStatusRetorno(`⚠️ DUPLICADO: El PID ${pidJjd} ya está en esta Acta de Retorno`, "var(--warning)");
+        return;
+      }
+
+      // Buscar en el catálogo de la Base de Datos (Checkpoint Oficial NH, BA, RD, CA, SA + CP + Último Pochteca)
+      const infoBd = consultarPidEnCatalogoLocal(pidJjd);
+      evaluarYProcesarPidConReglaPokaYoke(pidJjd, res.cp || "", infoBd, "ESCANER_PID", "");
+    }
+
+    function evaluarYProcesarPidConReglaPokaYoke(pidJjd, cpEscaneado, infoBd, metodoCaptura, urlFotoAux) {
+      const pidJd = sanitizarPidBovedaLocal_(pidJjd);
+      const guiaHwb = infoBd && infoBd.guia ? infoBd.guia : "";
+      const cpFinal = (infoBd && infoBd.cp) ? infoBd.cp : (cpEscaneado || "");
+      const infoZona = cpFinal ? resolverCP(cpFinal) : { cp: "", zona: "ZONA POR RESOLVER" };
+      const pochtecaFinal = (infoBd && infoBd.pochteca_legible) ? infoBd.pochteca_legible : "Sin Pochteca en BD";
+      const destinatarioFinal = (infoBd && infoBd.destinatario) ? infoBd.destinatario : "";
+      const chkBd = (infoBd && infoBd.checkpoint) ? String(infoBd.checkpoint).toUpperCase() : "SIN_CHK";
+      const tieneIncidenciaOficial = CHECKPOINTS_OFICIALES_DHL.includes(chkBd);
+
+      if (tieneIncidenciaOficial) {
+        // ✅ CUMPLE REGLA DHL: Tiene Checkpoint Oficial (NH, BA, RD, CA, SA) en Base de Datos
+        agregarPidVerificadoARetornoSVC({
+          codigo: pidJjd,
+          pid_jd: pidJd,
+          guia: guiaHwb,
+          checkpoint: chkBd,
+          cp: infoZona.cp || cpFinal,
+          zona: infoZona.zona,
+          ultimo_pochteca: pochtecaFinal,
+          destinatario: destinatarioFinal,
+          metodo_captura: metodoCaptura || "ESCANER_PID",
+          url_foto: urlFotoAux || ""
+        });
+      } else {
+        // 🚨 ALERTA POKA-YOKE: NO TIENE CHECKPOINT DE INCIDENCIA EN SISTEMA
+        emitirAudio("error");
+        flash("flash-error");
+
+        pidPendientePokaYoke = {
+          codigo: pidJjd,
+          pid_jd: pidJd,
+          guia: guiaHwb,
+          checkpoint_actual: chkBd,
+          cp: infoZona.cp || cpFinal,
+          zona: infoZona.zona,
+          ultimo_pochteca: pochtecaFinal,
+          destinatario: destinatarioFinal,
+          metodo_captura: metodoCaptura || "ESCANER_PID",
+          url_foto: urlFotoAux || ""
+        };
+
+        document.getElementById("pokaYokePidLabel").innerText = `PID: ${pidJjd} ${guiaHwb ? ('| Guía: ' + guiaHwb) : ''}`;
+        document.getElementById("pokaYokeDetalleLabel").innerHTML =
+          `• Estatus actual en BD: <strong style="color:#ff4d6d;">${chkBd === 'SIN_CHK' ? 'NO ENCONTRADO / SIN INCIDENCIA' : chkBd}</strong><br/>` +
+          `• C.P. / Zona: <strong>${cpFinal || 'S/D'} (${infoZona.zona})</strong><br/>` +
+          `• Último Pochteca: <strong>${pochtecaFinal}</strong>`;
+
+        document.getElementById("modalPokaYokeSinChk").style.display = "flex";
+      }
+    }
+
+    function rechazarYSepararBultoSinChk() {
+      const pidRechazado = pidPendientePokaYoke ? pidPendientePokaYoke.codigo : "";
+      pidPendientePokaYoke = null;
+      document.getElementById("modalPokaYokeSinChk").style.display = "none";
+      setScannerStatusRetorno(`🛑 Paquete ${pidRechazado} separado (Sin checkpoint en BD). No se incluyó en el Acta.`, "var(--warning)");
+      const input = document.getElementById("scannerInputRetorno");
+      if (input) input.focus();
+    }
+
+    function forzarCheckpointOficialPokaYoke(chkOficial) {
+      if (!pidPendientePokaYoke) return;
+      if (!CHECKPOINTS_OFICIALES_DHL.includes(chkOficial)) return;
+
+      const itemAutorizado = {
+        codigo: pidPendientePokaYoke.codigo,
+        pid_jd: pidPendientePokaYoke.pid_jd,
+        guia: pidPendientePokaYoke.guia,
+        checkpoint: chkOficial,
+        cp: pidPendientePokaYoke.cp,
+        zona: pidPendientePokaYoke.zona,
+        ultimo_pochteca: pidPendientePokaYoke.ultimo_pochteca,
+        destinatario: pidPendientePokaYoke.destinatario,
+        metodo_captura: pidPendientePokaYoke.metodo_captura + "_CHK_" + chkOficial,
+        url_foto: pidPendientePokaYoke.url_foto || ""
+      };
+
+      pidPendientePokaYoke = null;
+      document.getElementById("modalPokaYokeSinChk").style.display = "none";
+      agregarPidVerificadoARetornoSVC(itemAutorizado);
+    }
+
+    function agregarPidVerificadoARetornoSVC(datosPid) {
+      if (!loteRetornoActual) return;
+
+      const nuevoEscaneo = {
+        id: "RET-" + Date.now() + "-" + Utilities_randomSuffix(),
+        codigo: datosPid.codigo,
+        pid_jd: datosPid.pid_jd || sanitizarPidBovedaLocal_(datosPid.codigo),
+        guia: datosPid.guia || "",
+        checkpoint: datosPid.checkpoint || "NH",
+        cp: datosPid.cp || "",
+        zona: datosPid.zona || (datosPid.cp ? resolverCP(datosPid.cp).zona : "ZONA POR RESOLVER"),
+        ultimo_pochteca: datosPid.ultimo_pochteca || "Sin Pochteca registrado",
+        destinatario: datosPid.destinatario || "",
+        metodo_captura: datosPid.metodo_captura || "ESCANER_PID",
+        url_foto: datosPid.url_foto || "",
+        timestamp: new Date().toISOString(),
+        hora_legible: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        sync: false
+      };
+
+      loteRetornoActual.escaneos.unshift(nuevoEscaneo);
+      guardarEstadoRetorno();
+
+      emitirAudio("exito");
+      flash("flash-success");
+
+      // Actualizar Banner en Vivo con los datos extraídos de la BD
+      document.getElementById("retBannerPidGuia").innerText = `${nuevoEscaneo.codigo} ${nuevoEscaneo.guia ? ('• HWB: ' + nuevoEscaneo.guia) : ''}`;
+      document.getElementById("retBannerChkBadge").innerText = `CHK: ${nuevoEscaneo.checkpoint}`;
+      document.getElementById("retBannerCpZona").innerText = `📍 C.P. ${nuevoEscaneo.cp || 'S/C'} — ${nuevoEscaneo.zona}`;
+      document.getElementById("retBannerPochteca").innerText = `👤 Último Pochteca: ${nuevoEscaneo.ultimo_pochteca}`;
+      document.getElementById("retBdStatusBadge").innerText = "✓ INCIDENCIA OK";
+
+      setScannerStatusRetorno(`✅ Verificado: ${nuevoEscaneo.codigo} [CHK: ${nuevoEscaneo.checkpoint}]`, "var(--success)");
+
+      actualizarOdometroRetorno();
+      renderHistorialRetorno();
+
+      setTimeout(sincronizarColaRetornoConSheets, 60);
+    }
+
+    function setScannerStatusRetorno(msg, color) {
+      const el = document.getElementById("scannerStatusRetorno");
+      if (el) {
+        el.innerText = msg;
+        el.style.color = color;
+      }
+    }
+
+    function actualizarOdometroRetorno() {
+      if (!loteRetornoActual) return;
+      document.getElementById("odometerRetornoCount").innerText = loteRetornoActual.escaneos.length;
+
+      const counts = { NH: 0, BA: 0, RD: 0, CA: 0, SA: 0 };
+      loteRetornoActual.escaneos.forEach(s => {
+        const c = String(s.checkpoint || "").toUpperCase();
+        if (counts[c] !== undefined) counts[c]++;
+      });
+
+      CHECKPOINTS_OFICIALES_DHL.forEach(cod => {
+        const el = document.getElementById("countChk" + cod);
+        if (el) el.innerText = counts[cod] || 0;
+      });
+    }
+
+    function renderHistorialRetorno() {
+      const container = document.getElementById("historyListRetorno");
+      if (!container) return;
+      if (!loteRetornoActual || loteRetornoActual.escaneos.length === 0) {
+        container.innerHTML = `
+          <div style="text-align:center; color:#555; font-size:11px; padding:10px;">
+            Aún no has bipiado PIDs para retornar a SVC.
+          </div>
+        `;
+        return;
+      }
+
+      let html = "";
+      loteRetornoActual.escaneos.slice(0, 40).forEach((item, idx) => {
+        const syncIcon = item.sync ? "✓ Bóveda" : "⏳ Local";
+        const syncColor = item.sync ? "var(--success)" : "var(--warning)";
+        html += `
+          <div class="history-item" style="align-items:flex-start;">
+            <div>
+              <div>
+                <span class="history-badge" style="background:#4c0519; color:#fecdd3; border:1px solid #e11d48;">CHK: ${item.checkpoint}</span>
+                <span style="font-family:monospace; margin-left:6px; font-weight:bold; color:#fff;">${item.codigo}</span>
+              </div>
+              <div style="font-size:10px; color:#cbd5e1; margin-top:2px;">
+                📑 HWB: <strong>${item.guia || 'S/G'}</strong> • 📍 CP: <strong>${item.cp || '--'}</strong> (${item.zona || '--'})
+              </div>
+              <div style="font-size:9.5px; color:#fbbf24; margin-top:1px;">
+                👤 Último Pochteca: ${item.ultimo_pochteca || 'Sin registro'}
+              </div>
+            </div>
+            <div style="text-align:right; white-space:nowrap;">
+              <div style="font-size:10px; color:#777;">${item.hora_legible}</div>
+              <div style="font-size:9.5px; color:${syncColor}; font-weight:bold; margin-top:2px;">${syncIcon}</div>
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    function deshacerUltimoEscaneoRetorno() {
+      if (!loteRetornoActual || loteRetornoActual.escaneos.length === 0) return;
+      const ultimo = loteRetornoActual.escaneos[0];
+      if (confirm(`⚠️ ¿Eliminar el último PID escaneado (${ultimo.codigo} - CHK ${ultimo.checkpoint}) del Acta de Retorno?`)) {
+        loteRetornoActual.escaneos.shift();
+        guardarEstadoRetorno();
+        actualizarOdometroRetorno();
+        renderHistorialRetorno();
+        setScannerStatusRetorno(`↩️ Eliminado: ${ultimo.codigo}`, "var(--warning)");
+      }
+    }
+
+    // =========================================================================
+    // 🔓 MÓDULO DE RESCATE DE PID ILEGIBLE (POR GUÍA HWB DE 10 DÍGITOS O FOTO IA)
+    // =========================================================================
+    function abrirModalRescatePidIlegible() {
+      if (!loteRetornoActual) return;
+      document.getElementById("inputRescateGuiaHwb").value = "";
+      document.getElementById("rescateResultadosBox").style.display = "none";
+      document.getElementById("rescateResultadosBox").innerHTML = "";
+      document.getElementById("modalRescatePidIlegible").style.display = "flex";
+      setTimeout(() => document.getElementById("inputRescateGuiaHwb").focus(), 100);
+    }
+
+    function cerrarModalRescatePidIlegible() {
+      document.getElementById("modalRescatePidIlegible").style.display = "none";
+      const input = document.getElementById("scannerInputRetorno");
+      if (input) input.focus();
+    }
+
+    function buscarPidPorGuiaEnRescate() {
+      const rawGuia = document.getElementById("inputRescateGuiaHwb").value.trim().toUpperCase();
+      const box = document.getElementById("rescateResultadosBox");
+      if (!rawGuia) return;
+
+      box.style.display = "flex";
+      const soloDigitos = rawGuia.replace(/\D/g, "");
+
+      // 1. Buscar primero en caché local del catálogo BD
+      const mapGuia = (catalogoRetornosBD && catalogoRetornosBD.por_guia) ? catalogoRetornosBD.por_guia : {};
+      if (soloDigitos.length === 10 && mapGuia[soloDigitos] && mapGuia[soloDigitos].length > 0) {
+        mostrarCandidatosRescatePid(mapGuia[soloDigitos], "GUIA_HWB");
+        return;
+      }
+
+      // 2. Si no está en caché local, consultar en vivo al servidor
+      box.innerHTML = `<div style="font-size:11px; color:var(--warning); text-align:center;">⏳ Buscando PID asociado a '${rawGuia}' en Base de Datos...</div>`;
+
+      fetch(URL_WEBHOOK_RAMPA + "?accion=buscar_pid_retorno_svc&codigo=" + encodeURIComponent(rawGuia))
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.exito && data.encontrado && data.candidatos && data.candidatos.length > 0) {
+            mostrarCandidatosRescatePid(data.candidatos, "GUIA_HWB");
+          } else {
+            // Permitir generar un PID rescatado directamente vinculado a la Guía HWB
+            const pidRescateFallback = "JJD_HWB_" + (soloDigitos || rawGuia);
+            candidatosRescateActuales = [{
+              pid_jjd: pidRescateFallback,
+              pid_jd: "JD_HWB_" + (soloDigitos || rawGuia),
+              guia: soloDigitos || rawGuia,
+              checkpoint: "SIN_CHK",
+              tiene_incidencia: false,
+              cp: "",
+              pochteca_legible: "Rescatado por HWB en mostrador"
+            }];
+            mostrarCandidatosRescatePid(candidatosRescateActuales, "RESCATE_MANUAL_HWB");
+          }
+        })
+        .catch(() => {
+          box.innerHTML = `<div style="font-size:11px; color:var(--danger);">⚠️ Error de red al buscar la guía.</div>`;
+        });
+    }
+
+    function mostrarCandidatosRescatePid(listaCandidatos, metodo) {
+      candidatosRescateActuales = listaCandidatos || [];
+      const box = document.getElementById("rescateResultadosBox");
+      box.style.display = "flex";
+      box.innerHTML = "";
+
+      candidatosRescateActuales.forEach((cand, idx) => {
+        const pidMostrar = formatearPidRampaDobleJ_(cand.pid_jjd || cand.pid_jd || "");
+        const itemDiv = document.createElement("div");
+        itemDiv.style.cssText = "background:#141414; border:1px solid #333; border-radius:8px; padding:8px; display:flex; justify-content:space-between; align-items:center; gap:8px;";
+        itemDiv.innerHTML = `
+          <div style="font-size:11px;">
+            <div style="font-family:monospace; font-weight:bold; color:var(--cyan); font-size:12.5px;">${pidMostrar}</div>
+            <div style="color:#ccc; font-size:10px;">Guía: <strong>${cand.guia || '--'}</strong> | CHK BD: <strong style="color:#fda4af;">${cand.checkpoint || 'SIN_CHK'}</strong></div>
+            <div style="color:#fbbf24; font-size:9.5px;">CP: ${cand.cp || '--'} | Pochteca: ${cand.pochteca_legible || '--'}</div>
+          </div>
+          <button type="button" class="btn-primary" style="padding:8px 10px; font-size:10.5px; white-space:nowrap;" onclick="seleccionarPidRescatadoPorGuia(${idx}, '${metodo}')">
+            ➕ Usar PID
+          </button>
+        `;
+        box.appendChild(itemDiv);
+      });
+    }
+
+    function seleccionarPidRescatadoPorGuia(idx, metodo) {
+      const cand = candidatosRescateActuales[idx];
+      if (!cand) return;
+      cerrarModalRescatePidIlegible();
+      const pidJjd = formatearPidRampaDobleJ_(cand.pid_jjd || cand.pid_jd);
+      evaluarYProcesarPidConReglaPokaYoke(pidJjd, cand.cp || "", cand, metodo || "RESCATE_POR_HWB", cand.url_foto || "");
+    }
+
+    function dispararFotoRescatePidSVC() {
+      const fileInput = document.getElementById("inputFotoRescatePidSVC");
+      if (fileInput) {
+        fileInput.value = "";
+        fileInput.click();
+      }
+    }
+
+    function manejarFotoRescatePidSVC(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file || !loteRetornoActual) return;
+
+      const box = document.getElementById("rescateResultadosBox");
+      box.style.display = "flex";
+      box.innerHTML = `<div style="font-size:11px; color:var(--warning); text-align:center;">📸 Procesando fotografía de etiqueta con IA y buscando PID en BD...</div>`;
+
+      comprimirImagenCanvas_(file, 1280, 0.74, function(base64Img) {
+        if (!base64Img) {
+          box.innerHTML = `<div style="font-size:11px; color:var(--danger);">❌ No se pudo comprimir la foto.</div>`;
+          return;
+        }
+
+        const folioAux = "PID_RET_INC_" + Utilities_randomSuffix();
+        fetch(URL_WEBHOOK_RAMPA, {
+          method: "POST",
+          mode: "cors",
+          redirect: "follow",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({
+            tipo: "RETORNO_INCIDENCIAS_SVC",
+            subtipo: "RESCATE_FOTO_PID_ILEGIBLE",
+            id_acta: loteRetornoActual.id,
+            folio_incidencia: folioAux,
+            foto_base64: base64Img,
+            foto_mime: "image/jpeg"
+          })
+        })
+        .then(r => r.json())
+        .then(data => {
+          const ia = (data && data.ia_resultado) ? data.ia_resultado : {};
+          const regBd = (data && data.registro_bd) ? data.registro_bd : null;
+          const pidDetectado = regBd ? (regBd.pid_jjd || regBd.pid_jd) : (ia.pid_detectado ? formatearPidRampaDobleJ_(ia.pid_detectado) : folioAux);
+          const guiaDetectada = (regBd && regBd.guia) ? regBd.guia : (ia.awb_detectada || "");
+          const cpDetectado = (regBd && regBd.cp) ? regBd.cp : (ia.cp_detectado || "");
+
+          cerrarModalRescatePidIlegible();
+          evaluarYProcesarPidConReglaPokaYoke(
+            pidDetectado,
+            cpDetectado,
+            regBd || {
+              pid_jjd: pidDetectado,
+              guia: guiaDetectada,
+              checkpoint: "SIN_CHK",
+              cp: cpDetectado,
+              pochteca_legible: "Rescate Fotográfico IA"
+            },
+            "FOTO_IA_ILEGIBLE",
+            (data && data.url_foto) ? data.url_foto : ""
+          );
+        })
+        .catch(() => {
+          cerrarModalRescatePidIlegible();
+          const folioFallback = "PID_RET_INC_" + Utilities_randomSuffix();
+          evaluarYProcesarPidConReglaPokaYoke(folioFallback, "", null, "FOTO_OFFLINE_ILEGIBLE", "");
+        });
+      });
+    }
+
+    // =========================================================================
+    // 📸 FOTO EN MOSTRADOR CON SELLO DIGITAL GPS/HORA & FIRMA TÁCTIL EN PANTALLA
+    // =========================================================================
+    function dispararFotoMostradorSVC() {
+      const inp = document.getElementById("inputFotoMostradorSVC");
+      if (inp) {
+        inp.value = "";
+        inp.click();
+      }
+    }
+
+    function manejarFotoMostradorSVC(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file || !loteRetornoActual) return;
+
+      const badge = document.getElementById("badgeEstadoFotoMostrador");
+      if (badge) {
+        badge.innerText = "⏳ Estampando sello GPS y Hora...";
+        badge.style.color = "var(--warning)";
+      }
+
+      estamparMarcaDeAguaNotarialSVC_(file, function(dataUrlSellada) {
+        if (!dataUrlSellada) return;
+        loteRetornoActual.foto_mostrador_base64 = dataUrlSellada;
+        guardarEstadoRetorno();
+
+        const prevBox = document.getElementById("previewFotoMostradorBox");
+        const prevImg = document.getElementById("imgPreviewFotoMostrador");
+        if (prevBox && prevImg) {
+          prevImg.src = dataUrlSellada;
+          prevBox.style.display = "block";
+        }
+        if (badge) {
+          badge.innerText = "✅ Foto con Sello GPS/Hora Lista";
+          badge.style.color = "var(--success)";
+        }
+        emitirAudio("exito");
+      });
+    }
+
+    function estamparMarcaDeAguaNotarialSVC_(file, callback) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const maxDim = 1280;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, w, h);
+
+          // Cintillo Notarial Inferior con Fecha/Hora, GPS, Folio y Total PIDs
+          const bannerH = Math.max(76, Math.round(h * 0.13));
+          ctx.fillStyle = "rgba(10, 10, 15, 0.84)";
+          ctx.fillRect(0, h - bannerH, w, bannerH);
+          ctx.fillStyle = "#e11d48";
+          ctx.fillRect(0, h - bannerH, w, 4);
+
+          const fontSizeTitle = Math.max(13, Math.round(w * 0.022));
+          const fontSizeSub = Math.max(11, Math.round(w * 0.018));
+          const fechaStr = new Date().toLocaleString("es-MX");
+          const recNom = document.getElementById("modalRetReceptorNombre").value.trim() || loteRetornoActual.receptor_svc;
+
+          ctx.fillStyle = "#f2a900";
+          ctx.font = `bold ${fontSizeTitle}px monospace`;
+          ctx.fillText(`ARAUTO EXPRESS • EVIDENCIA DE ENTREGA EN RASTREO SVC DHL`, 14, h - bannerH + fontSizeTitle + 8);
+
+          ctx.fillStyle = "#ffffff";
+          ctx.font = `bold ${fontSizeSub}px monospace`;
+          ctx.fillText(`Folio: ${loteRetornoActual.id} | Total: ${loteRetornoActual.escaneos.length} PIDs | Recibe: ${recNom}`, 14, h - bannerH + fontSizeTitle + fontSizeSub + 14);
+
+          ctx.fillStyle = "#6ee7b7";
+          ctx.font = `${fontSizeSub}px monospace`;
+          ctx.fillText(`Fecha/Hora: ${fechaStr} | GPS: ${gpsRetornoActual}`, 14, h - 10);
+
+          callback(canvas.toDataURL("image/jpeg", 0.78));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function inicializarCanvasFirmaSVC() {
+      const canvas = document.getElementById("canvasFirmaSvc");
+      if (!canvas || canvasFirmaInicializado) return;
+      canvasFirmaInicializado = true;
+
+      const ctx = canvas.getContext("2d");
+      ctx.strokeStyle = "#0f172a";
+      ctx.lineWidth = 2.8;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      let dibujando = false;
+
+      function obtenerPos(evt) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+        const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+        return {
+          x: (clientX - rect.left) * scaleX,
+          y: (clientY - rect.top) * scaleY
+        };
+      }
+
+      function iniciarTrazo(evt) {
+        evt.preventDefault();
+        dibujando = true;
+        firmaTrazadaEnCanvas = true;
+        const pos = obtenerPos(evt);
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+      }
+
+      function moverTrazo(evt) {
+        if (!dibujando) return;
+        evt.preventDefault();
+        const pos = obtenerPos(evt);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+      }
+
+      function terminarTrazo(evt) {
+        if (!dibujando) return;
+        evt.preventDefault();
+        dibujando = false;
+      }
+
+      canvas.addEventListener("mousedown", iniciarTrazo);
+      canvas.addEventListener("mousemove", moverTrazo);
+      window.addEventListener("mouseup", terminarTrazo);
+
+      canvas.addEventListener("touchstart", iniciarTrazo, { passive: false });
+      canvas.addEventListener("touchmove", moverTrazo, { passive: false });
+      canvas.addEventListener("touchend", terminarTrazo, { passive: false });
+    }
+
+    function limpiarCanvasFirmaSVC() {
+      const canvas = document.getElementById("canvasFirmaSvc");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      firmaTrazadaEnCanvas = false;
+    }
+
+    function obtenerFirmaBase64SVC() {
+      if (!firmaTrazadaEnCanvas) return "";
+      const canvas = document.getElementById("canvasFirmaSvc");
+      return canvas ? canvas.toDataURL("image/png") : "";
+    }
+
+    function calcularHashSimpleRetorno_(str) {
+      let h1 = 0xdeadbeef ^ str.length;
+      let h2 = 0x41c6ce57 ^ str.length;
+      for (let i = 0, ch; i < str.length; i++) {
+        ch = str.charCodeAt(i);
+        h1 = Math.imul(h1 ^ ch, 2654435761);
+        h2 = Math.imul(h2 ^ ch, 1597334677);
+      }
+      h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+      h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+      return (h2 >>> 0).toString(16).padStart(8, "0").toUpperCase() + (h1 >>> 0).toString(16).padStart(8, "0").toUpperCase();
+    }
+
+    function construirTextoActaRetornoSVC() {
+      if (!loteRetornoActual) return "";
+      const total = loteRetornoActual.escaneos.length;
+      const fechaHoy = new Date().toLocaleDateString("es-MX");
+      const horaActual = new Date().toLocaleTimeString("es-MX");
+      const recNombre = document.getElementById("modalRetReceptorNombre") ? (document.getElementById("modalRetReceptorNombre").value.trim() || loteRetornoActual.receptor_svc) : loteRetornoActual.receptor_svc;
+      const recCorreo = document.getElementById("modalRetReceptorCorreo") ? (document.getElementById("modalRetReceptorCorreo").value.trim() || loteRetornoActual.correo_receptor_svc) : loteRetornoActual.correo_receptor_svc;
+
+      let desglosePids = "";
+      loteRetornoActual.escaneos.forEach((s, i) => {
+        desglosePids += `${i + 1}. ${s.codigo} (Bóveda: ${s.pid_jd}) | HWB: ${s.guia || 'S/G'} | CHK: ${s.checkpoint} | CP: ${s.cp || '--'} (${s.zona || '--'}) | Pochteca: ${s.ultimo_pochteca || '--'}\n`;
+      });
+
+      const semillaHash = `${loteRetornoActual.id}|${total}|${recCorreo}|` + loteRetornoActual.escaneos.map(e => `${e.pid_jd}:${e.checkpoint}`).sort().join(",");
+      const selloLocal = calcularHashSimpleRetorno_(semillaHash);
+
+      return `========================================
+📜 ACTA NOTARIAL DE RETORNO DE INCIDENCIAS A SVC
+ARAUTO EXPRESS — ÁREA DE RASTREO DHL QUERÉTARO
+========================================
+• Folio Acta: ${loteRetornoActual.id}
+• Fecha / Hora: ${fechaHoy} ${horaActual}
+• Entrega (Arauto): ${loteRetornoActual.auditor} (${loteRetornoActual.correo_auditor})
+• Recibe en Rastreo SVC: ${recNombre} (${recCorreo})
+• Ubicación GPS: ${gpsRetornoActual}
+----------------------------------------
+📊 TOTAL ENTREGADO EN RASTREO SVC: ${total} PIEZAS (NIVEL PID)
+----------------------------------------
+🔍 RELACIÓN CERTIFICADA PID POR PID (CON CHECKPOINT OFICIAL DHL, CP Y ÚLTIMO POCHTECA):
+${desglosePids || "• Sin PIDs escaneados\n"}----------------------------------------
+🛡️ SELLO DE INTEGRIDAD ANTI-CONTROVERSIA:
+FOLIO-HASH: ${selloLocal}
+Cada pieza listada cuenta con Checkpoint Oficial de Incidencia DHL (NH, BA, RD, CA, SA) verificado en sistema y fue entregada físicamente en el Área de Rastreo SVC.
+========================================`;
+    }
+
+    function abrirModalActaRetornoSVC() {
+      if (!loteRetornoActual) return;
+      if (loteRetornoActual.escaneos.length === 0) {
+        alert("⚠️ Escanea al menos 1 PID antes de abrir el cierre del Acta de Retorno a SVC.");
+        return;
+      }
+
+      document.getElementById("modalRetReceptorNombre").value = loteRetornoActual.receptor_svc || "";
+      document.getElementById("modalRetReceptorCorreo").value = loteRetornoActual.correo_receptor_svc || "";
+      document.getElementById("modalRetAuditorCorreo").value = loteRetornoActual.correo_auditor || "irvin.reyes@arauto.express";
+      document.getElementById("modalRetObservaciones").value = loteRetornoActual.observaciones || "";
+      document.getElementById("estadoEnvioActaRetorno").style.display = "none";
+
+      document.getElementById("actaRetornoTextPreview").innerText = construirTextoActaRetornoSVC();
+      document.getElementById("modalActaRetornoSvc").style.display = "flex";
+
+      setTimeout(inicializarCanvasFirmaSVC, 80);
+    }
+
+    function cerrarModalActaRetornoSVC() {
+      document.getElementById("modalActaRetornoSvc").style.display = "none";
+      const input = document.getElementById("scannerInputRetorno");
+      if (input) input.focus();
+    }
+
+    function copiarActaRetornoParaWhatsApp() {
+      const txt = construirTextoActaRetornoSVC();
+      navigator.clipboard.writeText(txt).then(() => {
+        alert("✅ Acta de Retorno a SVC copiada al portapapeles.");
+      }).catch(() => {
+        alert("Selecciona el texto del recuadro y cópialo manualmente.");
+      });
+    }
+
+    function descargarRespaldoCSVRetorno() {
+      if (!loteRetornoActual || loteRetornoActual.escaneos.length === 0) {
+        alert("⚠️ No hay PIDs registrados para exportar.");
+        return;
+      }
+
+      let csv = "ID_Acta_Retorno,Timestamp,PID_Original_Rampa,PID_Sanitizado_Boveda,Guia_HWB,Checkpoint_Oficial_DHL,CP,Zona_Logistica,Ultimo_Pochteca,Metodo_Captura,Auditor_Arauto,Receptor_Rastreo_SVC,Correo_Receptor_SVC\n";
+      loteRetornoActual.escaneos.forEach(s => {
+        csv += `"${loteRetornoActual.id}","${s.timestamp}","${s.codigo}","${s.pid_jd}","${s.guia || ''}","${s.checkpoint}","${s.cp || ''}","${s.zona || ''}","${s.ultimo_pochteca || ''}","${s.metodo_captura || 'ESCANER_PID'}","${loteRetornoActual.auditor}","${loteRetornoActual.receptor_svc}","${loteRetornoActual.correo_receptor_svc}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Acta_Retorno_SVC_${loteRetornoActual.id}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function sincronizarColaRetornoConSheets() {
+      if (!navigator.onLine || !loteRetornoActual) return;
+      const pendientes = loteRetornoActual.escaneos.filter(s => !s.sync);
+      const ind = document.getElementById("syncIndicatorRetorno");
+
+      if (pendientes.length === 0) {
+        if (ind) {
+          ind.innerText = "✓ Sincronizado";
+          ind.style.color = "var(--success)";
+        }
+        return;
+      }
+
+      if (ind) {
+        ind.innerText = `⚡ Sincronizando (${pendientes.length})...`;
+        ind.style.color = "var(--warning)";
+      }
+
+      const payload = {
+        tipo: "RETORNO_INCIDENCIAS_SVC",
+        subtipo: "LOTE_BATCH",
+        id_acta: loteRetornoActual.id,
+        auditor: loteRetornoActual.auditor,
+        correo_auditor: loteRetornoActual.correo_auditor,
+        receptor_svc: loteRetornoActual.receptor_svc,
+        correo_receptor_svc: loteRetornoActual.correo_receptor_svc,
+        escaneos: pendientes.map(p => ({
+          id_escaneo: p.id,
+          codigo: p.codigo,
+          guia: p.guia,
+          checkpoint: p.checkpoint,
+          cp: p.cp,
+          zona: p.zona,
+          ultimo_pochteca: p.ultimo_pochteca,
+          metodo_captura: p.metodo_captura,
+          url_foto: p.url_foto || "",
+          timestamp: p.timestamp
+        }))
+      };
+
+      fetch(URL_WEBHOOK_RAMPA, {
+        method: "POST",
+        mode: "cors",
+        redirect: "follow",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify(payload)
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.exito) {
+          pendientes.forEach(p => p.sync = true);
+          guardarEstadoRetorno();
+          renderHistorialRetorno();
+          if (ind) {
+            ind.innerText = "✓ Sincronizado en RETORNOS_SVC";
+            ind.style.color = "var(--success)";
+          }
+        }
+      })
+      .catch(err => console.log("Reintento sync retorno SVC:", err.message));
+    }
+
+    function confirmarYEnviarActaRetornoSVC() {
+      if (!loteRetornoActual || loteRetornoActual.escaneos.length === 0) return;
+
+      const recNombre = document.getElementById("modalRetReceptorNombre").value.trim();
+      const recCorreo = document.getElementById("modalRetReceptorCorreo").value.trim().toLowerCase();
+      const audCorreo = document.getElementById("modalRetAuditorCorreo").value.trim().toLowerCase() || "irvin.reyes@arauto.express";
+      const obs = document.getElementById("modalRetObservaciones").value.trim();
+
+      if (!recNombre) {
+        alert("⚠️ Ingresa el nombre de quien recibe los PIDs en el Área de Rastreo en SVC.");
+        return;
+      }
+      if (!recCorreo || !recCorreo.includes("@")) {
+        alert("⚠️ Ingresa un correo válido de quien recibe en Rastreo SVC para enviarle el Acta Notarial en PDF.");
+        return;
+      }
+
+      loteRetornoActual.receptor_svc = recNombre;
+      loteRetornoActual.correo_receptor_svc = recCorreo;
+      loteRetornoActual.correo_auditor = audCorreo;
+      loteRetornoActual.observaciones = obs;
+      guardarReceptorRecienteSVC(recNombre, recCorreo);
+      guardarEstadoRetorno();
+
+      const firmaBase64 = obtenerFirmaBase64SVC();
+      if (!firmaBase64 && !loteRetornoActual.foto_mostrador_base64) {
+        const continuarSinFirma = confirm("⚠️ Aún no se ha trazado la firma en pantalla ni tomado foto en mostrador.\n\n¿Deseas enviar el Acta Digital por correo de todas formas?");
+        if (!continuarSinFirma) return;
+      }
+
+      const btn = document.getElementById("btnEnviarActaRetornoCorreo");
+      const boxEstado = document.getElementById("estadoEnvioActaRetorno");
+      btn.disabled = true;
+      btn.innerText = "⏳ Generando PDF y Enviando Correo...";
+      boxEstado.style.display = "block";
+      boxEstado.style.background = "#1e1b04";
+      boxEstado.style.color = "#fde047";
+      boxEstado.style.border = "1px solid #ca8a04";
+      boxEstado.innerText = `⏳ Sellando Acta ${loteRetornoActual.id} con SHA-256, guardando PDF en Drive y enviando correo a ${audCorreo} y ${recCorreo}...`;
+
+      const payloadCierre = {
+        tipo: "RETORNO_INCIDENCIAS_SVC",
+        subtipo: "CIERRE_RETORNO_SVC",
+        id_acta: loteRetornoActual.id,
+        auditor: loteRetornoActual.auditor,
+        correo_auditor: audCorreo,
+        receptor_svc: recNombre,
+        correo_receptor_svc: recCorreo,
+        observaciones: obs,
+        gps_entrega: gpsRetornoActual,
+        firma_svc_base64: firmaBase64,
+        foto_mostrador_base64: loteRetornoActual.foto_mostrador_base64 || "",
+        escaneos: loteRetornoActual.escaneos
+      };
+
+      fetch(URL_WEBHOOK_RAMPA, {
+        method: "POST",
+        mode: "cors",
+        redirect: "follow",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify(payloadCierre)
+      })
+      .then(r => r.json())
+      .then(data => {
+        btn.disabled = false;
+        btn.innerText = "📨 Cerrar Retorno, Generar PDF y Enviar a Correos (Irvin + SVC)";
+
+        if (data && data.exito) {
+          emitirAudio("exito");
+          boxEstado.style.background = "#052e16";
+          boxEstado.style.color = "#86efac";
+          boxEstado.style.border = "1px solid #22c55e";
+          boxEstado.innerHTML =
+            `✅ ¡ACTA ENVIADA Y CERTIFICADA CON ÉXITO!<br/>` +
+            `• Enviada a: <strong>${(data.destinatarios_correo || []).join(", ")}</strong><br/>` +
+            `• Sello SHA-256: <code>${(data.sha256 || "").substring(0, 16)}...</code><br/>` +
+            (data.url_pdf_drive ? `<a href="${data.url_pdf_drive}" target="_blank" style="color:#38bdf8; text-decoration:underline; display:inline-block; margin-top:4px;">📄 Abrir PDF Oficial del Acta en Google Drive</a>` : "");
+
+          alert(`✅ ¡Acta de Retorno a SVC (${loteRetornoActual.id}) cerrada con éxito!\n\n• Total devueltos: ${loteRetornoActual.escaneos.length} PIDs\n• Correo con PDF enviado a:\n  - ${audCorreo}\n  - ${recCorreo}\n• Guardado en BOVEDA_BATCH_MAESTRO (Pestaña RETORNOS_SVC).`);
+
+          localStorage.removeItem("painani_retorno_svc_activa");
+          loteRetornoActual = null;
+          limpiarCanvasFirmaSVC();
+          const prevBox = document.getElementById("previewFotoMostradorBox");
+          if (prevBox) prevBox.style.display = "none";
+          cerrarModalActaRetornoSVC();
+          cambiarFaseOperativa("RETORNO_SVC");
+        } else {
+          boxEstado.style.background = "#3b0710";
+          boxEstado.style.color = "#fda4af";
+          boxEstado.style.border = "1px solid #e11d48";
+          boxEstado.innerText = `❌ Error del servidor: ${(data && data.error) || 'No se pudo completar el cierre'}`;
+        }
+      })
+      .catch(err => {
+        btn.disabled = false;
+        btn.innerText = "📨 Cerrar Retorno, Generar PDF y Enviar a Correos (Irvin + SVC)";
+        boxEstado.style.background = "#3b0710";
+        boxEstado.style.color = "#fda4af";
+        boxEstado.style.border = "1px solid #e11d48";
+        boxEstado.innerText = `⚠️ Error de red al cerrar Acta: ${err.message}. Tus escaneos siguen seguros en el dispositivo; intenta de nuevo.`;
       });
     }
 

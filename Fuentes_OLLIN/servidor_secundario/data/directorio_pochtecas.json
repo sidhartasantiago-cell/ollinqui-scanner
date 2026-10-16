@@ -9,14 +9,15 @@
     "grupo": "Daniel",
     "webhook_chat": "https://chat.googleapis.com/v1/spaces/AAQAEoaLlMQ/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=C3nlfauF5BX4ywmc4xnQWDbr8B5qdJINL-SUbhHw3PI",
     "tiene_7ca": false,
-    "estatus": "Activo",
+    "estatus": "Inactivo",
     "fecha_creacion": "2026-09-22T16:58:01.240963",
-    "fecha_actualizacion": "2026-09-22T16:58:01.240963"
+    "fecha_actualizacion": "2026-09-22T16:58:01.240963",
+    "fecha_baja": "2026-10-15T18:49:43.591263"
   },
   "edgar.rodriguez.arauto@gmail.com": {
     "correo": "edgar.rodriguez.arauto@gmail.com",
     "nombre": "Edgar",
-    "telefono": "4423816310",
+    "telefono": "0000",
     "rol": "POCHTECA",
     "zona_asignada": "QRO Metropolitano",
     "supervisor": "irvin.reyes@arauto.express",
@@ -30,7 +31,7 @@
   "fernando.maestro.1991@gmail.com": {
     "correo": "fernando.maestro.1991@gmail.com",
     "nombre": "Fernando",
-    "telefono": "7295676990",
+    "telefono": "0000",
     "rol": "Pochteca",
     "zona_asignada": "QRO Metropolitano",
     "supervisor": "irvin.reyes@arauto.express",
@@ -44,7 +45,7 @@
   "irvin.reyes@arauto.express": {
     "correo": "irvin.reyes@arauto.express",
     "nombre": "Irvin",
-    "telefono": "5541891708",
+    "telefono": "0000",
     "rol": "Tlachixqui",
     "zona_asignada": "QRO Metropolitano",
     "supervisor": "irvin.reyes@arauto.express",
@@ -58,7 +59,7 @@
   "sidharta.santiago@arauto.express": {
     "correo": "sidharta.santiago@arauto.express",
     "nombre": "Sidharta",
-    "telefono": "4491805948",
+    "telefono": "1917",
     "rol": "Tlayacanqui",
     "zona_asignada": "QRO Metropolitano",
     "supervisor": "sidharta.santiago@arauto.express",
@@ -72,7 +73,7 @@
   "victor18amadorm@gmail.com": {
     "correo": "victor18amadorm@gmail.com",
     "nombre": "Víctor",
-    "telefono": "4681566463",
+    "telefono": "0000",
     "rol": "Pochteca",
     "zona_asignada": "Sierra Gorda",
     "supervisor": "xichudaniel@gmail.com",
@@ -86,7 +87,7 @@
   "xichudaniel@gmail.com": {
     "correo": "xichudaniel@gmail.com",
     "nombre": "Daniel",
-    "telefono": "4191155625",
+    "telefono": "0000",
     "rol": "Tlachixqui",
     "zona_asignada": "Sierra Gorda",
     "supervisor": "xichudaniel@gmail.com",
@@ -99,8 +100,8 @@
   },
   "fmsanluispaq@gmail.com": {
     "correo": "fmsanluispaq@gmail.com",
-    "nombre": "Gregorio",
-    "telefono": "4192705455",
+    "nombre": "Gerardo",
+    "telefono": "0000",
     "rol": "Pochteca",
     "zona_asignada": "Sierra Gorda",
     "supervisor": "xichudaniel@gmail.com",
@@ -121,9 +122,10 @@
     "grupo": "Daniel",
     "webhook_chat": "https://chat.googleapis.com/v1/spaces/AAQAEoaLlMQ/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=C3nlfauF5BX4ywmc4xnQWDbr8B5qdJINL-SUbhHw3PI",
     "tiene_7ca": false,
-    "estatus": "Activo",
+    "estatus": "Inactivo",
     "fecha_creacion": "2026-09-22T16:58:01.240963",
-    "fecha_actualizacion": "2026-09-22T16:58:01.240963"
+    "fecha_actualizacion": "2026-09-22T16:58:01.240963",
+    "fecha_baja": "2026-10-15T18:49:43.591373"
   },
   "yesigonzg1827@gmail.com": {
     "correo": "yesigonzg1827@gmail.com",
@@ -135,9 +137,10 @@
     "grupo": "Daniel",
     "webhook_chat": "https://chat.googleapis.com/v1/spaces/AAQAEoaLlMQ/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=C3nlfauF5BX4ywmc4xnQWDbr8B5qdJINL-SUbhHw3PI",
     "tiene_7ca": false,
-    "estatus": "Activo",
+    "estatus": "Inactivo",
     "fecha_creacion": "2026-09-22T16:58:01.240963",
-    "fecha_actualizacion": "2026-09-22T16:58:01.240963"
+    "fecha_actualizacion": "2026-09-22T16:58:01.240963",
+    "fecha_baja": "2026-10-15T18:49:43.591424"
   },
   "oscher1016@gmail.com": {
     "correo": "oscher1016@gmail.com",
@@ -149,9 +152,10 @@
     "grupo": "Daniel",
     "webhook_chat": "https://chat.googleapis.com/v1/spaces/AAQAEoaLlMQ/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=C3nlfauF5BX4ywmc4xnQWDbr8B5qdJINL-SUbhHw3PI",
     "tiene_7ca": false,
-    "estatus": "Activo",
+    "estatus": "Inactivo",
     "fecha_creacion": "2026-09-22T00:00:00",
-    "fecha_actualizacion": "2026-09-22T00:00:00"
+    "fecha_actualizacion": "2026-09-22T00:00:00",
+    "fecha_baja": "2026-10-15T18:49:43.591454"
   },
   "paqueteria.sanluis.3232487050@arauto.express": {
     "correo": "fmsanluispaq@gmail.com",
@@ -163,8 +167,37 @@
     "grupo": "Daniel",
     "webhook_chat": "https://chat.googleapis.com/v1/spaces/AAQAEoaLlMQ/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=C3nlfauF5BX4ywmc4xnQWDbr8B5qdJINL-SUbhHw3PI",
     "tiene_7ca": false,
-    "estatus": "Activo",
+    "estatus": "Inactivo",
     "fecha_creacion": "2026-10-11T15:09:00.000000",
-    "fecha_actualizacion": "2026-10-11T15:09:00.000000"
+    "fecha_actualizacion": "2026-10-11T15:09:00.000000",
+    "fecha_baja": "2026-10-15T18:49:43.591480"
+  },
+  "fmtierrabla1@gmail.com": {
+    "correo": "fmtierrabla1@gmail.com",
+    "nombre": "Diego",
+    "telefono": "0000",
+    "rol": "Pochteca",
+    "zona_asignada": "Sierra Gorda",
+    "supervisor": "xichudaniel@gmail.com",
+    "grupo": "Daniel",
+    "webhook_chat": "https://chat.googleapis.com/v1/spaces/AAQAEoaLlMQ/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=C3nlfauF5BX4ywmc4xnQWDbr8B5qdJINL-SUbhHw3PI",
+    "tiene_7ca": false,
+    "estatus": "Activo",
+    "fecha_creacion": "2026-10-15T18:49:43.591219",
+    "fecha_actualizacion": "2026-10-15T18:49:43.591237"
+  },
+  "mickeyroglez@gmail.com": {
+    "correo": "mickeyroglez@gmail.com",
+    "nombre": "Miguel",
+    "telefono": "0",
+    "rol": "Pochteca",
+    "zona_asignada": "QRO Metropolitano",
+    "supervisor": "irvin.reyes@arauto.express",
+    "grupo": "Independiente",
+    "webhook_chat": "",
+    "tiene_7ca": false,
+    "estatus": "Activo",
+    "fecha_creacion": "2026-10-15T18:49:43.591256",
+    "fecha_actualizacion": "2026-10-15T18:49:43.591258"
   }
 }

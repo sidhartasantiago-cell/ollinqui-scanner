@@ -82,7 +82,17 @@ function receptorPU_doGet(e) {
       return ContentService.createTextOutput(JSON.stringify(resAsigGet)).setMimeType(ContentService.MimeType.JSON);
     }
 
-    return ContentService.createTextOutput(JSON.stringify({ status: "OK", mensaje: "🏛️ Webhook Receptor_PU Activo (OLLIN v77.0 PROD)" }))
+    if (accion === "obtener_catalogo_retornos_svc") {
+      var resCatRet = obtenerCatalogoRetornosSVC_(params);
+      return ContentService.createTextOutput(JSON.stringify(resCatRet)).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (accion === "buscar_pid_retorno_svc") {
+      var resBusqRet = buscarPidOGuiaRetornoSVC_(params);
+      return ContentService.createTextOutput(JSON.stringify(resBusqRet)).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({ status: "OK", mensaje: "🏛️ Webhook Receptor_PU Activo (OLLIN v86.0 PROD)" }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch(err) {
     return ContentService.createTextOutput(JSON.stringify({ exito: false, error: err.message }))
@@ -1081,6 +1091,25 @@ function receptorPU_doPost(e) {
         id_lote_inter: idLoteInter,
         conteo_servidor: lastRowActual + filasParaInsertar.length - 1
       })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // ==========================================
+    // CANAL F: RETORNO DE INCIDENCIAS A SVC (RASTREO DHL) - PAINANI v86.0 PROD
+    // Almacenamiento en pestaña 'RETORNOS_SVC' (BOVEDA_BATCH_MAESTRO) + PDF + Correo
+    // ==========================================
+    if (datos && (datos.accion === "obtener_catalogo_retornos_svc" || datos.action === "obtener_catalogo_retornos_svc")) {
+      var resCatPost = obtenerCatalogoRetornosSVC_(datos);
+      return ContentService.createTextOutput(JSON.stringify(resCatPost)).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (datos && (datos.accion === "buscar_pid_retorno_svc" || datos.action === "buscar_pid_retorno_svc")) {
+      var resBusqPost = buscarPidOGuiaRetornoSVC_(datos);
+      return ContentService.createTextOutput(JSON.stringify(resBusqPost)).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (datos.tipo === "RETORNO_INCIDENCIAS_SVC" || datos.accion === "registrar_retorno_svc" || datos.canal === "RETORNO_SVC") {
+      var resRetornoSvc = procesarCanalRetornoIncidenciasSVC_(datos, libro, eventosIdempotenciaAbiertos);
+      return ContentService.createTextOutput(JSON.stringify(resRetornoSvc)).setMimeType(ContentService.MimeType.JSON);
     }
 
     // ==========================================
@@ -2659,6 +2688,7 @@ function procesarSincronizacionEntregaMasivaOffline_(loteData, spreadsheet) {
       }
     }
     
+    var idxEstG = getHeaderIndex_(gHeaders, "Estatus_Guia", 7);
     for (var g = 1; g < dataGuias.length; g++) {
       var hwbGuia = String(dataGuias[g][idxHwbG] || "").trim();
       if (guiasImpactadas[hwbGuia] && hwbCounts[hwbGuia]) {
@@ -2672,12 +2702,54 @@ function procesarSincronizacionEntregaMasivaOffline_(loteData, spreadsheet) {
           nuevoEst = stats.incidencias[0];
         }
         if (idxNuevoEstG !== -1) sheetGuias.getRange(g + 1, idxNuevoEstG + 1).setValue(nuevoEst);
+        if (idxEstG !== -1) sheetGuias.getRange(g + 1, idxEstG + 1).setValue(nuevoEst);
         if (audioRelPath && idxAudioG !== -1) sheetGuias.getRange(g + 1, idxAudioG + 1).setValue(audioRelPath);
         if (fotoRelPath && idxFotoG !== -1) sheetGuias.getRange(g + 1, idxFotoG + 1).setValue(fotoRelPath);
         if (firmaRelPath && (nuevoEst === "OK" || nuevoEst === "PD") && idxFirmaG !== -1) sheetGuias.getRange(g + 1, idxFirmaG + 1).setValue(firmaRelPath);
         if (nombreRecibe && (nuevoEst === "OK" || nuevoEst === "PD") && idxRcvrG !== -1) sheetGuias.getRange(g + 1, idxRcvrG + 1).setValue(nombreRecibe);
       }
     }
+  }
+
+  // 5.5 Sincronización Espejo a BD_CENTRAL_2023 (Hoja "Ruta" - Soporte Dual AppSheet Clásica)
+  try {
+    var ssCentral = SpreadsheetApp.openById("1osolxYzL12I05J2CUy5PBAGpPD2Z3XeU37RzUlFPPO8");
+    var shRuta = ssCentral.getSheetByName("Ruta") || ssCentral.getSheetByName("RUTA");
+    if (shRuta && shRuta.getLastRow() > 1) {
+      var rData = shRuta.getDataRange().getValues();
+      var rHeaders = rData[0];
+      var idxRutaHwb = getHeaderIndex_(rHeaders, "Guia", 0);
+      var idxRutaPid = getHeaderIndex_(rHeaders, "PID", 1);
+      var idxRutaChk = getHeaderIndex_(rHeaders, "Checkpoint", 9);
+      var idxRutaRcvr = getHeaderIndex_(rHeaders, "Quien recibio o comentarios", 10);
+      var idxRutaTime = getHeaderIndex_(rHeaders, "Fecha en ruta", 12);
+      var idxRutaFoto = getHeaderIndex_(rHeaders, "Imagen fachada", 13);
+      var idxRutaGps = getHeaderIndex_(rHeaders, "GPS", 8);
+
+      var pidsSet = {};
+      pidsActualizados.forEach(function(item) { pidsSet[item.pid] = item.estatus; });
+
+      var fechaStr = Utilities.formatDate(fechaHora, Session.getScriptTimeZone() || "America/Mexico_City", "dd/MM/yyyy HH:mm:ss");
+
+      for (var r = 1; r < rData.length; r++) {
+        var rHwb = String(rData[r][idxRutaHwb] || "").trim();
+        var rPid = String(rData[r][idxRutaPid] || "").trim();
+        var rPidSan = (typeof sanitizarPIDParaBoveda === "function") ? sanitizarPIDParaBoveda(rPid) : rPid;
+
+        if (guiasImpactadas[rHwb] || (rPidSan && pidsSet[rPidSan])) {
+          var chkFinal = (rPidSan && pidsSet[rPidSan]) ? pidsSet[rPidSan] : "OK";
+          if (idxRutaChk !== -1) shRuta.getRange(r + 1, idxRutaChk + 1).setValue(chkFinal);
+          if (nombreRecibe && idxRutaRcvr !== -1) shRuta.getRange(r + 1, idxRutaRcvr + 1).setValue(nombreRecibe);
+          if (idxRutaTime !== -1) shRuta.getRange(r + 1, idxRutaTime + 1).setValue(fechaStr);
+          if (fotoRelPath && idxRutaFoto !== -1) shRuta.getRange(r + 1, idxRutaFoto + 1).setValue(fotoRelPath);
+          if (loteData.lat && loteData.lng && idxRutaGps !== -1) {
+            shRuta.getRange(r + 1, idxRutaGps + 1).setValue(loteData.lat + "," + loteData.lng);
+          }
+        }
+      }
+    }
+  } catch(eCentral) {
+    Logger.log("Aviso sincronización espejo a BD Central: " + eCentral.message);
   }
 
   // 6. Inyectar en COLA_TEOYOLOTL_AUDIOS_QRO y Encolar Mini-Auditoría Gemini con Contexto Destinatario
@@ -3675,6 +3747,15 @@ function consultarPidsAsignadosChofer_(choferEmail) {
   var cleanChofer = String(choferEmail || "").trim().toLowerCase();
   var pids = [];
 
+  // 🔄 AUTO-SINCRONIZACIÓN TRANSPARENTE: Traer entregas recientes de BD Central
+  try {
+    if (typeof sincronizarEntregasRutaHaciaApp === "function") {
+      sincronizarEntregasRutaHaciaApp();
+    }
+  } catch(eSyncAuto) {
+    Logger.log("Aviso auto-sync en consulta: " + eSyncAuto.message);
+  }
+
   try {
     var ssRuta = SpreadsheetApp.openById(ID_BD_APP_RUTA_2025);
     var shPids = ssRuta.getSheetByName("PIEZAS_PID");
@@ -3703,6 +3784,25 @@ function consultarPidsAsignadosChofer_(choferEmail) {
       }
     }
 
+    // 🛡️ FILTRO POKA-YOKE DE RUTA ACTIVA: Leer hoja "Ruta" de BD Central para ignorar bultos históricos
+    var hwbsRutaActiva = {};
+    try {
+      var ssCent = SpreadsheetApp.openById("1osolxYzL12I05J2CUy5PBAGpPD2Z3XeU37RzUlFPPO8");
+      var shR = ssCent.getSheetByName("Ruta") || ssCent.getSheetByName("RUTA");
+      if (shR && shR.getLastRow() > 1) {
+        var rVal = shR.getRange(2, 1, shR.getLastRow() - 1, 10).getValues();
+        for (var i = 0; i < rVal.length; i++) {
+          var gAwb = String(rVal[i][0] || "").trim();
+          var gPid = String(rVal[i][1] || "").trim();
+          var gChk = String(rVal[i][9] || "").trim().toUpperCase();
+          if (gAwb) hwbsRutaActiva[gAwb] = gChk || "PRE_ASIGNADO";
+          if (gPid) hwbsRutaActiva[gPid] = gChk || "PRE_ASIGNADO";
+        }
+      }
+    } catch(eRuta) {
+      Logger.log("Aviso leyendo Ruta activa: " + eRuta.message);
+    }
+
     if (shPids && shPids.getLastRow() > 1) {
       var pData = shPids.getDataRange().getValues();
       var pHeaders = pData[0];
@@ -3713,12 +3813,28 @@ function consultarPidsAsignadosChofer_(choferEmail) {
       var idxEstP = getHeaderIndex_(pHeaders, "Estatus_PID", 3);
       var idxEscValP = getHeaderIndex_(pHeaders, "Escaneo_Validacion", 4);
 
+      var hasRutaActiva = Object.keys(hwbsRutaActiva).length > 0;
+
       for (var p = 1; p < pData.length; p++) {
         var pidRaw = String(pData[p][idxPidP] || "").trim();
         if (!pidRaw) continue;
         var pidSan = (typeof sanitizarPIDParaBoveda === "function") ? sanitizarPIDParaBoveda(pidRaw) : pidRaw;
         var hwbRef = String(pData[p][idxHwbP] || "").trim();
+
+        // 🚫 POKA-YOKE: Si la hoja Ruta de hoy está activa, IGNORAR bultos históricos de días anteriores
+        if (hasRutaActiva && !hwbsRutaActiva[hwbRef] && !hwbsRutaActiva[pidRaw] && !hwbsRutaActiva[pidSan]) {
+          continue;
+        }
+
         var estatusPid = String(pData[p][idxEstP] || "PRE_ASIGNADO").trim().toUpperCase();
+        // Sobreescribir estatus en caliente si en BD Central ya está en OK o excepción
+        if (hasRutaActiva) {
+          var chkCentral = hwbsRutaActiva[pidRaw] || hwbsRutaActiva[pidSan] || hwbsRutaActiva[hwbRef];
+          if (chkCentral && chkCentral !== "PRE_ASIGNADO") {
+            estatusPid = chkCentral;
+          }
+        }
+
         var escVal = String(pData[p][idxEscValP] || "SIN_CARGAR").trim().toUpperCase();
 
         var choferPid = idxChoferP !== -1 ? String(pData[p][idxChoferP] || "").trim().toLowerCase() : "";
@@ -4007,3 +4123,944 @@ function procesarAutoAsignacionHuerfana_(datos) {
     return { exito: false, error: err.message };
   }
 }
+
+/**
+ * ============================================================================
+ * 🏛️ MÓDULO PAINANI v86.0 PROD: RETORNO DE INCIDENCIAS A SVC (RASTREO DHL)
+ * - Extrae Checkpoints Oficiales DHL (NH, BA, RD, CA, SA), CP y Último Pochteca
+ * - Rescata PIDs ilegibles vía Guía HWB (10 dígitos) o Foto IA
+ * - Genera Acta Notarial PDF con Firma en Pantalla + Foto Sellada GPS
+ * - Envía correo exclusivamente a Irvin y a quien recibe en Rastreo SVC
+ * - Almacena en BOVEDA_BATCH_MAESTRO -> pestaña 'RETORNOS_SVC' (16 columnas)
+ * ============================================================================
+ */
+
+var CHECKPOINTS_OFICIALES_RETORNO_DHL_ = ["NH", "BA", "RD", "CA", "SA"];
+
+function normalizarCheckpointOficialDHL_(chkRaw, comentariosRaw) {
+  var chk = String(chkRaw || "").trim().toUpperCase();
+  var com = String(comentariosRaw || "").trim().toUpperCase();
+
+  if (CHECKPOINTS_OFICIALES_RETORNO_DHL_.indexOf(chk) !== -1) {
+    return { checkpoint: chk, tiene_incidencia: true };
+  }
+
+  // Si en sistema quedó como RETORNO_DHL o RT o FD, buscar si en el comentario o texto viene NH, BA, RD, CA o SA
+  for (var i = 0; i < CHECKPOINTS_OFICIALES_RETORNO_DHL_.length; i++) {
+    var cod = CHECKPOINTS_OFICIALES_RETORNO_DHL_[i];
+    var regex = new RegExp("\\b" + cod + "\\b");
+    if (regex.test(chk) || regex.test(com)) {
+      return { checkpoint: cod, tiene_incidencia: true };
+    }
+  }
+
+  return {
+    checkpoint: chk || "SIN_CHK",
+    tiene_incidencia: false
+  };
+}
+
+function obtenerMapaNombresPochtecas_(ssRuta) {
+  var mapa = {
+    "irvin.reyes@arauto.express": "Irvin Reyes",
+    "edgar.rodriguez.arauto@gmail.com": "Edgar Rodríguez",
+    "fernando.maestro.1991@gmail.com": "Fernando Maestro",
+    "xichudaniel@gmail.com": "Daniel Juárez",
+    "diegovv21mar@gmail.com": "Diego Velázquez",
+    "victor18amadorm@gmail.com": "Víctor Amador",
+    "fmsanluispaq@gmail.com": "San Luis Paq",
+    "fmpaqueteriatvsm@gmail.com": "Paquetería TVSM",
+    "yesigonzg1827@gmail.com": "Yesenia González"
+  };
+
+  try {
+    if (ssRuta) {
+      var shUsers = ssRuta.getSheetByName("CAT_USUARIOS");
+      if (shUsers && shUsers.getLastRow() > 1) {
+        var uData = shUsers.getDataRange().getValues();
+        var uHeaders = uData[0].map(function(h) { return String(h || "").toLowerCase().trim(); });
+        var idxEmail = uHeaders.indexOf("email") !== -1 ? uHeaders.indexOf("email") : uHeaders.indexOf("correo");
+        var idxNom = uHeaders.indexOf("nombre") !== -1 ? uHeaders.indexOf("nombre") : uHeaders.indexOf("operador");
+        if (idxEmail !== -1 && idxNom !== -1) {
+          for (var u = 1; u < uData.length; u++) {
+            var em = String(uData[u][idxEmail] || "").trim().toLowerCase();
+            var nm = String(uData[u][idxNom] || "").trim();
+            if (em && nm) mapa[em] = nm;
+          }
+        }
+      }
+    }
+  } catch (eU) {
+    Logger.log("Aviso leyendo CAT_USUARIOS: " + eU.message);
+  }
+  return mapa;
+}
+
+function formatearPochtecaLegible_(emailRaw, mapaNombres) {
+  var em = String(emailRaw || "").trim().toLowerCase();
+  if (!em || em === "sin_asignar" || em === "s/a") return "Sin Pochteca registrado";
+  var nombre = (mapaNombres && mapaNombres[em]) ? mapaNombres[em] : "";
+  if (nombre) return nombre + " (" + em + ")";
+  return em;
+}
+
+function obtenerCatalogoRetornosSVC_(params) {
+  try {
+    var porPid = {};
+    var porGuia = {};
+
+    var idRuta = "1Rj7Ce6jWIFTXTamfcgO2h-uhFKBuNhSB8m_tBY_g__w";
+    var idVal = "1tkfIyZIO2UxzSHFNRPFssRKOpkOscn7qNbkYA7SXr0M";
+    var idCentral = "1osolxYzL12I05J2CUy5PBAGpPD2Z3XeU37RzUlFPPO8";
+
+    var ssRuta = null;
+    try { ssRuta = SpreadsheetApp.openById(idRuta); } catch (e1) {}
+    var mapaPochtecas = obtenerMapaNombresPochtecas_(ssRuta);
+
+    function registrarEntradaCatalogo_(rawPid, rawGuia, rawChk, rawCp, rawDest, rawPochteca, rawCom, fuente) {
+      var guiaClean = String(rawGuia || "").trim().replace(/\D/g, "");
+      if (guiaClean.length !== 10) guiaClean = String(rawGuia || "").trim();
+
+      var pidClean = String(rawPid || "").trim().toUpperCase();
+      var pidJd = "";
+      var pidJjd = "";
+      if (pidClean) {
+        if (pidClean.indexOf("JJD") === 0) {
+          pidJjd = pidClean;
+          pidJd = "JD" + pidClean.substring(3);
+        } else if (pidClean.indexOf("JD") === 0) {
+          pidJd = pidClean;
+          pidJjd = "JJD" + pidClean.substring(2);
+        } else if (/^\d{10,}$/.test(pidClean)) {
+          pidJd = "JD" + pidClean;
+          pidJjd = "JJD" + pidClean;
+        } else {
+          pidJd = pidClean;
+          pidJjd = pidClean;
+        }
+      }
+
+      var infoChk = normalizarCheckpointOficialDHL_(rawChk, rawCom);
+      var cpClean = String(rawCp || "").trim().replace(/\D/g, "");
+      if (cpClean.length > 5) cpClean = cpClean.slice(0, 5);
+      var destClean = String(rawDest || "").trim();
+      var pochEmail = String(rawPochteca || "").trim().toLowerCase();
+      var pochLegible = formatearPochtecaLegible_(pochEmail, mapaPochtecas);
+
+      // Si ya existe en porPid, enriquecer sin perder un checkpoint de incidencia oficial ya detectado
+      var existente = (pidJd && porPid[pidJd]) || (pidJjd && porPid[pidJjd]) || null;
+      var chkFinal = infoChk.checkpoint;
+      var tieneIncFinal = infoChk.tiene_incidencia;
+
+      if (existente) {
+        if (!tieneIncFinal && existente.tiene_incidencia) {
+          chkFinal = existente.checkpoint;
+          tieneIncFinal = true;
+        }
+        if (!guiaClean && existente.guia) guiaClean = existente.guia;
+        if (!cpClean && existente.cp) cpClean = existente.cp;
+        if (!destClean && existente.destinatario) destClean = existente.destinatario;
+        if ((!pochEmail || pochEmail === "retorno.dhl@arauto.express") && existente.pochteca_email && existente.pochteca_email !== "retorno.dhl@arauto.express") {
+          pochEmail = existente.pochteca_email;
+          pochLegible = existente.pochteca_legible;
+        }
+      }
+
+      var registro = {
+        pid_jjd: pidJjd || (existente ? existente.pid_jjd : ""),
+        pid_jd: pidJd || (existente ? existente.pid_jd : ""),
+        guia: guiaClean,
+        checkpoint: chkFinal,
+        tiene_incidencia: tieneIncFinal,
+        cp: cpClean,
+        destinatario: destClean,
+        pochteca_email: pochEmail,
+        pochteca_legible: pochLegible,
+        comentarios: String(rawCom || (existente ? existente.comentarios : "") || "").trim(),
+        fuente: fuente
+      };
+
+      if (pidJd) porPid[pidJd] = registro;
+      if (pidJjd) porPid[pidJjd] = registro;
+
+      if (guiaClean) {
+        if (!porGuia[guiaClean]) porGuia[guiaClean] = [];
+        var yaEnGuia = false;
+        for (var g = 0; g < porGuia[guiaClean].length; g++) {
+          if (porGuia[guiaClean][g].pid_jd && porGuia[guiaClean][g].pid_jd === registro.pid_jd) {
+            porGuia[guiaClean][g] = registro;
+            yaEnGuia = true;
+            break;
+          }
+        }
+        if (!yaEnGuia) {
+          porGuia[guiaClean].push(registro);
+        }
+      }
+    }
+
+    // 1. Leer BD_CENTRAL_2023 -> pestaña Ruta (últimas 1500 filas)
+    try {
+      var ssCentral = SpreadsheetApp.openById(idCentral);
+      var shRuta = ssCentral.getSheetByName("Ruta") || ssCentral.getSheetByName("RUTA");
+      if (shRuta && shRuta.getLastRow() > 1) {
+        var lastR = shRuta.getLastRow();
+        var startR = Math.max(2, lastR - 1500);
+        var numR = lastR - startR + 1;
+        var headersRuta = shRuta.getRange(1, 1, 1, shRuta.getLastColumn()).getValues()[0].map(function(h) {
+          return String(h || "").toLowerCase().trim().replace(/[\s_]+/g, " ");
+        });
+        var rowsRuta = shRuta.getRange(startR, 1, numR, shRuta.getLastColumn()).getValues();
+
+        var cGuia = headersRuta.indexOf("guia") !== -1 ? headersRuta.indexOf("guia") : headersRuta.indexOf("guía");
+        var cPid = headersRuta.indexOf("pid");
+        var cCp = headersRuta.indexOf("c.p.") !== -1 ? headersRuta.indexOf("c.p.") : headersRuta.indexOf("cp");
+        var cDest = headersRuta.indexOf("receiver name");
+        var cChk = headersRuta.indexOf("checkpoint");
+        var cCom = headersRuta.indexOf("quien recibio o comentarios") !== -1 ? headersRuta.indexOf("quien recibio o comentarios") : headersRuta.indexOf("comentarios");
+        var cCorreo = headersRuta.indexOf("id correo");
+
+        for (var r = 0; r < rowsRuta.length; r++) {
+          var row = rowsRuta[r];
+          registrarEntradaCatalogo_(
+            cPid !== -1 ? row[cPid] : "",
+            cGuia !== -1 ? row[cGuia] : "",
+            cChk !== -1 ? row[cChk] : "",
+            cCp !== -1 ? row[cCp] : "",
+            cDest !== -1 ? row[cDest] : "",
+            cCorreo !== -1 ? row[cCorreo] : "",
+            cCom !== -1 ? row[cCom] : "",
+            "BD_CENTRAL_RUTA"
+          );
+        }
+      }
+    } catch (eCent) {
+      Logger.log("Aviso leyendo BD_CENTRAL_2023 en catálogo SVC: " + eCent.message);
+    }
+
+    // 2. Leer BD_APP_RUTA_2025 -> GUIAS_ASIGNADAS y PIEZAS_PID
+    var mapaGuiasRuta = {};
+    if (ssRuta) {
+      try {
+        var shGuias = ssRuta.getSheetByName("GUIAS_ASIGNADAS");
+        if (shGuias && shGuias.getLastRow() > 1) {
+          var gLast = shGuias.getLastRow();
+          var gStart = Math.max(2, gLast - 1500);
+          var gHeaders = shGuias.getRange(1, 1, 1, shGuias.getLastColumn()).getValues()[0].map(function(h) {
+            return String(h || "").toLowerCase().trim();
+          });
+          var gRows = shGuias.getRange(gStart, 1, gLast - gStart + 1, shGuias.getLastColumn()).getValues();
+
+          var igHwb = gHeaders.indexOf("hwb_guia") !== -1 ? gHeaders.indexOf("hwb_guia") : gHeaders.indexOf("guia");
+          var igCp = gHeaders.indexOf("cp");
+          var igDest = gHeaders.indexOf("destinatario") !== -1 ? gHeaders.indexOf("destinatario") : gHeaders.indexOf("receiver_name");
+          var igChofer = gHeaders.indexOf("chofer_asignado") !== -1 ? gHeaders.indexOf("chofer_asignado") : (gHeaders.indexOf("chofer") !== -1 ? gHeaders.indexOf("chofer") : gHeaders.indexOf("id_correo"));
+          var igChk = gHeaders.indexOf("checkpoint") !== -1 ? gHeaders.indexOf("checkpoint") : gHeaders.indexOf("estatus");
+          var igCom = gHeaders.indexOf("comentarios") !== -1 ? gHeaders.indexOf("comentarios") : gHeaders.indexOf("observaciones");
+
+          for (var g = 0; g < gRows.length; g++) {
+            var gr = gRows[g];
+            var hwbG = igHwb !== -1 ? String(gr[igHwb] || "").trim().replace(/\D/g, "") : "";
+            if (hwbG) {
+              mapaGuiasRuta[hwbG] = {
+                cp: igCp !== -1 ? gr[igCp] : "",
+                destinatario: igDest !== -1 ? gr[igDest] : "",
+                pochteca: igChofer !== -1 ? gr[igChofer] : "",
+                checkpoint: igChk !== -1 ? gr[igChk] : "",
+                comentarios: igCom !== -1 ? gr[igCom] : ""
+              };
+            }
+          }
+        }
+
+        var shPids = ssRuta.getSheetByName("PIEZAS_PID");
+        if (shPids && shPids.getLastRow() > 1) {
+          var pLast = shPids.getLastRow();
+          var pStart = Math.max(2, pLast - 2000);
+          var pHeaders = shPids.getRange(1, 1, 1, shPids.getLastColumn()).getValues()[0].map(function(h) {
+            return String(h || "").toLowerCase().trim();
+          });
+          var pRows = shPids.getRange(pStart, 1, pLast - pStart + 1, shPids.getLastColumn()).getValues();
+
+          var ipPid = pHeaders.indexOf("pid_codigo") !== -1 ? pHeaders.indexOf("pid_codigo") : pHeaders.indexOf("pid");
+          var ipHwb = pHeaders.indexOf("hwb_guia") !== -1 ? pHeaders.indexOf("hwb_guia") : pHeaders.indexOf("guia");
+          var ipChk = pHeaders.indexOf("checkpoint") !== -1 ? pHeaders.indexOf("checkpoint") : pHeaders.indexOf("estatus_pieza");
+          var ipChofer = pHeaders.indexOf("chofer_asignado") !== -1 ? pHeaders.indexOf("chofer_asignado") : pHeaders.indexOf("pochteca");
+          var ipCp = pHeaders.indexOf("cp");
+          var ipCom = pHeaders.indexOf("comentarios");
+
+          for (var p = 0; p < pRows.length; p++) {
+            var pr = pRows[p];
+            var hwbP = ipHwb !== -1 ? String(pr[ipHwb] || "").trim().replace(/\D/g, "") : "";
+            var infoG = mapaGuiasRuta[hwbP] || {};
+            registrarEntradaCatalogo_(
+              ipPid !== -1 ? pr[ipPid] : "",
+              hwbP,
+              (ipChk !== -1 && pr[ipChk]) ? pr[ipChk] : (infoG.checkpoint || ""),
+              (ipCp !== -1 && pr[ipCp]) ? pr[ipCp] : (infoG.cp || ""),
+              infoG.destinatario || "",
+              (ipChofer !== -1 && pr[ipChofer]) ? pr[ipChofer] : (infoG.pochteca || ""),
+              (ipCom !== -1 && pr[ipCom]) ? pr[ipCom] : (infoG.comentarios || ""),
+              "PIEZAS_PID"
+            );
+          }
+        }
+      } catch (eRuta) {
+        Logger.log("Aviso leyendo PIEZAS_PID en catálogo SVC: " + eRuta.message);
+      }
+    }
+
+    // 3. Leer VALIDACIÓN_QRO_2025 (Esquema Moderno 15 Columnas: A=Guia, B=PID, C=CP, D=Checkpoint, E=Receptor, J=Pochteca, M=Motivo_Rechazo)
+    try {
+      var ssVal = SpreadsheetApp.openById(idVal);
+      var shVal = ssVal.getSheetByName("VALIDACIÓN_QRO_2025") || ssVal.getSheets()[0];
+      if (shVal && shVal.getLastRow() > 1) {
+        var vLast = shVal.getLastRow();
+        var vStart = Math.max(2, vLast - 1500);
+        var vRows = shVal.getRange(vStart, 1, vLast - vStart + 1, Math.min(15, shVal.getLastColumn())).getValues();
+        for (var v = 0; v < vRows.length; v++) {
+          var vr = vRows[v];
+          registrarEntradaCatalogo_(
+            vr[1], // Col B: PID (JD...)
+            vr[0], // Col A: Guia
+            vr[3], // Col D: Checkpoint (NH, BA, CA, RD, SA, OK)
+            vr[2], // Col C: CP
+            vr[4], // Col E: Receptor / Destinatario
+            vr[9], // Col J: Pochteca (Email)
+            vr[12] || "", // Col M: Motivo / Observaciones
+            "VALIDACION_QRO_2025"
+          );
+        }
+      }
+    } catch (eVal) {
+      Logger.log("Aviso leyendo VALIDACIÓN_QRO_2025 en catálogo SVC: " + eVal.message);
+    }
+
+    return {
+      exito: true,
+      status: "OK",
+      timestamp: new Date().toISOString(),
+      total_pids: Object.keys(porPid).length,
+      total_guias: Object.keys(porGuia).length,
+      por_pid: porPid,
+      por_guia: porGuia
+    };
+  } catch (err) {
+    return { exito: false, error: err.message };
+  }
+}
+
+function buscarPidOGuiaRetornoSVC_(params) {
+  var queryRaw = String(params.codigo || params.pid || params.guia || "").trim().toUpperCase();
+  if (!queryRaw) return { exito: false, error: "Código vacío." };
+
+  var cat = obtenerCatalogoRetornosSVC_(params);
+  if (!cat.exito) return cat;
+
+  var cleanDigits = queryRaw.replace(/\D/g, "");
+  if (cat.por_pid[queryRaw]) {
+    return { exito: true, encontrado: true, tipo_busqueda: "PID", registro: cat.por_pid[queryRaw], candidatos: [cat.por_pid[queryRaw]] };
+  }
+  var pidJd = sanitizarPIDParaBoveda(queryRaw);
+  if (cat.por_pid[pidJd]) {
+    return { exito: true, encontrado: true, tipo_busqueda: "PID", registro: cat.por_pid[pidJd], candidatos: [cat.por_pid[pidJd]] };
+  }
+  if (cleanDigits.length === 10 && cat.por_guia[cleanDigits]) {
+    return {
+      exito: true,
+      encontrado: true,
+      tipo_busqueda: "GUIA_HWB",
+      guia: cleanDigits,
+      registro: cat.por_guia[cleanDigits][0],
+      candidatos: cat.por_guia[cleanDigits]
+    };
+  }
+
+  return {
+    exito: true,
+    encontrado: false,
+    mensaje: "No se encontró el PID o Guía en los registros recientes."
+  };
+}
+
+function resolverZonaLogisticaPorCPServidor_(cpRaw) {
+  var cp = String(cpRaw || "").trim().replace(/\D/g, "");
+  if (!cp) return "ZONA POR RESOLVER";
+  if (cp.indexOf("760") === 0) return "ZONA 1 - CENTRO / SUR QRO";
+  if (cp.indexOf("76148") === 0 || cp.indexOf("7622") === 0 || cp.indexOf("7623") === 0) return "ZONA 3 - NORTE / JURIQUILLA";
+  if (cp.indexOf("761") === 0) return "ZONA 2 - PONIENTE QRO";
+  if (cp.indexOf("7624") === 0 || cp.indexOf("7625") === 0 || cp.indexOf("7626") === 0) return "ZONA 4 - ORIENTE / EL MARQUÉS";
+  if (cp.indexOf("769") === 0) return "ZONA 5 - CORREGIDORA";
+  if (cp.indexOf("768") === 0 || cp.indexOf("767") === 0) return "ZONA 6 - SAN JUAN DEL RÍO / TEQUIS";
+  if (cp.indexOf("765") === 0 || cp.indexOf("766") === 0 || cp.indexOf("7627") === 0) return "ZONA 7 - SEMIDESIERTO / AIQ";
+  if (cp.indexOf("763") === 0 || cp.indexOf("7628") === 0 || cp.indexOf("7629") === 0) return "ZONA 8 - SIERRA GORDA QRO";
+  if (cp.indexOf("379") === 0) return "ZONA 9 - SIERRA GORDA GTO";
+  return "ZONA GENERAL (" + cp + ")";
+}
+
+function procesarCanalRetornoIncidenciasSVC_(datos, libro, eventosIdempotenciaAbiertos) {
+  var idActa = String(datos.id_acta || datos.id_retorno || ("RET-SVC-QRO-" + Utilities.formatDate(new Date(), "America/Mexico_City", "yyyyMMdd") + "-01")).trim();
+  var subtipo = String(datos.subtipo || "LOTE_BATCH").trim().toUpperCase();
+  var auditorNombre = String(datos.auditor || "Irvin Reyes").trim();
+  var auditorCorreo = String(datos.correo_auditor || "irvin.reyes@arauto.express").trim().toLowerCase();
+  var receptorSvcNombre = String(datos.receptor_svc || "Personal Área de Rastreo SVC").trim();
+  var receptorSvcCorreo = String(datos.correo_receptor_svc || "").trim().toLowerCase();
+  var fechaHoy = new Date();
+  var horaServidor = Utilities.formatDate(fechaHoy, "America/Mexico_City", "dd/MM/yyyy HH:mm:ss");
+
+  // Conectar a BOVEDA_BATCH_MAESTRO
+  var ssBoveda = null;
+  try {
+    ssBoveda = SpreadsheetApp.openById("1wIz5YlSbpOLtDY9UNShZ9LHdcez_Vyxlu1wYxBZKTkw");
+  } catch (eBov) {
+    ssBoveda = libro;
+  }
+
+  var hojaRetornos = ssBoveda.getSheetByName("RETORNOS_SVC");
+  var cabecerasRetornos = [
+    "ID_Acta_Retorno",         // A (0)
+    "Timestamp_Escaneo",       // B (1)
+    "PID_Original_Rampa",      // C (2)
+    "PID_Sanitizado_Boveda",   // D (3)
+    "Guia_HWB_Asociada",       // E (4)
+    "Checkpoint_Oficial_DHL",  // F (5)
+    "CP_Destino",              // G (6)
+    "Zona_Logistica",          // H (7)
+    "Ultimo_Pochteca",         // I (8)
+    "Metodo_Captura",          // J (9)
+    "Auditor_Arauto",          // K (10)
+    "Receptor_Rastreo_SVC",    // L (11)
+    "Correo_Receptor_SVC",     // M (12)
+    "URL_PDF_Acta_Drive",      // N (13)
+    "URL_Foto_Evidencia_SVC",  // O (14)
+    "Hash_SHA256_Y_Fecha"      // P (15)
+  ];
+
+  if (!hojaRetornos) {
+    hojaRetornos = ssBoveda.insertSheet("RETORNOS_SVC");
+    hojaRetornos.appendRow(cabecerasRetornos);
+    hojaRetornos.getRange(1, 1, 1, cabecerasRetornos.length)
+      .setFontWeight("bold")
+      .setBackground("#7f1d1d")
+      .setFontColor("#fecaca");
+    hojaRetornos.setFrozenRows(1);
+  }
+
+  // --- SUBTIPO 1: RESCATE DE ETIQUETA / PID ILEGIBLE CON FOTO E IA ---
+  if (subtipo === "RESCATE_FOTO_PID_ILEGIBLE") {
+    var base64Foto = datos.foto_base64 || "";
+    var folioAux = String(datos.folio_incidencia || ("PID_RET_INC_" + Math.floor(1000 + Math.random() * 9000))).trim();
+    var urlFotoEtiqueta = "";
+
+    if (base64Foto) {
+      try {
+        var b64Clean = base64Foto.replace(/^data:image\/\w+;base64,/, "");
+        var blobImg = Utilities.newBlob(Utilities.base64Decode(b64Clean), datos.foto_mime || "image/jpeg", folioAux + "_" + Utilities.formatDate(fechaHoy, "America/Mexico_City", "yyyyMMdd_HHmmss") + ".jpg");
+        var carpetaRet = obtenerOCrearCarpetaDrive_("PAINANI_RETORNOS_SVC_QRO");
+        var fileImg = carpetaRet.createFile(blobImg);
+        fileImg.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        urlFotoEtiqueta = fileImg.getUrl();
+      } catch (eDrv) {
+        Logger.log("Error guardando foto rescate PID SVC: " + eDrv.message);
+      }
+    }
+
+    var lecturaIA = { pid_detectado: "", awb_detectada: "", cp_detectado: "", destinatario: "" };
+    if (base64Foto && typeof analizarEtiquetaIlegibleConGeminiVision_ === "function") {
+      try {
+        lecturaIA = analizarEtiquetaIlegibleConGeminiVision_(base64Foto, datos.foto_mime || "image/jpeg");
+      } catch (eIa) {
+        Logger.log("Error Gemini Vision en rescate SVC: " + eIa.message);
+      }
+    }
+
+    // Intentar cruzar el PID o AWB detectado por IA contra la base de datos
+    var codigoBusqueda = lecturaIA.pid_detectado || lecturaIA.awb_detectada || "";
+    var infoCruza = null;
+    if (codigoBusqueda) {
+      var busq = buscarPidOGuiaRetornoSVC_({ codigo: codigoBusqueda });
+      if (busq && busq.encontrado && busq.registro) {
+        infoCruza = busq.registro;
+      }
+    }
+
+    return {
+      exito: true,
+      status: "OK",
+      folio_auxiliar: folioAux,
+      url_foto: urlFotoEtiqueta,
+      ia_resultado: lecturaIA,
+      registro_bd: infoCruza
+    };
+  }
+
+  // --- SUBTIPO 2: SINCRONIZACIÓN DE LOTE BATCH EN VIVO ---
+  if (subtipo === "LOTE_BATCH") {
+    var lista = (datos.escaneos && Array.isArray(datos.escaneos)) ? datos.escaneos : [];
+    if (lista.length === 0) {
+      return { exito: true, status: "EMPTY", insertados: 0 };
+    }
+
+    var filasNuevas = [];
+    var claimsLote = [];
+    var duplicadosOmitidos = 0;
+
+    for (var i = 0; i < lista.length; i++) {
+      var esc = lista[i];
+      var idEsc = String(esc.id_escaneo || esc.id || (idActa + "-" + esc.codigo)).trim();
+      var ev = iniciarEventoIdempotente_(
+        libro,
+        "RETORNO_SVC_ITEM",
+        idActa + ":" + idEsc,
+        { id_acta: idActa, codigo: esc.codigo, checkpoint: esc.checkpoint },
+        eventosIdempotenciaAbiertos
+      );
+      if (ev.estado === "COMPLETADO") {
+        duplicadosOmitidos++;
+        continue;
+      }
+      if (ev.estado !== "NUEVO") continue;
+      claimsLote.push(ev.claim);
+
+      var pidOrig = String(esc.codigo || "").trim().toUpperCase();
+      var pidBov = sanitizarPIDParaBoveda(pidOrig);
+      var cpItem = String(esc.cp || "").trim();
+      var zonaItem = String(esc.zona || resolverZonaLogisticaPorCPServidor_(cpItem)).trim();
+
+      filasNuevas.push([
+        idActa,
+        esc.timestamp || horaServidor,
+        pidOrig,
+        pidBov,
+        String(esc.guia || "").trim(),
+        String(esc.checkpoint || "SIN_CHK").trim().toUpperCase(),
+        cpItem,
+        zonaItem,
+        String(esc.ultimo_pochteca || "Sin Pochteca registrado").trim(),
+        String(esc.metodo_captura || "ESCANER_PID").trim(),
+        auditorNombre + " (" + auditorCorreo + ")",
+        receptorSvcNombre,
+        receptorSvcCorreo,
+        "PENDIENTE_CIERRE_ACTA",
+        esc.url_foto || "",
+        "EN_CAPTURA | " + horaServidor
+      ]);
+    }
+
+    if (filasNuevas.length > 0) {
+      var startRow = hojaRetornos.getLastRow() + 1;
+      hojaRetornos.getRange(startRow, 1, filasNuevas.length, cabecerasRetornos.length).setValues(filasNuevas);
+      for (var c = 0; c < claimsLote.length; c++) {
+        completarEventoIdempotente_(claimsLote[c], { exito: true, id_acta: idActa }, eventosIdempotenciaAbiertos);
+      }
+    }
+
+    return {
+      exito: true,
+      status: "OK",
+      id_acta: idActa,
+      insertados: filasNuevas.length,
+      duplicados: duplicadosOmitidos
+    };
+  }
+
+  // --- SUBTIPO 3: CIERRE NOTARIAL, GENERACIÓN DE PDF EN DRIVE Y ENVÍO DE CORREO ---
+  if (subtipo === "CIERRE_RETORNO_SVC") {
+    var evCierre = iniciarEventoIdempotente_(
+      libro,
+      "CIERRE_RETORNO_SVC",
+      idActa,
+      { id_acta: idActa, total: (datos.escaneos || []).length, receptor: receptorSvcCorreo },
+      eventosIdempotenciaAbiertos
+    );
+    if (evCierre.estado !== "NUEVO") {
+      return respuestaIdempotente_(evCierre);
+    }
+
+    var escaneosFinales = (datos.escaneos && Array.isArray(datos.escaneos)) ? datos.escaneos : [];
+    var carpetaDriveSvc = obtenerOCrearCarpetaDrive_("PAINANI_RETORNOS_SVC_QRO");
+    var urlFirmaDrive = "";
+    var urlFotoMostradorDrive = "";
+    var urlPdfActaDrive = "";
+
+    // 1. Guardar Firma Digital en Pantalla (Canvas Touch) en Drive
+    var firmaBase64 = datos.firma_svc_base64 || "";
+    if (firmaBase64 && firmaBase64.length > 100) {
+      try {
+        var firmaClean = firmaBase64.replace(/^data:image\/\w+;base64,/, "");
+        var blobFirma = Utilities.newBlob(Utilities.base64Decode(firmaClean), "image/png", "Firma_SVC_" + idActa + ".png");
+        var archivoFirma = carpetaDriveSvc.createFile(blobFirma);
+        archivoFirma.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        urlFirmaDrive = archivoFirma.getUrl();
+      } catch (eFirma) {
+        Logger.log("Aviso guardando firma SVC en Drive: " + eFirma.message);
+      }
+    }
+
+    // 2. Guardar Foto con Marca de Agua GPS/Hora en Mostrador SVC en Drive
+    var fotoMostradorBase64 = datos.foto_mostrador_base64 || "";
+    if (fotoMostradorBase64 && fotoMostradorBase64.length > 100) {
+      try {
+        var fotoClean = fotoMostradorBase64.replace(/^data:image\/\w+;base64,/, "");
+        var blobFoto = Utilities.newBlob(Utilities.base64Decode(fotoClean), "image/jpeg", "Evidencia_Mostrador_SVC_" + idActa + ".jpg");
+        var archivoFoto = carpetaDriveSvc.createFile(blobFoto);
+        archivoFoto.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        urlFotoMostradorDrive = archivoFoto.getUrl();
+      } catch (eFotoM) {
+        Logger.log("Aviso guardando foto mostrador SVC en Drive: " + eFotoM.message);
+      }
+    }
+
+    // 3. Calcular Sello Criptográfico SHA-256 de Integridad contra Controversias
+    var pidsOrdenados = escaneosFinales.map(function(s) {
+      return sanitizarPIDParaBoveda(s.codigo) + ":" + (s.checkpoint || "SIN_CHK");
+    }).sort();
+    var huellaSha256 = calcularHuellaIdempotencia_({
+      id_acta: idActa,
+      fecha_cierre: horaServidor,
+      auditor: auditorCorreo,
+      receptor_svc: receptorSvcNombre,
+      correo_receptor_svc: receptorSvcCorreo,
+      pids: pidsOrdenados
+    }).toUpperCase();
+
+    // 4. Construir HTML Notarial y Generar PDF Oficial en Drive
+    var htmlDocumento = construirDocumentoHtmlActaRetornoSVC_({
+      idActa: idActa,
+      fechaHoraCierre: horaServidor,
+      auditorNombre: auditorNombre,
+      auditorCorreo: auditorCorreo,
+      receptorSvcNombre: receptorSvcNombre,
+      receptorSvcCorreo: receptorSvcCorreo,
+      gpsEntrega: datos.gps_entrega || "SVC Querétaro (Andén Rastreo)",
+      observaciones: datos.observaciones || "",
+      huellaSha256: huellaSha256,
+      urlFirmaDrive: urlFirmaDrive,
+      urlFotoMostradorDrive: urlFotoMostradorDrive,
+      firmaBase64: firmaBase64,
+      fotoMostradorBase64: fotoMostradorBase64,
+      escaneos: escaneosFinales
+    });
+
+    var pdfBlob = null;
+    try {
+      var htmlBlob = Utilities.newBlob(htmlDocumento, MimeType.HTML, "Acta_Retorno_SVC_" + idActa + ".html");
+      pdfBlob = htmlBlob.getAs(MimeType.PDF).setName("Acta_Retorno_SVC_" + idActa + ".pdf");
+      var archivoPdf = carpetaDriveSvc.createFile(pdfBlob);
+      archivoPdf.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      urlPdfActaDrive = archivoPdf.getUrl();
+    } catch (ePdf) {
+      Logger.log("Error generando PDF del Acta SVC: " + ePdf.message);
+      urlPdfActaDrive = "ERROR_PDF: " + ePdf.message;
+    }
+
+    // 5. Asegurar que todos los PIDs estén asentados en RETORNOS_SVC y actualizar URLs + Hash
+    var todasFilas = hojaRetornos.getDataRange().getValues();
+    var pidsYaEnHoja = {};
+    for (var r = 1; r < todasFilas.length; r++) {
+      if (String(todasFilas[r][0] || "").trim() === idActa) {
+        var pidRow = String(todasFilas[r][2] || "").trim().toUpperCase();
+        pidsYaEnHoja[pidRow] = r + 1;
+        hojaRetornos.getRange(r + 1, 12, 1, 5).setValues([[
+          receptorSvcNombre,
+          receptorSvcCorreo,
+          urlPdfActaDrive,
+          urlFotoMostradorDrive || todasFilas[r][14] || urlFirmaDrive,
+          "SHA256:" + huellaSha256.substring(0, 24) + " | " + horaServidor
+        ]]);
+      }
+    }
+
+    var filasFaltantesCierre = [];
+    for (var k = 0; k < escaneosFinales.length; k++) {
+      var itemF = escaneosFinales[k];
+      var codOrigF = String(itemF.codigo || "").trim().toUpperCase();
+      if (!pidsYaEnHoja[codOrigF]) {
+        var cpF = String(itemF.cp || "").trim();
+        filasFaltantesCierre.push([
+          idActa,
+          itemF.timestamp || horaServidor,
+          codOrigF,
+          sanitizarPIDParaBoveda(codOrigF),
+          String(itemF.guia || "").trim(),
+          String(itemF.checkpoint || "SIN_CHK").trim().toUpperCase(),
+          cpF,
+          String(itemF.zona || resolverZonaLogisticaPorCPServidor_(cpF)).trim(),
+          String(itemF.ultimo_pochteca || "Sin Pochteca registrado").trim(),
+          String(itemF.metodo_captura || "ESCANER_PID").trim(),
+          auditorNombre + " (" + auditorCorreo + ")",
+          receptorSvcNombre,
+          receptorSvcCorreo,
+          urlPdfActaDrive,
+          urlFotoMostradorDrive || itemF.url_foto || urlFirmaDrive,
+          "SHA256:" + huellaSha256.substring(0, 24) + " | " + horaServidor
+        ]);
+      }
+    }
+
+    if (filasFaltantesCierre.length > 0) {
+      hojaRetornos.getRange(hojaRetornos.getLastRow() + 1, 1, filasFaltantesCierre.length, cabecerasRetornos.length)
+        .setValues(filasFaltantesCierre);
+    }
+
+    // 6. Actualizar estatus en BD_APP_RUTA_2025 (PIEZAS_PID) y BD_CENTRAL_2023 (Ruta)
+    try {
+      actualizarEstatusRetornoEnBasesRuta_(escaneosFinales, idActa, receptorSvcNombre, horaServidor);
+    } catch (eActRuta) {
+      Logger.log("Aviso actualizando estatus de retorno en Ruta: " + eActRuta.message);
+    }
+
+    // 7. Enviar Correo Electrónico EXCLUSIVAMENTE a Irvin y al Receptor de Rastreo en SVC
+    var destinatariosCorreo = [];
+    if (auditorCorreo && auditorCorreo.indexOf("@") !== -1) {
+      destinatariosCorreo.push(auditorCorreo);
+    } else {
+      destinatariosCorreo.push("irvin.reyes@arauto.express");
+    }
+    if (receptorSvcCorreo && receptorSvcCorreo.indexOf("@") !== -1 && destinatariosCorreo.indexOf(receptorSvcCorreo) === -1) {
+      destinatariosCorreo.push(receptorSvcCorreo);
+    }
+
+    var correoEnviado = false;
+    var errorCorreo = "";
+    var asuntoCorreo = "🛡️ [ACTA DE RETORNO A SVC] Folio " + idActa + " (" + escaneosFinales.length + " PIDs Devueltos a Rastreo DHL)";
+    var opcionesEmail = {
+      htmlBody: htmlDocumento,
+      name: "PAINANI Rampa & Retornos SVC — Arauto Express"
+    };
+    if (pdfBlob) {
+      opcionesEmail.attachments = [pdfBlob];
+    }
+
+    try {
+      GmailApp.sendEmail(destinatariosCorreo.join(","), asuntoCorreo, "Adjunto encontrarás el Acta Notarial de Retorno de Incidencias a SVC Folio " + idActa, opcionesEmail);
+      correoEnviado = true;
+    } catch (eGmail) {
+      try {
+        MailApp.sendEmail(destinatariosCorreo.join(","), asuntoCorreo, "Adjunto encontrarás el Acta Notarial de Retorno de Incidencias a SVC Folio " + idActa, opcionesEmail);
+        correoEnviado = true;
+      } catch (eMail) {
+        errorCorreo = eGmail.message + " / " + eMail.message;
+        Logger.log("Error enviando correo Acta Retorno SVC: " + errorCorreo);
+      }
+    }
+
+    // 8. Notificar a Google Chat Space de Operaciones QRO
+    try {
+      var urlGoogleChat = "https://chat.googleapis.com/v1/spaces/AAQA-NmGVf0/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=Ml4k0Mmpx8c3vGco583llDQGEGJf3OY7LUMKlJjJIsY";
+      var conteoPorChk = {};
+      for (var m = 0; m < escaneosFinales.length; m++) {
+        var ch = String(escaneosFinales[m].checkpoint || "SIN_CHK").toUpperCase();
+        conteoPorChk[ch] = (conteoPorChk[ch] || 0) + 1;
+      }
+      var resumenChk = Object.keys(conteoPorChk).map(function(k) { return k + ": " + conteoPorChk[k]; }).join(" | ");
+
+      var msgChat =
+        "↩️ *PAINANI v86.0 — ACTA DE RETORNO DE INCIDENCIAS A SVC (RASTREO DHL)*\n" +
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+        "📋 *Folio Acta:* `" + idActa + "`\n" +
+        "🕒 *Fecha / Hora:* " + horaServidor + "\n" +
+        "👤 *Entrega (Arauto):* " + auditorNombre + " (`" + auditorCorreo + "`)\n" +
+        "🏢 *Recibe en Rastreo SVC:* " + receptorSvcNombre + (receptorSvcCorreo ? (" (`" + receptorSvcCorreo + "`)") : "") + "\n" +
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+        "📦 *TOTAL PIDs DEVUELTOS FÍSICAMENTE:* *" + escaneosFinales.length + " piezas*\n" +
+        "🏷️ *Checkpoints Oficiales DHL:* `" + (resumenChk || "N/A") + "`\n" +
+        "🔐 *Sello SHA-256:* `" + huellaSha256.substring(0, 20) + "...`\n" +
+        (urlPdfActaDrive ? ("📄 *PDF Oficial en Drive:* " + urlPdfActaDrive + "\n") : "") +
+        "📨 *Correo Enviado a:* `" + destinatariosCorreo.join(", ") + "`\n" +
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+        "🛡️ _Respaldado en BOVEDA_BATCH_MAESTRO (Pestaña 'RETORNOS_SVC')._";
+
+      UrlFetchApp.fetch(urlGoogleChat, {
+        method: "post",
+        contentType: "application/json",
+        muteHttpExceptions: true,
+        payload: JSON.stringify({ text: msgChat })
+      });
+    } catch (eChat) {
+      Logger.log("Aviso enviando a Google Chat: " + eChat.message);
+    }
+
+    var resultadoFinal = {
+      exito: true,
+      status: "OK",
+      mensaje: "✅ Acta de Retorno a SVC cerrada, guardada en Bóveda y enviada por correo.",
+      id_acta: idActa,
+      total_pids: escaneosFinales.length,
+      sha256: huellaSha256,
+      url_pdf_drive: urlPdfActaDrive,
+      url_firma_drive: urlFirmaDrive,
+      url_foto_drive: urlFotoMostradorDrive,
+      correo_enviado: correoEnviado,
+      destinatarios_correo: destinatariosCorreo,
+      error_correo: errorCorreo
+    };
+
+    completarEventoIdempotente_(evCierre.claim, resultadoFinal, eventosIdempotenciaAbiertos);
+    return resultadoFinal;
+  }
+
+  return { exito: false, error: "Subtipo no reconocido en RETORNO_INCIDENCIAS_SVC: " + subtipo };
+}
+
+function actualizarEstatusRetornoEnBasesRuta_(escaneos, idActa, receptorSvcNombre, horaServidor) {
+  if (!escaneos || escaneos.length === 0) return;
+
+  var pidsMap = {};
+  var guiasMap = {};
+  for (var i = 0; i < escaneos.length; i++) {
+    var pOrig = String(escaneos[i].codigo || "").trim().toUpperCase();
+    var pSan = sanitizarPIDParaBoveda(pOrig);
+    if (pOrig) pidsMap[pOrig] = escaneos[i];
+    if (pSan) pidsMap[pSan] = escaneos[i];
+    var g = String(escaneos[i].guia || "").trim().replace(/\D/g, "");
+    if (g) guiasMap[g] = escaneos[i];
+  }
+
+  // 1. Marcar en BD_CENTRAL_2023 -> Ruta
+  try {
+    var ssCentral = SpreadsheetApp.openById("1osolxYzL12I05J2CUy5PBAGpPD2Z3XeU37RzUlFPPO8");
+    var shRuta = ssCentral.getSheetByName("Ruta") || ssCentral.getSheetByName("RUTA");
+    if (shRuta && shRuta.getLastRow() > 1) {
+      var rLast = shRuta.getLastRow();
+      var rStart = Math.max(2, rLast - 1500);
+      var rHeaders = shRuta.getRange(1, 1, 1, shRuta.getLastColumn()).getValues()[0].map(function(h) {
+        return String(h || "").toLowerCase().trim().replace(/[\s_]+/g, " ");
+      });
+      var cGuia = rHeaders.indexOf("guia") !== -1 ? rHeaders.indexOf("guia") : rHeaders.indexOf("guía");
+      var cPid = rHeaders.indexOf("pid");
+      var cCom = rHeaders.indexOf("quien recibio o comentarios") !== -1 ? rHeaders.indexOf("quien recibio o comentarios") : rHeaders.indexOf("comentarios");
+
+      if (cCom !== -1) {
+        var rRows = shRuta.getRange(rStart, 1, rLast - rStart + 1, shRuta.getLastColumn()).getValues();
+        for (var r = 0; r < rRows.length; r++) {
+          var rowPid = cPid !== -1 ? String(rRows[r][cPid] || "").trim().toUpperCase() : "";
+          var rowGuia = cGuia !== -1 ? String(rRows[r][cGuia] || "").trim().replace(/\D/g, "") : "";
+          if ((rowPid && pidsMap[rowPid]) || (rowGuia && guiasMap[rowGuia])) {
+            var comActual = String(rRows[r][cCom] || "").trim();
+            var selloRet = "[ENTREGADO EN RASTREO SVC: " + idActa + " | Recibió: " + receptorSvcNombre + " | " + horaServidor + "]";
+            if (comActual.indexOf(idActa) === -1) {
+              shRuta.getRange(rStart + r, cCom + 1).setValue((comActual ? comActual + " | " : "") + selloRet);
+            }
+          }
+        }
+      }
+    }
+  } catch (e1) {
+    Logger.log("Aviso actualizando Ruta en BD Central: " + e1.message);
+  }
+}
+
+function construirDocumentoHtmlActaRetornoSVC_(ctx) {
+  var filasTablaHtml = "";
+  var conteoChk = {};
+
+  for (var i = 0; i < ctx.escaneos.length; i++) {
+    var item = ctx.escaneos[i];
+    var pidJjd = String(item.codigo || "").trim().toUpperCase();
+    var pidJd = sanitizarPIDParaBoveda(pidJjd);
+    var guia = String(item.guia || "S/G").trim();
+    var chk = String(item.checkpoint || "SIN_CHK").trim().toUpperCase();
+    conteoChk[chk] = (conteoChk[chk] || 0) + 1;
+    var cp = String(item.cp || "--").trim();
+    var zona = String(item.zona || "--").trim();
+    var pochteca = String(item.ultimo_pochteca || "Sin registro").trim();
+    var hora = String(item.hora_legible || item.timestamp || "").trim();
+    var metodo = String(item.metodo_captura || "ESCANER_PID").trim();
+
+    var bgRow = (i % 2 === 0) ? "#ffffff" : "#f8fafc";
+    filasTablaHtml +=
+      "<tr style='background:" + bgRow + "; border-bottom:1px solid #e2e8f0;'>" +
+        "<td style='padding:7px 8px; text-align:center; font-weight:bold; color:#334155;'>" + (i + 1) + "</td>" +
+        "<td style='padding:7px 8px; font-family:monospace; font-weight:bold; color:#0f172a;'>" + pidJjd + "<br/><span style='font-size:10px; color:#64748b;'>Bóveda: " + pidJd + "</span></td>" +
+        "<td style='padding:7px 8px; font-family:monospace; font-weight:bold; color:#1e40af;'>" + guia + "</td>" +
+        "<td style='padding:7px 8px; text-align:center;'><span style='background:#fee2e2; color:#991b1b; font-weight:bold; padding:2px 6px; border-radius:4px; border:1px solid #f87171;'>" + chk + "</span></td>" +
+        "<td style='padding:7px 8px;'><strong>" + cp + "</strong><br/><span style='font-size:10px; color:#475569;'>" + zona + "</span></td>" +
+        "<td style='padding:7px 8px; font-size:11px; color:#1e293b;'>" + pochteca + "</td>" +
+        "<td style='padding:7px 8px; font-size:10px; color:#475569; text-align:center;'>" + hora + "<br/><span style='font-size:9px; color:#64748b;'>" + metodo + "</span></td>" +
+      "</tr>";
+  }
+
+  var chipsResumenChk = Object.keys(conteoChk).map(function(k) {
+    return "<span style='display:inline-block; background:#1e293b; color:#f8fafc; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:bold; margin-right:6px;'>Checkpoint " + k + ": " + conteoChk[k] + " pzs</span>";
+  }).join("");
+
+  var bloqueFirmaHtml = ctx.firmaBase64
+    ? "<img src='" + ctx.firmaBase64 + "' style='max-height:110px; max-width:260px; border:1px solid #cbd5e1; border-radius:6px; background:#fff; padding:4px;' alt='Firma Receptor SVC'/>"
+    : "<div style='padding:18px; border:1px dashed #94a3b8; color:#64748b; font-size:11px;'>Respaldado mediante evidencia fotográfica en mostrador SVC y acuse digital por correo</div>";
+
+  var bloqueFotoHtml = "";
+  if (ctx.fotoMostradorBase64) {
+    bloqueFotoHtml =
+      "<div style='margin-top:14px; page-break-inside:avoid;'>" +
+        "<div style='font-size:12px; font-weight:bold; color:#0f172a; margin-bottom:6px; text-transform:uppercase;'>📸 Evidencia Fotográfica en Mostrador de Rastreo SVC (Con Sello Digital GPS y Hora):</div>" +
+        "<img src='" + ctx.fotoMostradorBase64 + "' style='max-width:100%; max-height:260px; border:2px solid #0f172a; border-radius:8px;'/>" +
+        (ctx.urlFotoMostradorDrive ? ("<div style='font-size:10px; margin-top:4px;'><a href='" + ctx.urlFotoMostradorDrive + "'>🔗 Ver fotografía original en alta resolución (Google Drive)</a></div>") : "") +
+      "</div>";
+  }
+
+  return "<!DOCTYPE html><html><head><meta charset='UTF-8'></head>" +
+    "<body style='font-family:Arial,Helvetica,sans-serif; color:#0f172a; margin:0; padding:18px; background:#ffffff;'>" +
+      "<div style='border:2px solid #0f172a; border-radius:10px; overflow:hidden;'>" +
+        "<div style='background:#0f172a; color:#ffffff; padding:16px 20px; border-bottom:4px solid #f2a900;'>" +
+          "<div style='font-size:11px; color:#f2a900; font-weight:bold; letter-spacing:1px; text-transform:uppercase;'>ARAUTO EXPRESS • ECOSISTEMA OLLIN v86.0 PROD</div>" +
+          "<div style='font-size:18px; font-weight:900; margin-top:4px;'>📜 ACTA NOTARIAL DE RETORNO FÍSICO DE INCIDENCIAS A SVC (ÁREA DE RASTREO DHL)</div>" +
+          "<div style='font-size:12px; color:#cbd5e1; margin-top:4px;'>Folio Oficial: <strong style='color:#38bdf8;'>" + ctx.idActa + "</strong> | Fecha y Hora Certificada: <strong>" + ctx.fechaHoraCierre + "</strong></div>" +
+        "</div>" +
+        "<div style='padding:16px 20px;'>" +
+          "<table style='width:100%; border-collapse:collapse; margin-bottom:14px; font-size:12px;'>" +
+            "<tr>" +
+              "<td style='width:50%; padding:10px; background:#f8fafc; border:1px solid #cbd5e1; vertical-align:top;'>" +
+                "<div style='font-size:10px; font-weight:bold; color:#64748b; text-transform:uppercase;'>ENTREGA POR PARTE DE ARAUTO EXPRESS:</div>" +
+                "<div style='font-size:14px; font-weight:bold; color:#0f172a; margin-top:2px;'>" + ctx.auditorNombre + "</div>" +
+                "<div style='font-size:11px; color:#334155;'>Correo: " + ctx.auditorCorreo + "</div>" +
+                "<div style='font-size:11px; color:#475569; margin-top:4px;'>Ubicación / GPS: " + ctx.gpsEntrega + "</div>" +
+              "</td>" +
+              "<td style='width:50%; padding:10px; background:#fef2f2; border:1px solid #fecaca; vertical-align:top;'>" +
+                "<div style='font-size:10px; font-weight:bold; color:#991b1b; text-transform:uppercase;'>RECIBE EN ÁREA DE RASTREO SVC (DHL):</div>" +
+                "<div style='font-size:14px; font-weight:bold; color:#7f1d1d; margin-top:2px;'>" + ctx.receptorSvcNombre + "</div>" +
+                "<div style='font-size:11px; color:#991b1b;'>Correo: " + (ctx.receptorSvcCorreo || "No especificado") + "</div>" +
+                "<div style='font-size:12px; font-weight:900; color:#dc2626; margin-top:4px;'>TOTAL RECIBIDO: " + ctx.escaneos.length + " PIEZAS (NIVEL PID)</div>" +
+              "</td>" +
+            "</tr>" +
+          "</table>" +
+          "<div style='margin-bottom:12px;'>" +
+            "<div style='font-size:11px; font-weight:bold; color:#475569; text-transform:uppercase; margin-bottom:5px;'>Desglose por Checkpoint Oficial de Incidencia DHL en Sistema:</div>" +
+            chipsResumenChk +
+          "</div>" +
+          (ctx.observaciones ? ("<div style='margin-bottom:12px; padding:8px 12px; background:#fffbeb; border:1px solid #fde68a; border-radius:6px; font-size:11px;'><strong>Observaciones de Entrega:</strong> " + ctx.observaciones + "</div>") : "") +
+          "<table style='width:100%; border-collapse:collapse; font-size:11px; border:1px solid #cbd5e1;'>" +
+            "<thead>" +
+              "<tr style='background:#1e293b; color:#ffffff; text-transform:uppercase; font-size:10px;'>" +
+                "<th style='padding:8px; text-align:center;'>#</th>" +
+                "<th style='padding:8px; text-align:left;'>PID Físico (JJD / JD)</th>" +
+                "<th style='padding:8px; text-align:left;'>Guía HWB</th>" +
+                "<th style='padding:8px; text-align:center;'>CHK DHL</th>" +
+                "<th style='padding:8px; text-align:left;'>C.P. / Zona Logística</th>" +
+                "<th style='padding:8px; text-align:left;'>Último Pochteca en Ruta</th>" +
+                "<th style='padding:8px; text-align:center;'>Hora Escaneo</th>" +
+              "</tr>" +
+            "</thead>" +
+            "<tbody>" + filasTablaHtml + "</tbody>" +
+          "</table>" +
+          bloqueFotoHtml +
+          "<table style='width:100%; border-collapse:collapse; margin-top:18px; page-break-inside:avoid;'>" +
+            "<tr>" +
+              "<td style='width:55%; padding:10px; vertical-align:top; border:1px solid #cbd5e1; background:#f8fafc;'>" +
+                "<div style='font-size:10px; font-weight:bold; color:#0f172a; text-transform:uppercase;'>🛡️ Cláusula de Certificación y Dato Duro Anti-Controversia:</div>" +
+                "<p style='font-size:10px; color:#334155; line-height:1.4; margin:6px 0;'>El presente documento constituye constancia física y digital fehaciente de que los <strong>" + ctx.escaneos.length + " identificadores de pieza (PIDs)</strong> listados arriba fueron escaneados individualmente y entregados materialmente en el Área de Rastreo de la estación SVC de DHL Express, contando cada uno con su respectivo Checkpoint Oficial de Incidencia en sistema (NH, BA, RD, CA, SA). Con esta entrega física cesa toda responsabilidad de custodia sobre dichos bultos por parte de Arauto Express.</p>" +
+                "<div style='font-family:monospace; font-size:9px; color:#475569; background:#e2e8f0; padding:6px; border-radius:4px; word-break:break-all;'><strong>SELLO CRIPTOGRÁFICO SHA-256:</strong><br/>" + ctx.huellaSha256 + "</div>" +
+              "</td>" +
+              "<td style='width:45%; padding:10px; text-align:center; vertical-align:middle; border:1px solid #cbd5e1;'>" +
+                "<div style='font-size:10px; font-weight:bold; color:#0f172a; text-transform:uppercase; margin-bottom:6px;'>✍️ Firma de Conformidad en Pantalla — Rastreo SVC:</div>" +
+                bloqueFirmaHtml +
+                "<div style='font-size:11px; font-weight:bold; color:#0f172a; margin-top:6px;'>" + ctx.receptorSvcNombre + "</div>" +
+                "<div style='font-size:10px; color:#64748b;'>" + (ctx.receptorSvcCorreo || "Área de Rastreo SVC DHL") + "</div>" +
+              "</td>" +
+            "</tr>" +
+          "</table>" +
+        "</div>" +
+      "</div>" +
+    "</body></html>";
+}
+

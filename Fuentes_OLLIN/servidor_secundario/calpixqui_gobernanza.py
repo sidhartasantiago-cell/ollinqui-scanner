@@ -82,17 +82,16 @@ class PochtecasManager:
         }
 
     def _cargar_o_sembrar(self):
-        """Carga el directorio local o lo siembra desde CAT_USUARIOS si es nuevo."""
+        """Carga el directorio local y lo sincroniza estrictamente contra CAT_USUARIOS."""
         if DIRECTORIO_FILE.exists():
             try:
                 with open(DIRECTORIO_FILE, "r", encoding="utf-8") as f:
                     self.directorio = json.load(f)
                 logger.info(f"Directorio local de Pochtecas cargado: {len(self.directorio)} operadores.")
-                return
             except Exception as e:
                 logger.error(f"Error leyendo directorio local: {e}. Sembrando desde Sheets...")
 
-        # Sembrar desde CAT_USUARIOS
+        # Siempre sincronizar contra la verdad canónica de CAT_USUARIOS
         self.sincronizar_desde_cat_usuarios()
 
     def guardar_local(self):
@@ -103,7 +102,7 @@ class PochtecasManager:
         temp_file.replace(DIRECTORIO_FILE)
 
     def sincronizar_desde_cat_usuarios(self):
-        """Lee CAT_USUARIOS de BD_APP_RUTA_2025 para sembrar o refrescar la base local."""
+        """Lee CAT_USUARIOS de BD_APP_RUTA_2025 para sembrar o refrescar la base local y marcar inactivos a los dados de baja."""
         try:
             quoted = urllib.parse.quote("CAT_USUARIOS!A1:H".encode("utf-8"))
             url = f"https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID_BD_APP_RUTA_2025}/values/{quoted}"
@@ -111,16 +110,15 @@ class PochtecasManager:
             with urllib.request.urlopen(req) as resp:
                 rows = json.loads(resp.read().decode("utf-8")).get("values", [])
 
-            if not rows:
+            if not rows or len(rows) < 2:
                 return
 
-            header = [str(c).strip().lower() for c in rows[0]]
-            # Columnas canónicas
-            # 0: Correo, 1: Nombre, 2: Rol, 3: Grupo, 4: Webhook_Chat, 5: Buscador_Escaner, 6: Tiene_7CA, 7: Telefono
+            correos_en_sheet = set()
             for r in rows[1:]:
                 if not r or not r[0]:
                     continue
                 correo = r[0].strip().lower()
+                correos_en_sheet.add(correo)
                 nombre = r[1].strip() if len(r) > 1 else ""
                 rol = r[2].strip() if len(r) > 2 else "Pochteca"
                 grupo = r[3].strip() if len(r) > 3 else "General"
@@ -147,13 +145,20 @@ class PochtecasManager:
                         "fecha_actualizacion": datetime.now().isoformat()
                     }
                 else:
-                    # Actualizar datos si cambiaron
+                    self.directorio[correo]["estatus"] = "Activo"
                     self.directorio[correo]["nombre"] = nombre or self.directorio[correo].get("nombre")
                     if telefono:
                         self.directorio[correo]["telefono"] = telefono
 
+            # Depuración: Cualquier operador que ya no esté en CAT_USUARIOS se marca Inactivo
+            for c_local in list(self.directorio.keys()):
+                if c_local not in correos_en_sheet and self.directorio[c_local].get("estatus") == "Activo":
+                    self.directorio[c_local]["estatus"] = "Inactivo"
+                    self.directorio[c_local]["fecha_baja"] = datetime.now().isoformat()
+                    logger.warning(f"⚠️ Pochteca {c_local} no existe en CAT_USUARIOS. Marcado como Inactivo.")
+
             self.guardar_local()
-            logger.info(f"Sincronización inicial desde CAT_USUARIOS completada ({len(self.directorio)} usuarios).")
+            logger.info(f"Sincronización estricta desde CAT_USUARIOS completada ({len(correos_en_sheet)} activos).")
         except Exception as ex:
             logger.error(f"Error sincronizando desde CAT_USUARIOS: {ex}")
 

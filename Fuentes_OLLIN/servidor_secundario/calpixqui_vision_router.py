@@ -698,18 +698,16 @@ class CalpixquiVisionRouter:
             "SIERRA GORDA" in zona_destino
         )
 
-        # Allowlist Canónica de Sierra Gorda + Pochtecas con zona_asignada Sierra Gorda:
+        # Allowlist Canónica de Sierra Gorda alineada 1:1 a CAT_USUARIOS y MATRIZ_CP:
         POCHTECAS_SIERRA_CANONICOS = {
             "xichudaniel@gmail.com",
             "fmsanluispaq@gmail.com",
-            "diegovv21mar@gmail.com",
+            "fmtierrabla1@gmail.com",
             "victor18amadorm@gmail.com",
-            "fmpaqueteriatvsm@gmail.com",
-            "yesigonzg1827@gmail.com",
-            "oscher1016@gmail.com"
+            "mickeyroglez@gmail.com"
         }
         es_pochteca_sierra = (
-            correo_pochteca in POCHTECAS_SIERRA_CANONICOS or
+            correo_pochteca.lower() in POCHTECAS_SIERRA_CANONICOS or
             "SIERRA GORDA" in zona_pochteca or
             (info_pochteca.get("grupo") or "").upper() == "DANIEL"
         )
