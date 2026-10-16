@@ -4937,3 +4937,13 @@ Se realizó una inspección forense sobre las capturas de GUIAS_ASIGNADAS donde 
 - **Ocultamiento del FAB:** Regla CSS \ody.in-view-carga-bordo .fab-tlatoani { display: none !important; }\ y control dinámico en \window.navegarA\.
 - **Despliegue Alternativo Activo:** Se activó y desplegó en producción inmediata a través de GitHub Pages:
   \https://sidhartasantiago-cell.github.io/ollinqui-scanner/Entrega_Masiva_PWA/
+
+---
+
+## 📅 [2026-10-15 23:57] HITO: RECARGA DE CRÉDITOS Y DESPLIEGUE EXITOSO EN ENTREGA.ARAUTO.EXPRESS (v3.9.2 PROD)
+
+### 1. Resumen:
+- El Tlayacanqui Sidharta Santiago procesó la recarga de 1,500 créditos en Netlify.
+- Se ejecutó el script \deploy_entrega_netlify.py\ y Netlify aceptó el despliegue de inmediato (Deploy ID: ad1bca6d2a7d89abc000444\, State: eady\, Published: 6-10-16T05:56:55Z\).
+- El dominio canónico corporativo \https://entrega.arauto.express\ quedó 100% actualizado con la versión \3.9.2\.
+- Los Pochtecas que ya tenían la app instalada en sus pantallas principales recibirán la corrección del dock flotante automáticamente al abrir la app o tocar 'Actualizar App'.
