@@ -4739,3 +4739,185 @@ Se generó el archivo CSV canónico de 14 columnas con los **37 PIDs hermanos fa
   3. *Buzón de Aprendizaje Continuo:* Sistema de captura en 	latoani_buzon_aprendizaje.json para acumular dudas no resueltas de la semana para análisis y expansión con AXO o Antigravity.
   4. *Calibración de Thinking Budget:* Configurado 	hinkingConfig: { thinkingBudget: 0 } y maxOutputTokens: 1500 en 	latoani_chat.js, resolviendo definitivamente los truncamientos y logrando respuestas directas, estructuradas y con reglas Poka-Yoke.
   5. *Despliegue Productivo:* Desplegado en Netlify bajo ID 6ad06a6f636d0d53b0d7d9fd en https://entrega.arauto.express. 18/18 tests unitarios en PASS.
+
+
+---
+
+# 🏛️ MEMORIA TÉCNICA CANÓNICA — PREASIGNACIÓN ESPECIAL EN RAMPA: POCHTECA MIGUEL ROJAS (OLLIN v2026.10)
+
+**Fecha:** 15 de Octubre de 2026  
+**Ecosistema:** OLLIN / Painani Rampa / AppSheet Ruta  
+**Autoridad:** Tlayacanqui Sidharta Santiago  
+**Operador:** Miguel Rojas (mickeyroglez@gmail.com)  
+**ID de Sesión Painani:** REC-QRO-20261015-6689  
+
+---
+
+### 1. Contexto Operativo
+El Pochteca Miguel Rojas inició operación hoy como nuevo integrante del equipo de ruta. Debido a su incorporación reciente, sus paquetes no contaban con preasignación previa en el sistema central. De manera provisional y ágil, el equipo de rampa (Irvin Reyes) utilizó **Painani Rampa** para realizar el escaneo físico de los bultos asignados al operador.
+
+### 2. Conciliación y Mapeo Realizado
+- **PIDs escaneados en rampa:** 88 piezas bipiadas en la sesión REC-QRO-20261015-6689.
+- **Guías Madre (HWB) identificadas:** 85 guías únicas (correspondientes a la zona de San Luis de la Paz: CPs 37900, 37917, 37915, 37914, etc.).
+- **Estado previo en bases de datos:** 
+  - GUIAS_ASIGNADAS: Asignadas al holding msanluispaq@gmail.com.
+  - PIEZAS_PID: Existían las 88 piezas en estatus PRE_ASIGNADO / SIN_CARGAR.
+  - MESA_ASIGNACION: Registradas bajo msanluispaq@gmail.com.
+  - BD CENTRAL Ruta: Registradas bajo odega.arauto@gmail.com y msanluispaq@gmail.com.
+
+### 3. Acción Ejecutada
+Se ejecutó la actualización en lote (batch update atómico):
+1. **BD_APP_RUTA_2025 -> GUIAS_ASIGNADAS:** 85 guías reasignadas a mickeyroglez@gmail.com.
+2. **BOVEDA_BATCH_MAESTRO -> MESA_ASIGNACION:** 85 registros actualizados a mickeyroglez@gmail.com.
+3. **BD CENTRAL 2023 -> Ruta:** 83 registros actualizados a mickeyroglez@gmail.com.
+
+### 4. Resultado Operativo
+Miguel Rojas (mickeyroglez@gmail.com) ahora visualiza de forma inmediata las 85 guías (88 piezas) en su aplicación AppSheet en el módulo de carga, listas para ser bipiadas al vehículo y transicionar a estatus A_BORDO.
+
+
+---
+
+# 🚀 HITO EN VIVO: HABILITACIÓN DE POCHTECA MIGUEL ROJAS EN OLLINQUI PWA v3.7 PROD (DÍA 'D')
+
+**Fecha:** 15 de Octubre de 2026 16:45  
+**Ambiente:** Producción Netlify (https://entrega.arauto.express - Deploy ID: 6ad15760db034e01cd3f61fc)  
+**ID Control:** OLLIN_PWA_POCHTECA_MIGUEL_DIA_D  
+**Operador:** Miguel Rojas (mickeyroglez@gmail.com)  
+
+### 1. Desacoplamiento de AppSheet (Día 'D')
+Ante la directiva de operación pura sobre Ollinqui PWA sin AppSheet para Miguel:
+1. Se incorporó a Miguel Rojas en DIRECTORIO_POCHTECAS (pp.js) y en el selector inicial de usuarios de index.html.
+2. Se sincronizó el manifiesto activo fuera de línea (manifiesto_activo.json) con 91 bultos precargados para su usuario.
+3. Se actualizó el Cache Worker a ollin-pure-pwa-v3-33 con cabeceras Cache-Control: no-cache para actualización inmediata en el navegador móvil.
+4. Se validó el flujo de Carga a Bordo (iew-carga-bordo) para transición de PRE_ASIGNADO a A_BORDO con escaneo láser/cámara.
+
+
+---
+
+## 🚀 [2026-10-15 17:10] OLLINQUI PWA v3.8.6 PROD: OPTIMIZACIÓN DE LAYOUT MÓVIL Y SCROLL ERGONÓMICO EN ENTREGA
+
+- **Problema:** En dispositivos móviles, la estación de entrega (`#view-entrega`) recortaba la 3ª fila de checkpoints (`RD` y `ND`), ocultaba `➕ Otros Checkpoints`, el botón flotante `[ 🤖 TLATOANI ]` obstruía el dock/checkpoints, y el texto del botón `Confirmar (0)` se truncaba.
+- **Solución Implementada:**
+  1. **Contenedor Scrollable Fluido:** Se introdujo `.stage-scrollable-body` con `flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0;`, manteniendo la barra superior y el dock inferior firmemente fijos (`flex: none;`).
+  2. **Checkpoints Optimizados:** `.checkpoints-stage-card` pasó a `flex: none; overflow: visible;`, con botones obsidiana compactos (60px) que se desplazan de forma suave sin recortes.
+  3. **Reubicación de TLATOANI:** En `#view-entrega`, el botón flotante se apaga (`display: none`) y se aloja un botón pulcro `[ 🤖 TLATOANI ]` en la barra superior (`stage-nav-bar`), eliminando cualquier colisión visual.
+  4. **Dock Anti-Truncamiento:** Ajuste flexbox defensivo con `white-space: nowrap;` y paddings calibrados para pantallas estrechas (320px–360px).
+- **Pruebas:** 18/18 pruebas PASS (`app.test.js` y `tlatoani.test.js`).
+- **Despliegue:** Netlify PROD `https://entrega.arauto.express` (Deploy ID: `6ad15ce9df978482af397d7e`), Service Worker `v3-34`.
+
+
+---
+
+## 🏛️ HITO [2026-10-15]: PAINANI v86.0 PROD — RETORNO DE INCIDENCIAS A SVC (RASTREO DHL) Y ACTA NOTARIAL PDF
+- **Archivos modificados:** `Receptor_PU.js` (Despliegue `@255`), `Painani_Rampa_Frontend/index.html`, `Painani_Rampa_Frontend/sw.js` (`https://painani.arauto.express`).
+- **Almacenamiento Tabular y Documental:**
+  - Pestaña **`RETORNOS_SVC`** (16 columnas) en `BOVEDA_BATCH_MAESTRO` (`1wIz5YlSbpOLtDY9UNShZ9LHdcez_Vyxlu1wYxBZKTkw`), guardando PID Rampa (`JJD...`) y PID Bóveda (`JD...`), Guía HWB, Checkpoint Oficial DHL (`NH`, `BA`, `RD`, `CA`, `SA`), `CP_Destino`, `Zona_Logistica`, `Ultimo_Pochteca`, receptor SVC, URLs de Drive y sello criptográfico `SHA-256`.
+  - Carpeta **`PAINANI_RETORNOS_SVC_QRO`** en Google Drive con el PDF oficial del Acta, la firma en pantalla PNG y la fotografía del mostrador con marca de agua GPS/Hora.
+  - Actualización automática de comentarios en `BD_CENTRAL_2023` (`Ruta`) con `[ENTREGADO EN RASTREO SVC: <FOLIO>]`.
+- **Candado Poka-Yoke de Checkpoints Oficiales DHL:** Cruza en tiempo real `VALIDACIÓN_QRO_2025`, `PIEZAS_PID`, `GUIAS_ASIGNADAS` y `Ruta`. Si un PID no tiene checkpoint oficial de incidencia (`NH`, `BA`, `RD`, `CA`, `SA`), bloquea y alerta a Irvin para evitar rechazos en mostrador de Rastreo SVC.
+- **Rescate de PID Ilegible:** Permite recuperar el PID `JJD...` escaneando/tecleando la Guía HWB de 10 dígitos o mediante fotografía con Gemini Vision IA.
+- **Evidencia Anti-Controversia y Correo:** Sustituye el antiguo cuaderno de papel combinando Foto en Mostrador con Sello Digital GPS + Firma Touch en Pantalla + Envío inmediato del PDF a `irvin.reyes@arauto.express` y al correo del receptor en Rastreo SVC (sin CC a `sidharta.santiago@arauto.express`).
+
+
+---
+
+# 🛡️ AUDITORÍA Y SANEAMIENTO MAESTRO: DEPURACIÓN DE CHOFERES FANTASMA Y REZAGOS HISTÓRICOS (OLLIN v86.0 PROD)
+
+**Fecha:** 15 de Octubre de 2026 18:50  
+**ID de Auditoría:** OLLIN_AUDIT_PURGA_CHOFERES_FANTASMA  
+**Autoridad:** Tlayacanqui Sidharta Santiago / Agente Prudencia Gravita  
+
+### 1. Diagnóstico de Causa Raíz
+Se realizó una inspección forense sobre las capturas de GUIAS_ASIGNADAS donde figuraban yesigonzg1827@gmail.com y pochteca.3861832944@arauto.express.
+
+1. **Rezago Histórico por Filtro A-Z:**
+   - El sistema NO estaba asignando guías nuevas a estos correos. Las 41 filas de yesigonzg1827 fueron inyectadas entre el **6 y 8 de octubre** antes de la depuración de MATRIZ_CP.
+   - Debido a que DHL asigna EDD de +7 días para Sierra Gorda (13/10 a 15/10/2026), y la columna Chofer_Asignado fue ordenada alfabéticamente (A-Z), la letra **'Y'** desplazó estas 41 filas al final de la tabla (filas 1175 a 1215).
+   - Las 2 guías de pochteca.3861832944 procedían del incidente del 10 de octubre previo al blindaje estricto de remitentes en WhatsApp.
+
+2. **Desconexión entre Memoria Local y CAT_USUARIOS:**
+   - En calpixqui_gobernanza.py, la rutina _cargar_o_sembrar() retornaba inmediatamente si existía directorio_pochtecas.json, impidiendo que las bajas de CAT_USUARIOS se reflejaran en el demonio.
+
+### 2. Acciones Correctivas Ejecutadas
+1. **Saneamiento Atómico de Tablas:**
+   - GUIAS_ASIGNADAS: **139 filas huérfanas reasignadas** a sus titulares oficiales según MATRIZ_CP (Fmtierrabla1@gmail.com y msanluispaq@gmail.com). 
+   - MESA_ASIGNACION: **804 registros históricos reasignados** a operadores vigentes.
+   - Resultado: **0 filas huérfanas** en todo el ecosistema.
+2. **Blindaje de Gobernanza (PochtecasManager):**
+   - Se forzó la sincronización estricta contra CAT_USUARIOS en cada ciclo de arranque.
+   - Cualquier operador ausente de CAT_USUARIOS se marca automáticamente como Inactivo.
+3. **Limpieza de Allowlist Canónica:**
+   - Se depuraron las referencias a yesigonzg1827 y mpaqueteriatvsm en calpixqui_vision_router.py, Entrega_Masiva_PWA/app.js e index.html.
+
+
+---
+
+## 🏛️ [2026-10-15] SINCRONIZACIÓN OPERATIVA DUAL Y CIERRE NOCTURNO: BD CENTRAL 2023 ⮂ BD_APP_RUTA_2025 (OLLINQUI PWA)
+
+### 1. Diagnóstico y Causa Raíz
+- **Desacoplamiento Operativo:** Al implementar la transición hacia Ollinqui PWA (`https://entrega.arauto.express`), existían dos canales de captura en campo:
+  1. *AppSheet Clásica (o Despacho Central):* Conectada a la hoja `Ruta` de `BD CENTRAL 2023` (`1osolxYzL12I05J2CUy5PBAGpPD2Z3XeU37RzUlFPPO8`).
+  2. *Ollinqui PWA:* Conectada a `BD_APP_RUTA_2025` (`1Rj7Ce6jWIFTXTamfcgO2h-uhFKBuNhSB8m_tBY_g__w`) mediante el webhook de `Receptor_PU.js`.
+- **Síntoma Detectado:** 141 guías (146 PIDs) ya habían sido entregadas o excepcionadas en `BD CENTRAL 2023` (`OK: 132`, `NH: 4`, `BA: 4`, `RD: 1`), pero permanecían en `GUIAS_ASIGNADAS` y `PIEZAS_PID` con estatus `PRE_ASIGNADO`. Esto provocaba que en Ollinqui PWA se mostraran como pendientes y descuadrara el cierre operativo.
+
+### 2. Mecanismo de Sincronización Dual Implementado
+- **Dirección 1: BD CENTRAL 2023 (`Ruta`) ➡️ BD_APP_RUTA_2025 (`GUIAS_ASIGNADAS` y `PIEZAS_PID`)**
+  - Motor: `sincronizador_cierre_dual.py` y función Apps Script `sincronizarEntregasRutaHaciaApp()` en `Puente_Ruta_Temporal.js`.
+  - Mapeo Atómico: Si `Checkpoint` en `Ruta` es diferente de `PRE_ASIGNADO`:
+    - En `GUIAS_ASIGNADAS`: `Estatus_Guia` = `OK/Incidencia`, `Nuevo_Estatus` = `OK/Incidencia`, `Nombre_Recibe` = Quien recibió.
+    - En `PIEZAS_PID`: `Estatus_PID` = `OK/Incidencia`, `Nombre_Recibe_PID` = Quien recibió, `Timestamp_Entrega_PID` = Fecha entrega.
+  - Comportamiento en PWA: Al estar en `OK/PD/CA/RD/CM/DF`, el optimizador de ruta marca la parada como `completada: true`, retirándola automáticamente de la vista de pendientes del Pochteca.
+  - Auditoría y Facturación: Alimenta automáticamente la hoja `Validación` en `VALIDACIÓN_QRO_2025` para visto bueno del auditor e inyección a `FACTURADOS_PROD_2026` (`BOVEDA_BATCH_MAESTRO`).
+- **Dirección 2: Ollinqui PWA ➡️ BD CENTRAL 2023 (`Ruta`)**
+  - Implementado en `Receptor_PU.js` (`procesarSincronizacionEntregaMasivaOffline_`):
+  - Al recibir una entrega o excepción desde la PWA, se actualiza simultáneamente `PIEZAS_PID`, `GUIAS_ASIGNADAS`, `VALIDACIÓN_QRO_2025` y se refleja en caliente en la hoja `Ruta` de `BD CENTRAL 2023` (Checkpoint, Quien recibió, Fecha en ruta, GPS y Foto).
+- **Resultado Operativo:** Cuadre exacto 1:1 entre ambas modalidades para permitir cierres nocturnos unificados.
+
+
+---
+
+## 🛡️ [2026-10-15] BLINDAJE POKA-YOKE Y FILTRO DE RUTA ACTIVA: CORRECCIÓN DE BULTOS HISTÓRICOS (CASO EDGAR: 441 ➡️ 198)
+
+### 1. Diagnóstico del Problema de los 441 Bultos
+- **Causa Raíz:** En `BD_APP_RUTA_2025` (`PIEZAS_PID` y `GUIAS_ASIGNADAS`) se habían acumulado más de 750 registros de días y semanas anteriores (septiembre y octubre 1 al 14) porque nunca se purgaban al inicio del turno.
+- **Efecto en PWA:** Edgar (`edgar.rodriguez.arauto@gmail.com`) tenía realmente **180 guías / 198 bultos** en la hoja `Ruta` de `BD CENTRAL 2023`, pero la PWA consultaba toda la tabla sin discriminar por la ruta activa del día, mostrando erróneamente **441 bultos** para subir a bordo.
+
+### 2. Acciones y Blindaje Implementado
+1. **Filtro Poka-Yoke en Webhook `consultarPidsAsignadosChofer_` (Versión 258 PROD):**
+   - El webhook ahora lee en caliente la hoja `Ruta` de `BD CENTRAL 2023`.
+   - **Regla Inviolable:** Si un bulto no pertenece a la ruta activa de hoy en BD Central, es descartado inmediatamente y jamás viaja a la PWA.
+   - Si en BD Central ya fue entregado (`OK` o incidencia), el webhook sobreescribe su estatus en caliente a `OK`, marcándolo como parada completada en la PWA.
+2. **Archivado Seguro:**
+   - 680 guías y 757 PIDs anteriores fueron respaldados de manera inmutable en las pestañas `HISTORICO_GUIAS_PREVIAS` y `HISTORICO_PIEZAS_PREVIAS`.
+3. **Resultado Inmediato:**
+   - Edgar pasa de 441 bultos a **198 bultos reales** (61 ya entregados hoy, 2 incidencias y 135 pendientes).
+   - Manifiesto general limpio y 100% alineado a la ruta operativa del día.
+
+
+---
+
+## 📱 [2026-10-15] CORRECCIÓN DE LAYOUT MÓVIL PWA: DOCK INFERIOR FIJO Y REJILLA ERGONÓMICA DE CHECKPOINTS (v3.9.1 PROD)
+
+### 1. Diagnóstico y Causa Raíz
+- **Síntoma Reportado:** Los choferes e Irvin Reyes reportaron que en la estación de entrega manual (`view-entrega`) no se veían los botones de acción de hasta abajo (Cápsula Teoyolotl Mic, Evidencia, Confirmar Lote y Borrar).
+- **Causa Raíz:**
+  1. `.static-dock-bottom` estaba configurado en flujo normal (`flex: none; display: flex;`) sin anclaje fijo (`position: static`).
+  2. Al desplegarse la tarjeta de Checkpoints con 6 botones de gran tamaño (min-height 60px, descripciones en 3 líneas, iconos 1.75rem), la altura combinada superaba el alto de pantalla de los dispositivos Android (740px - 800px).
+  3. En Android con barra de navegación del sistema (3 botones) y `<meta viewport-fit=cover>`, el viewport empujaba el dock fuera de la vista y la regla `overflow: hidden` de `.app-view` lo recortaba completamente.
+  4. La barra de WhatsApp o de navegación tapaba o recortaba el área inferior.
+
+### 2. Solución de Ingeniería Aplicada (v3.9.1 PROD)
+1. **Anclaje Fijo del Dock:**
+   - `.static-dock-bottom` se transformó a `position: fixed; bottom: 0; left: 0; right: 0; max-width: 480px; margin: 0 auto; z-index: 100;`.
+   - Incorporación de `background: rgba(11, 15, 25, 0.96); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);`.
+   - Soporte nativo para safe-area de Android e iOS: `padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px)) 12px;` y altura calculada `height: calc(62px + env(safe-area-inset-bottom, 0px));`.
+   - Regla de ocultamiento estricta: `.app-view:not(.active) .static-dock-bottom { display: none !important; }`.
+2. **Despeje del Contenedor de Scroll:**
+   - `.stage-scrollable-body` configurado con `padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));` para garantizar que el último botón de checkpoint o tarjetas de IA se puedan desplazar completamente por encima del dock sin quedar tapados.
+3. **Ergonomía y Compactación de Checkpoints:**
+   - Reducción visual armónica de los 6 botones `.btn-cp-obsidian`: padding 6px 4px, icono 1.45rem, min-height 52px y descripciones concisas (1.05 line-height).
+   - Se recuperaron más de 75px de espacio vertical, permitiendo que en la mayoría de pantallas Android la estación completa entre sin necesidad de scroll forzado.
+4. **Despliegue y Purga de Caché:**
+   - Incremento de versión de Service Worker a `ollin-pure-pwa-v3-91` en `sw.js`.
+   - Versionado en query strings `styles.css?v=3.9.1` y `app.js?v=3.9.1` en `index.html`.
+   - Despliegue en GitHub Pages de alta velocidad: `https://sidhartasantiago-cell.github.io/ollinqui-scanner/Entrega_Masiva_PWA/`.
