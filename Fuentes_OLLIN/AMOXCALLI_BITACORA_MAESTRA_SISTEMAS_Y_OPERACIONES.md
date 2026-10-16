@@ -4921,3 +4921,19 @@ Se realizó una inspección forense sobre las capturas de GUIAS_ASIGNADAS donde 
    - Incremento de versión de Service Worker a `ollin-pure-pwa-v3-91` en `sw.js`.
    - Versionado en query strings `styles.css?v=3.9.1` y `app.js?v=3.9.1` en `index.html`.
    - Despliegue en GitHub Pages de alta velocidad: `https://sidhartasantiago-cell.github.io/ollinqui-scanner/Entrega_Masiva_PWA/`.
+
+
+---
+
+## 📅 [2026-10-15 22:00] HITO: RESOLUCIÓN DEFINITIVA DE VISIBILIDAD DE BOTONES INFERIORES Y DESPLIEGUE GH-PAGES (v3.9.2)
+
+### 1. Causas Raíz Identificadas:
+- **Netlify Congelado:** El sitio \https://entrega.arauto.express\ quedó congelado en la v3.8.6 debido a que la cuenta de Netlify (\sidharta-santiago\) agotó sus créditos gratuitos mensuales y bloqueó los deploys nuevos (Error 403 / account credit usage exceeded).
+- **Colisión con Barra de 3 Botones de Android:** En pantallas móviles Android con botones virtuales de sistema, \ottom: 0\ o @dvh\ posiciona los elementos por debajo de la barra del sistema (48-60px), dejando solo visible una franja diminuta del botón superior.
+- **FAB TLATOANI en Rampa:** El botón flotante de TLATOANI no se ocultaba en la vista \iew-carga-bordo\, estorbando directamente sobre el botón de acción principal.
+
+### 2. Solución Aplicada (v3.9.2):
+- **Dock Flotante Ergonómico:** Se convirtió \.static-dock-bottom\ en una cápsula flotante con \ottom: max(16px, env(safe-area-inset-bottom, 0px))\, bordes redondeados (\order-radius: 16px\), elevación con sombra obsidian y padding inferior de compensación (\padding-bottom: 90px\).
+- **Ocultamiento del FAB:** Regla CSS \ody.in-view-carga-bordo .fab-tlatoani { display: none !important; }\ y control dinámico en \window.navegarA\.
+- **Despliegue Alternativo Activo:** Se activó y desplegó en producción inmediata a través de GitHub Pages:
+  \https://sidhartasantiago-cell.github.io/ollinqui-scanner/Entrega_Masiva_PWA/
