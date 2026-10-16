@@ -8,7 +8,10 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AIzaSyBaCHFMOkIA_L19Yo45q0yP82hXo4ALLgA";
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+if (!GEMINI_API_KEY) {
+  console.warn("⚠️ GEMINI_API_KEY no configurada en las variables de entorno de Netlify.");
+}
 
 const WEBHOOK_QRO = "https://chat.googleapis.com/v1/spaces/AAQAEoaLlMQ/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=C3nlfauF5BX4ywmc4xnQWDbr8B5qdJINL-SUbhHw3PI";
 const WEBHOOK_LEN = "https://chat.googleapis.com/v1/spaces/AAQAfglmxgU/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=b_yjbJt9WnlrbBFHfWKs1dM26EzK-KUnYhhigT6sghI";
