@@ -1808,7 +1808,7 @@ body::before {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
   min-height: 0;
 }
 
@@ -2336,25 +2336,26 @@ body::before {
   100% { transform: scale(1); box-shadow: 0 0 0 rgba(16, 185, 129, 0); }
 }
 
-/* Dock Inferior Fijo Poka-Yoke: Anclado Siempre en Pantalla */
+/* Dock Inferior Fijo Poka-Yoke: Flotante Ergonómico sobre la Barra de Navegación */
 .static-dock-bottom {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  max-width: 480px;
+  bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  left: 12px;
+  right: 12px;
+  max-width: 456px;
   margin: 0 auto;
   z-index: 100;
-  background: rgba(11, 15, 25, 0.96);
+  background: rgba(11, 15, 25, 0.98);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.65);
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  border-radius: 16px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(16, 185, 129, 0.15);
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px)) 12px;
-  height: calc(62px + env(safe-area-inset-bottom, 0px));
+  padding: 8px 10px;
+  height: 60px;
   box-sizing: border-box;
 }
 
@@ -2880,8 +2881,9 @@ body::before {
   transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease;
 }
 
-/* En la estación de entrega, el asistente TLATOANI vive en la barra superior (stage-nav-bar) */
-body.in-view-entrega .fab-tlatoani {
+/* En la estación de entrega y en rampa, el asistente TLATOANI vive en la barra superior (stage-nav-bar) */
+body.in-view-entrega .fab-tlatoani,
+body.in-view-carga-bordo .fab-tlatoani {
   display: none !important;
 }
 

@@ -908,12 +908,17 @@ window.navegarA = function(vistaId) {
   if (targetView) targetView.classList.add('active');
   currentActiveView = vistaId;
 
-  // Control Poka-Yoke de FAB TLATOANI: en view-entrega vive en la barra superior
+  // Control Poka-Yoke de FAB TLATOANI: en view-entrega y view-carga-bordo vive en la barra superior o se oculta
   if (document.body) {
     if (vistaId === 'view-entrega') {
       document.body.classList.add('in-view-entrega');
     } else {
       document.body.classList.remove('in-view-entrega');
+    }
+    if (vistaId === 'view-carga-bordo') {
+      document.body.classList.add('in-view-carga-bordo');
+    } else {
+      document.body.classList.remove('in-view-carga-bordo');
     }
   }
 
@@ -3760,7 +3765,7 @@ window.addEventListener('load', () => {
 
 window.forzarActualizacionApp = async function() {
   initAudio();
-  showToast('Actualizando a v3.9.1 PROD...', '🔄');
+  showToast('Actualizando a v3.9.2 PROD...', '🔄');
   try {
     if ('serviceWorker' in navigator) {
       const regs = await navigator.serviceWorker.getRegistrations();
@@ -3771,7 +3776,7 @@ window.forzarActualizacionApp = async function() {
       for (let k of keys) await caches.delete(k);
     }
   } catch(e) {}
-  window.location.href = window.location.origin + window.location.pathname + '?v=3.9.1&t=' + Date.now();
+  window.location.href = window.location.origin + window.location.pathname + '?v=3.9.2&t=' + Date.now();
 };
 
 // ====================================================================
